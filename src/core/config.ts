@@ -13,6 +13,8 @@ export const WALL_STUDS = ['2x4', '2x6'] as const;
 export const CORNERS = ['four-stud', 'three-stud', 'california', 'two-stud'] as const;
 export const WALLS = ['front', 'back', 'left', 'right'] as const;
 export const OPENING_KINDS = ['door', 'window', 'overhead', 'custom'] as const;
+export const HEADER_STYLES = ['single', 'double', 'triple', 'flat'] as const;
+export const ALONG = ['percent', 'left', 'right'] as const;
 export const ROOF_STYLES = ['gable', 'lean-to'] as const;
 export const TAIL_CUTS = ['plumb', 'square'] as const;
 export const SHEATHING = ['none', ...SHEET_KEYS] as const;
@@ -77,20 +79,40 @@ const walls = z.strictObject({
   corner: z.enum(CORNERS).default('four-stud'),
   header: twoBy.default('2x8'),
   doubleJackOver: len(24, 240).default(72), // RO width above which auto jacks become 2 per side
+  sillPlies: count(1, 2).default(1),
   sheathing: z.enum(SHEATHING).default('osb-7/16'),
 });
 
-const opening = z.strictObject({
-  id: z.string().min(1),
+// A reusable opening: kind, rough opening (RO), and header details. Placement rows refer to it by name.
+const openingType = z.strictObject({
+  name: z.string().trim().min(1, 'Required'),
   kind: z.enum(OPENING_KINDS),
-  wall: z.enum(WALLS),
-  offset: len(0, 480), // outside corner to RO left edge, viewed from outside
   width: len(6, 240),
   height: len(6, 192),
-  sill: len(0, 120).default(0), // floor to RO bottom
-  header: twoBy.optional(), // absent: walls.header
+  header: z.enum(LUMBER_SIZES).optional(), // absent: walls.header. A flat header is the wall stud.
+  girder: z.enum(HEADER_STYLES).default('double'),
+  plateBelow: z.boolean().default(false),
+  plateAbove: z.boolean().default(false),
   jacks: z.union([auto, count(1, 3)]).default('auto'),
+  headroom: len(0, 48).default(12), // overhead doors: clear height needed above the RO for the track
 });
+
+// An opening type on one wall, at one or more positions.
+const opening = z
+  .strictObject({
+    enabled: z.boolean().default(true),
+    type: z.string(),
+    wall: z.enum(WALLS),
+    sill: len(0, 120).default(0), // floor to RO bottom
+    // percent: RO center at a percent of the wall length. left, right: the wall's outside corner,
+    // viewed from outside, to the near RO edge.
+    along: z.enum(ALONG).default('percent'),
+    at: z.array(z.number().min(0, 'Min 0')).min(1, 'Give at least one position'),
+  })
+  .refine((row) => row.along !== 'percent' || row.at.every((value) => value <= 100), {
+    message: 'Max 100%',
+    path: ['at'],
+  });
 
 const roof = z.strictObject({
   style: z.enum(ROOF_STYLES).default('gable'),
@@ -157,12 +179,26 @@ export const shedSchema = z.strictObject({
   foundation: foundation.prefault({}),
   floor: floor.prefault({}),
   walls: walls.prefault({}),
+  openingTypes: z.array(openingType).default([]),
   openings: z.array(opening).default([]),
   roof: roof.prefault({}),
   catalog: catalog.prefault({}),
+}).superRefine((config, context) => {
+  const names = config.openingTypes.map((type) => type.name);
+  names.forEach((name, index) => {
+    if (names.indexOf(name) !== index) {
+      context.addIssue({ code: 'custom', message: `Duplicate name "${name}"`, path: ['openingTypes', index, 'name'] });
+    }
+  });
+  config.openings.forEach((row, index) => {
+    if (!names.includes(row.type)) {
+      context.addIssue({ code: 'custom', message: `No opening type "${row.type}"`, path: ['openings', index, 'type'] });
+    }
+  });
 });
 
 export type ShedConfig = z.infer<typeof shedSchema>;
+export type OpeningType = ShedConfig['openingTypes'][number];
 export type Opening = ShedConfig['openings'][number];
 
 export type ParseResult = { ok: true; config: ShedConfig } | { ok: false; errors: string[] };

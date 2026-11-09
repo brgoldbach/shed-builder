@@ -27,7 +27,7 @@ import {
   setter,
   type SectionProps,
 } from './fields';
-import { OpeningsEditor } from './OpeningsEditor';
+import { OpeningRowsEditor, OpeningTypesEditor } from './OpeningsEditor';
 
 type Foundation = ShedConfig['foundation'];
 type Floor = ShedConfig['floor'];
@@ -57,8 +57,11 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       <FoundationSection value={value.foundation} onChange={set('foundation')} />
       {value.foundation.type !== 'slab' && <FloorSection value={value.floor} onChange={set('floor')} />}
       <WallsSection value={value.walls} onChange={set('walls')} />
+      <Section title="Opening types">
+        <OpeningTypesEditor value={value} onChange={onChange} />
+      </Section>
       <Section title="Openings">
-        <OpeningsEditor value={value.openings} onChange={set('openings')} />
+        <OpeningRowsEditor value={value} onChange={onChange} />
       </Section>
       <RoofSection value={value.roof} onChange={set('roof')} />
       <CatalogSection value={value.catalog} onChange={set('catalog')} />
@@ -139,6 +142,7 @@ function WallsSection({ value, onChange }: SectionProps<Walls>) {
       <SelectField label="Corner" value={value.corner} options={CORNERS} describe={(corner) => CORNER_LABELS[corner]} onChange={set('corner')} />
       <SelectField label="Default header" value={value.header} options={TWO_BY} onChange={set('header')} />
       <LengthField label="2 jacks when RO over" value={value.doubleJackOver} onChange={set('doubleJackOver')} />
+      <SelectField label="Rough sill plies" value={value.sillPlies} options={[1, 2]} onChange={set('sillPlies')} />
       <SelectField label="Sheathing" value={value.sheathing} options={SHEATHING} describe={sheetLabel} onChange={set('sheathing')} />
     </Section>
   );

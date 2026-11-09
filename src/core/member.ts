@@ -18,8 +18,20 @@ export const ROLES = {
   'plate.cap': 'Cap plate',
   corner: 'Corner stud',
   stud: 'Stud',
+  king: 'King stud',
+  jack: 'Jack stud',
+  header: 'Header',
+  'header.plate': 'Header plate',
+  sill: 'Rough sill',
+  cripple: 'Cripple',
 } as const;
 export type Role = keyof typeof ROLES;
+
+/** A design problem found while framing. `source` names the opening or part. */
+export interface Warning {
+  source: string;
+  message: string;
+}
 
 /**
  * One piece of lumber, as a box in building coordinates (inches, x along the length, y front to
@@ -35,4 +47,5 @@ export interface Member {
   length: number;
   origin: Vec3;
   axes: { length: Vec3; width: Vec3; thick: Vec3 };
+  note?: string; // shop instruction for the cut list
 }

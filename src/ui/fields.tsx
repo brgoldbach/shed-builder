@@ -36,17 +36,20 @@ interface FieldProps<T> {
   onChange: Edit<T>;
 }
 
-interface ParsedFieldProps<T> extends FieldProps<T> {
+interface ParsedInputProps<T> extends FieldProps<T> {
   parse: (text: string) => T | null;
   format: (value: T) => string;
   invalid?: string;
-  wide?: boolean;
+  className?: string;
 }
 
-const NOT_A_LENGTH = `Not a length, e.g. 7' 8-5/8"`;
+export const NOT_A_LENGTH = `Not a length, e.g. 7' 8-5/8"`;
 
-// Text input that commits on blur or Enter. A rejected value stays in the box with its error.
-function ParsedField<T>({ label, value, onChange, parse, format, invalid = 'Not valid', wide }: ParsedFieldProps<T>) {
+/**
+ * Text input without a visible label. It commits on blur or Enter. A rejected value stays in the
+ * box, with its error after the input.
+ */
+export function ParsedInput<T>({ label, value, onChange, parse, format, invalid = 'Not valid', className }: ParsedInputProps<T>) {
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,9 +62,11 @@ function ParsedField<T>({ label, value, onChange, parse, format, invalid = 'Not 
   }
 
   return (
-    <label className={wide ? 'field wide' : 'field'}>
-      <span>{label}</span>
+    <>
       <input
+        aria-label={label}
+        title={label}
+        className={className}
         value={draft ?? format(value)}
         aria-invalid={error !== null}
         onChange={(event) => setDraft(event.target.value)}
@@ -71,6 +76,15 @@ function ParsedField<T>({ label, value, onChange, parse, format, invalid = 'Not 
         }}
       />
       {error && <small className="error">{error}</small>}
+    </>
+  );
+}
+
+function ParsedField<T>({ wide, ...props }: ParsedInputProps<T> & { wide?: boolean }) {
+  return (
+    <label className={wide ? 'field wide' : 'field'}>
+      <span>{props.label}</span>
+      <ParsedInput {...props} />
     </label>
   );
 }
@@ -123,26 +137,43 @@ function parseLengthList(text: string): number[] | null {
   return lengths.some((length) => length === null) ? null : (lengths as number[]);
 }
 
-export function SelectField<T extends string | number>({
+interface SelectProps<T> extends FieldProps<T> {
+  options: readonly T[];
+  describe?: (option: T) => string;
+  disabled?: boolean;
+}
+
+/** Select without a visible label. */
+export function SelectInput<T extends string | number>({
   label,
   value,
   options,
   describe = String,
+  disabled,
   onChange,
-}: FieldProps<T> & { options: readonly T[]; describe?: (option: T) => string }) {
+}: SelectProps<T>) {
+  return (
+    <select
+      aria-label={label}
+      title={label}
+      value={String(value)}
+      disabled={disabled}
+      onChange={(event) => onChange(options.find((option) => String(option) === event.target.value)!)}
+    >
+      {options.map((option) => (
+        <option key={String(option)} value={String(option)}>
+          {describe(option)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export function SelectField<T extends string | number>(props: SelectProps<T>) {
   return (
     <label className="field">
-      <span>{label}</span>
-      <select
-        value={String(value)}
-        onChange={(event) => onChange(options.find((option) => String(option) === event.target.value)!)}
-      >
-        {options.map((option) => (
-          <option key={String(option)} value={String(option)}>
-            {describe(option)}
-          </option>
-        ))}
-      </select>
+      <span>{props.label}</span>
+      <SelectInput {...props} />
     </label>
   );
 }

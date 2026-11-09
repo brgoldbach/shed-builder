@@ -6,7 +6,7 @@ import type { Member, Role } from '../src/core/member';
 
 // 8 x 10 ft, 2x4 at 16 in o.c., 92-5/8 in studs, cap plate, 4-stud corners.
 const base = { schemaVersion: 1, width: 96, length: 120 };
-const build = (overrides: object = {}) => frameWalls(shedSchema.parse({ ...base, ...overrides }));
+const build = (overrides: object = {}) => frameWalls(shedSchema.parse({ ...base, ...overrides })).members;
 
 const wall = (members: Member[], name: string) => members.filter((member) => member.assembly === `wall.${name}`);
 const ofRole = (members: Member[], ...roles: Role[]) => members.filter((member) => roles.includes(member.role));
@@ -126,7 +126,7 @@ describe('lean-to walls', () => {
   });
 
   it('laps caps only at the level corners', () => {
-    const members = frameWalls(config);
+    const members = frameWalls(config).members;
     expect(lengths(ofRole(wall(members, 'front'), 'plate.cap'))).toEqual([144]);
     expect(lengths(ofRole(wall(members, 'back'), 'plate.cap'))).toEqual([137]);
     expect(lengths(ofRole(wall(members, 'left'), 'plate.cap'))).toEqual([116.5]);

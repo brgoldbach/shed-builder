@@ -1,8 +1,12 @@
-FW-1      1  2x4             144"  Bottom plate
+FW-1      1  2x4             144"  Bottom plate. After anchoring, cut out door 36 (front 50%) from 53" to 91" from the left end, viewed from outside.
 FW-2      1  2x4             144"  Top plate
 FW-3      1  2x4             144"  Cap plate
 FW-4      6  2x4         121-3/4"  Corner stud
-FW-5      8  2x4         121-3/4"  Stud
+FW-5      6  2x4         121-3/4"  Stud
+FW-6      2  2x4         121-3/4"  King stud
+FW-7      2  2x4          80-3/4"  Jack stud
+FW-8      2  2x8              41"  Header
+FW-9      2  2x4          33-3/4"  Cripple
 BW-1      1  2x4             144"  Bottom plate
 BW-2      1  2x4             144"  Top plate
 BW-3      1  2x4             137"  Cap plate
@@ -12,7 +16,13 @@ LW-1      1  2x4             113"  Bottom plate
 LW-2      1  2x4             113"  Top plate
 LW-3      1  2x4         116-1/2"  Cap plate
 LW-4      2  2x4          92-5/8"  Corner stud
-LW-5      7  2x4          92-5/8"  Stud
+LW-5      5  2x4          92-5/8"  Stud
+LW-6      2  2x4          92-5/8"  King stud
+LW-7      2  2x4          80-3/4"  Jack stud
+LW-8      2  2x8              27"  Header
+LW-9      1  2x4              24"  Rough sill
+LW-10     1  2x4          43-1/4"  Cripple
+LW-11     1  2x4           4-5/8"  Cripple
 RW-1      1  2x4             113"  Bottom plate
 RW-2      1  2x4             113"  Top plate
 RW-3      1  2x4         116-1/2"  Cap plate

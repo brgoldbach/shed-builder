@@ -4,9 +4,13 @@
   "width": 120,
   "length": 144,
   "foundation": { "type": "pier", "pier": { "girder": "2x8", "girderPlies": 2, "girderCount": 3 } },
+  "openingTypes": [
+    { "name": "door 36", "kind": "door", "width": 38, "height": 82.25 },
+    { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 }
+  ],
   "openings": [
-    { "id": "D1", "kind": "door", "wall": "front", "offset": 53, "width": 38, "height": 82.5 },
-    { "id": "W1", "kind": "window", "wall": "left", "offset": 48, "width": 24.5, "height": 36.5, "sill": 46 }
+    { "type": "door 36", "wall": "front", "at": [50] },
+    { "type": "window 24x36", "wall": "left", "sill": 46.25, "along": "left", "at": [48] }
   ],
   "roof": { "style": "lean-to", "pitch": 3, "rafter": "2x8", "oc": 16, "highSide": "front" }
 }

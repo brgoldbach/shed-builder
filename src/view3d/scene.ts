@@ -21,12 +21,23 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { LUMBER } from '../core/catalog';
-import type { Member, Vec3 } from '../core/member';
+import type { Member, Role, Vec3 } from '../core/member';
 
 const CLICK_SLOP = 4; // px of pointer travel that still counts as a click, not an orbit
 const VIEW_FROM = new Vector3(-0.55, -1, 0.6).normalize(); // front-left, above
 
 const vector = (value: Vec3) => new Vector3(value[0], value[1], value[2]);
+
+// Plates, headers, and sills take the darker color, so they read apart from the studs.
+const HORIZONTAL = new Set<Role>([
+  'plate.sill',
+  'plate.bottom',
+  'plate.top',
+  'plate.cap',
+  'header',
+  'header.plate',
+  'sill',
+]);
 
 /** Three.js view of the framing members. Building z is up. Renders on demand only. */
 export class FramingScene {
@@ -135,7 +146,7 @@ export class FramingScene {
 
   private baseMaterial(member: Member) {
     if (member.treated) return this.materials.treated;
-    return member.role.startsWith('plate') ? this.materials.plate : this.materials.stud;
+    return HORIZONTAL.has(member.role) ? this.materials.plate : this.materials.stud;
   }
 
   private applySelection() {

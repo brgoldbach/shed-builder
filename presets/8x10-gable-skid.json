@@ -4,9 +4,13 @@
   "width": 96,
   "length": 120,
   "foundation": { "type": "skid", "skid": { "size": "4x6", "count": 2 } },
+  "openingTypes": [
+    { "name": "shed door 64x76", "kind": "door", "width": 64, "height": 76 },
+    { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 }
+  ],
   "openings": [
-    { "id": "D1", "kind": "door", "wall": "left", "offset": 16, "width": 64, "height": 76 },
-    { "id": "W1", "kind": "window", "wall": "front", "offset": 48, "width": 24.5, "height": 36.5, "sill": 46 }
+    { "type": "shed door 64x76", "wall": "left", "at": [50] },
+    { "type": "window 24x36", "wall": "front", "sill": 46.25, "along": "left", "at": [48] }
   ],
   "roof": { "style": "gable", "pitch": 6, "rafter": "2x4", "oc": 24, "ridge": "2x6" }
 }

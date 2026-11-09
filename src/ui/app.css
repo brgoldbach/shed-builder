@@ -50,7 +50,8 @@ select {
 
 button,
 select,
-.field input {
+.field input,
+.opening-grid input {
   padding: 3px 8px;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -67,7 +68,7 @@ button {
 
 .app {
   display: grid;
-  grid-template: 'top top' 44px 'side main' minmax(0, 1fr) / 320px minmax(0, 1fr);
+  grid-template: 'top top' 44px 'side main' minmax(0, 1fr) / 340px minmax(0, 1fr);
   height: 100vh;
 }
 
@@ -199,6 +200,72 @@ button {
   margin: 8px 0;
 }
 
+.opening-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 16px;
+  gap: 6px;
+  align-items: start;
+  margin: 8px 0;
+}
+
+.opening-row > input[type='checkbox'] {
+  margin-top: 7px;
+}
+
+.opening-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 4px;
+}
+
+.opening-grid select,
+.opening-grid input {
+  width: 100%;
+  min-width: 0;
+}
+
+.opening-grid .grid-label {
+  align-self: center;
+  padding-left: 9px;
+}
+
+.stepper {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepper button {
+  width: 30px;
+}
+
+.opening-grid .number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.opening-grid .error {
+  grid-column: 1 / -1;
+  color: var(--error);
+}
+
+.opening-grid input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.opening-row.off .opening-grid {
+  opacity: 0.5;
+}
+
+.opening-row .remove {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+
 .workspace {
   grid-area: main;
   display: flex;
@@ -270,7 +337,7 @@ button {
 
 .cutlist {
   width: 100%;
-  max-width: 720px;
+  max-width: 960px;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
 }
@@ -284,6 +351,11 @@ button {
 
 .cutlist .number {
   text-align: right;
+}
+
+.cutlist .note {
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .cutlist .group th {
@@ -300,4 +372,14 @@ button {
 
 .cutlist tfoot td {
   border-bottom: none;
+}
+
+.warnings {
+  max-width: 720px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.warnings li {
+  margin: 6px 0;
 }

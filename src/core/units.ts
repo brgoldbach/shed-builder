@@ -21,7 +21,8 @@ function format(inches: number, withFeet: boolean): string {
     denom /= 2;
   }
   const fraction = numer ? `${numer}/${denom}` : '';
-  const inchText = whole && fraction ? `${whole}-${fraction}` : fraction || `${whole}`;
+  // After feet, a fraction always has its whole inches: 2' 0-1/2", not 2' 1/2".
+  const inchText = fraction && (whole || feet) ? `${whole}-${fraction}` : fraction || `${whole}`;
   return feet ? `${sign}${feet}' ${inchText}"` : `${sign}${inchText}"`;
 }
 

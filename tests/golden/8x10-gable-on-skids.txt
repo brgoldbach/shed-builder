@@ -2,17 +2,26 @@ FW-1      1  2x4             120"  Bottom plate
 FW-2      1  2x4             120"  Top plate
 FW-3      1  2x4             113"  Cap plate
 FW-4      6  2x4          92-5/8"  Corner stud
-FW-5      7  2x4          92-5/8"  Stud
+FW-5      5  2x4          92-5/8"  Stud
+FW-6      2  2x4          92-5/8"  King stud
+FW-7      2  2x4          80-3/4"  Jack stud
+FW-8      2  2x8              27"  Header
+FW-9      1  2x4              24"  Rough sill
+FW-10     1  2x4          43-1/4"  Cripple
+FW-11     1  2x4           4-5/8"  Cripple
 BW-1      1  2x4             120"  Bottom plate
 BW-2      1  2x4             120"  Top plate
 BW-3      1  2x4             113"  Cap plate
 BW-4      6  2x4          92-5/8"  Corner stud
 BW-5      7  2x4          92-5/8"  Stud
-LW-1      1  2x4              89"  Bottom plate
+LW-1      1  2x4              89"  Bottom plate. After anchoring, cut out shed door 64x76 (left 50%) from 12-1/2" to 76-1/2" from the left end, viewed from outside.
 LW-2      1  2x4              89"  Top plate
 LW-3      1  2x4              96"  Cap plate
 LW-4      2  2x4          92-5/8"  Corner stud
-LW-5      5  2x4          92-5/8"  Stud
+LW-5      2  2x4          92-5/8"  King stud
+LW-6      2  2x4          74-1/2"  Jack stud
+LW-7      2  2x8              67"  Header
+LW-8      3  2x4          10-7/8"  Cripple
 RW-1      1  2x4              89"  Bottom plate
 RW-2      1  2x4              89"  Top plate
 RW-3      1  2x4              96"  Cap plate

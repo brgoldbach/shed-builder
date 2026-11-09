@@ -23,12 +23,13 @@ export function CutListTable({ lines, selected, onSelect }: Props) {
           <th>Stock</th>
           <th className="number">Length</th>
           <th>Part</th>
+          <th>Notes</th>
         </tr>
       </thead>
       {[...groups].map(([assembly, rows]) => (
         <tbody key={assembly}>
           <tr className="group">
-            <th colSpan={5}>{ASSEMBLIES[assembly].label}</th>
+            <th colSpan={6}>{ASSEMBLIES[assembly].label}</th>
           </tr>
           {rows.map((line) => (
             <tr
@@ -41,13 +42,14 @@ export function CutListTable({ lines, selected, onSelect }: Props) {
               <td>{stockLabel(line)}</td>
               <td className="number">{formatInches(line.length)}</td>
               <td>{ROLES[line.role]}</td>
+              <td className="note">{line.note}</td>
             </tr>
           ))}
         </tbody>
       ))}
       <tfoot>
         <tr>
-          <td colSpan={5} className="muted">
+          <td colSpan={6} className="muted">
             {pieces} pieces
           </td>
         </tr>

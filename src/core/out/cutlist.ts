@@ -9,6 +9,7 @@ export interface CutLine {
   size: LumberSize;
   treated: boolean;
   length: number;
+  note?: string;
   ids: string[];
 }
 
@@ -20,7 +21,7 @@ export function buildCutList(members: readonly Member[]): CutLine[] {
   const lines = new Map<string, Omit<CutLine, 'mark'>>();
   for (const member of members) {
     const length = Math.round(member.length * 16) / 16;
-    const key = [member.assembly, member.role, member.size, member.treated, length].join('|');
+    const key = [member.assembly, member.role, member.size, member.treated, length, member.note].join('|');
     const line = lines.get(key);
     if (line) line.ids.push(member.id);
     else lines.set(key, { ...pick(member), length, ids: [member.id] });
@@ -41,4 +42,10 @@ export function buildCutList(members: readonly Member[]): CutLine[] {
   });
 }
 
-const pick = ({ assembly, role, size, treated }: Member) => ({ assembly, role, size, treated });
+const pick = ({ assembly, role, size, treated, note }: Member) => ({
+  assembly,
+  role,
+  size,
+  treated,
+  ...(note && { note }),
+});

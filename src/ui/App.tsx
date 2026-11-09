@@ -14,7 +14,7 @@ const TABS = [
   { id: 'framing', label: 'Framing', milestone: 'M6' },
   { id: 'cutlist', label: 'Cut list' },
   { id: 'bom', label: 'BOM', milestone: 'M7' },
-  { id: 'warnings', label: 'Warnings', milestone: 'M8' },
+  { id: 'warnings', label: 'Warnings' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -54,8 +54,8 @@ export function App() {
   const fileInput = useRef<HTMLInputElement>(null);
   const active = TABS.find((entry) => entry.id === tab)!;
 
-  const members = useMemo(() => buildModel(config), [config]);
-  const cutList = useMemo(() => buildCutList(members), [members]);
+  const model = useMemo(() => buildModel(config), [config]);
+  const cutList = useMemo(() => buildCutList(model.members), [model]);
   const markOf = useMemo(
     () => new Map(cutList.flatMap((line) => line.ids.map((id) => [id, line.mark] as const))),
     [cutList],
@@ -161,11 +161,12 @@ export function App() {
               onClick={() => setTab(entry.id)}
             >
               {entry.label}
+              {entry.id === 'warnings' && model.warnings.length > 0 && ` (${model.warnings.length})`}
             </button>
           ))}
         </nav>
         <section className="panel viewport" role="tabpanel" hidden={tab !== '3d'}>
-          <View3D members={members} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
+          <View3D members={model.members} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
             {selectedLine && (
               <div className="pick-info">
                 <strong>{selectedLine.mark}</strong> {ASSEMBLIES[selectedLine.assembly].label},{' '}
@@ -177,6 +178,19 @@ export function App() {
         </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'cutlist'}>
           <CutListTable lines={cutList} selected={selected} onSelect={toggle} />
+        </section>
+        <section className="panel" role="tabpanel" hidden={tab !== 'warnings'}>
+          {model.warnings.length === 0 ? (
+            <p className="muted">No warnings.</p>
+          ) : (
+            <ul className="warnings">
+              {model.warnings.map((warning) => (
+                <li key={`${warning.source}: ${warning.message}`}>
+                  <strong>{warning.source}</strong> {warning.message}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
         {'milestone' in active && (
           <section className="panel" role="tabpanel">
