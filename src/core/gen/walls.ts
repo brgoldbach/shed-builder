@@ -38,8 +38,8 @@ export function wallFrames(width: number, length: number): Record<Wall, Frame> {
   };
 }
 
-// Walls at u = 0 and at u = span. Front and back run through; left and right fit between them.
-const ADJACENT: Record<Wall, readonly [Wall, Wall]> = {
+/** Walls at u = 0 and at u = span. Front and back run through; left and right fit between them. */
+export const ADJACENT: Record<Wall, readonly [Wall, Wall]> = {
   front: ['left', 'right'],
   back: ['right', 'left'],
   left: ['back', 'front'],

@@ -14,7 +14,7 @@ const sorted = (values: number[]) => [...values].sort((first, second) => first -
 const box = (solid: Solid) => (solid.shape.kind === 'box' ? solid.shape : null);
 
 describe('framed floor', () => {
-  const { members, solids } = floorOf({ floor: { blocking: true } });
+  const { members } = floorOf({ floor: { blocking: true } });
 
   it('runs joists front to back between the rims, on 16 in centers from the left corner', () => {
     expect(sorted(ofRole(members, 'joist.end').map((joist) => joist.origin[0]))).toEqual([0, 118.5]);
@@ -30,12 +30,6 @@ describe('framed floor', () => {
   it('blocks each bay at mid-span', () => {
     // Bays: 0-1/2 to 15-1/4, six of 14-1/2, and 112-3/4 to 118-1/2.
     expect(sorted(ofRole(members, 'blocking').map((block) => block.length))).toEqual([5.75, 13.75, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5]);
-  });
-
-  it('shows the subfloor as a sheet on the sheathing layer', () => {
-    const subfloor = solids.find((solid) => solid.material === 'sheet')!;
-    expect(subfloor.layer).toBe('sheathing');
-    expect(box(subfloor)?.min[2]).toBe(-0.71875);
   });
 });
 

@@ -1,11 +1,11 @@
 import { LUMBER, SHEETS } from '../core/catalog';
 import type { ShedConfig } from '../core/config';
 import { wallFrames, type Wall } from '../core/gen/walls';
-import type { Assembly, Member, Point, Role, Vec3 } from '../core/member';
+import { corners, panelCorners, type Assembly, type Member, type Point, type Role, type Solid, type Vec3 } from '../core/member';
 import type { Model } from '../core/model';
 import type { Naming } from '../core/naming';
 import { formatInches } from '../core/units';
-import { corners, depthOf, project, shapesOf, type Dimension, type Drawing, type View } from './drawing';
+import { depthOf, project, shapesOf, type Dimension, type Drawing, type View } from './drawing';
 
 const UP: Vec3 = [0, 0, 1];
 const DOWN: Vec3 = [0, 0, -1];
@@ -283,9 +283,12 @@ function buildingSection({ config, model, names, marks }: Context): Drawing {
   const [low, high] = [cut - roof.oc / 2, cut + roof.oc / 2];
   const inSlice = ([from, to]: readonly [number, number]) => to > low && from < high;
   const members = model.members.filter((member) => inSlice(xRange(corners(member))));
-  const solids = model.solids.filter(({ shape }) =>
-    inSlice(shape.kind === 'box' ? [shape.min[0], shape.max[0]] : [shape.base[0] - shape.radius, shape.base[0] + shape.radius]),
-  );
+  const solidRange = ({ shape }: Solid): readonly [number, number] => {
+    if (shape.kind === 'panel') return xRange(panelCorners(shape));
+    if (shape.kind === 'box') return [shape.min[0], shape.max[0]];
+    return [shape.base[0] - shape.radius, shape.base[0] + shape.radius];
+  };
+  const solids = model.solids.filter((solid) => inSlice(solidRange(solid)));
 
   const box = extentOf(view, members);
   const wallTop = (wall: Wall) => extentOf(view, model.members.filter((member) => member.assembly === `wall.${wall}`)).max[1];

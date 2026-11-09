@@ -10,8 +10,8 @@ const Y: Vec3 = [0, 1, 0];
 const UP: Vec3 = [0, 0, 1];
 
 /**
- * Foundation, floor framing, and subfloor. The floor surface (subfloor or slab top) is
- * z = 0, so everything here is below it.
+ * Foundation and floor framing. The floor surface (subfloor or slab top) is z = 0, so everything
+ * here is below it.
  */
 export function frameFloor(config: ShedConfig): { members: Member[]; solids: Solid[] } {
   const { width, length, floor, foundation, catalog } = config;
@@ -56,7 +56,6 @@ export function frameFloor(config: ShedConfig): { members: Member[]; solids: Sol
     origin,
     axes,
   });
-  solids.push(box(floorIds('SF'), `Subfloor, ${subfloor.label}`, 'sheathing', 'sheet', [0, 0, -subfloor.thick], [length, width, 0]));
 
   // Joists run front to back between the rims: an end joist at each end, the rest on o.c.
   // multiples from the left corner.

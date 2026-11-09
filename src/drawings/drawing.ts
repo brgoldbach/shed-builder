@@ -1,5 +1,5 @@
-import { LUMBER } from '../core/catalog';
-import { ROLES, type Member, type Point, type Role, type Solid, type Vec3 } from '../core/member';
+import { hull } from '../core/gen/section';
+import { corners, panelCorners, ROLES, type Member, type Point, type Role, type Solid, type Vec3 } from '../core/member';
 import { formatInches } from '../core/units';
 
 /** Drawing x runs along `right` and drawing y along `up`. The viewer looks along `forward`. */
@@ -69,24 +69,9 @@ export const project = (view: View, point: Vec3): Point => [
 /** Distance from the view origin along the line of sight. */
 export const depthOf = (view: View, point: Vec3) => dot(relative(view, point), view.forward);
 
-/** A member's corners: its profile on both faces, or its eight box corners. */
-export function corners(member: Member): Vec3[] {
-  const { origin, axes } = member;
-  const at = (along: number, across: number, through: number): Vec3 => [
-    origin[0] + axes.length[0] * along + axes.width[0] * across + axes.thick[0] * through,
-    origin[1] + axes.length[1] * along + axes.width[1] * across + axes.thick[1] * through,
-    origin[2] + axes.length[2] * along + axes.width[2] * across + axes.thick[2] * through,
-  ];
-  if (member.profile) {
-    const { points, depth } = member.profile;
-    return [0, depth].flatMap((through) => points.map(([along, across]) => at(along, across, through)));
-  }
-  const { width, thick } = LUMBER[member.size];
-  return [0, member.length].flatMap((along) => [0, width].flatMap((across) => [0, thick].map((through) => at(along, across, through))));
-}
-
 function solidCorners(view: View, solid: Solid): Vec3[] {
   const { shape } = solid;
+  if (shape.kind === 'panel') return panelCorners(shape);
   if (shape.kind === 'box') {
     const { min, max } = shape;
     return [min[0], max[0]].flatMap((x) => [min[1], max[1]].flatMap((y) => [min[2], max[2]].map((z): Vec3 => [x, y, z])));
@@ -96,23 +81,6 @@ function solidCorners(view: View, solid: Solid): Vec3[] {
   return [0, height].flatMap((rise) =>
     [-radius, radius].map((side): Vec3 => [base[0] + view.right[0] * side, base[1] + view.right[1] * side, base[2] + rise]),
   );
-}
-
-/** Convex hull, counterclockwise, by the monotone chain method. */
-export function hull(points: readonly Point[]): Point[] {
-  const sorted = [...points].sort((first, second) => first[0] - second[0] || first[1] - second[1]);
-  const turn = (origin: Point, first: Point, second: Point) =>
-    (first[0] - origin[0]) * (second[1] - origin[1]) - (first[1] - origin[1]) * (second[0] - origin[0]);
-  const half = (list: Point[]) => {
-    const chain: Point[] = [];
-    for (const point of list) {
-      while (chain.length >= 2 && turn(chain[chain.length - 2], chain[chain.length - 1], point) <= EPSILON) chain.pop();
-      chain.push(point);
-    }
-    chain.pop();
-    return chain;
-  };
-  return [...half(sorted), ...half(sorted.reverse())];
 }
 
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;

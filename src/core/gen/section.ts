@@ -91,6 +91,23 @@ export function clipBelow(polygon: readonly Point[], k: Point, limit: number): P
   return result;
 }
 
+/** Convex hull, counterclockwise, by the monotone chain method. */
+export function hull(points: readonly Point[]): Point[] {
+  const sorted = [...points].sort((first, second) => first[0] - second[0] || first[1] - second[1]);
+  const turn = (origin: Point, first: Point, second: Point) =>
+    (first[0] - origin[0]) * (second[1] - origin[1]) - (first[1] - origin[1]) * (second[0] - origin[0]);
+  const half = (list: Point[]) => {
+    const chain: Point[] = [];
+    for (const point of list) {
+      while (chain.length >= 2 && turn(chain[chain.length - 2], chain[chain.length - 1], point) <= EPSILON) chain.pop();
+      chain.push(point);
+    }
+    chain.pop();
+    return chain;
+  };
+  return [...half(sorted), ...half(sorted.reverse())];
+}
+
 /** Consecutive duplicate points removed, including a last point equal to the first. */
 function dedupe(outline: readonly Point[]): Point[] {
   const same = (first: Point, second: Point) =>

@@ -23,8 +23,20 @@ interface Notch {
   heel: number; // y of the birdsmouth's plumb face
 }
 
+/**
+ * The rafter tops of one roof side, where the sheathing lies: from the lower edge over the fascia
+ * up to the ridge line or over the high fascia, rake edge to rake edge. u × v points out of the roof.
+ */
+export interface RoofPlane {
+  origin: Vec3;
+  u: Vec3;
+  v: Vec3;
+  length: number; // along u
+  width: number; // along v, up the slope
+}
+
 /** Rafters, ridge, rake ladders, fascia, gable-end framing, and for a gable roof the attic. */
-export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Warning[] } {
+export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Warning[]; planes: RoofPlane[] } {
   const { roof, walls, width, length } = config;
   const members: Member[] = [];
   const warnings: Warning[] = [];
@@ -168,7 +180,21 @@ export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Wa
   }
 
   members.push(...frameGableEnds(config, slope, sides, gable, tops.left, wallDepth, bearingDepth));
-  return { members, warnings };
+
+  // The fascia thickness, measured along the slope.
+  const fasciaRun = roof.fascia === 'none' ? 0 : LUMBER[roof.fascia].thick / (tailCut === 'plumb' ? pitch.cos : 1);
+  const lowEdge: Point = [from - fasciaRun * pitch.cos, slope.top(from) - fasciaRun * pitch.sin];
+  const slopeLength = gable ? (width / 2 - from) / pitch.cos + fasciaRun : (to - from) / pitch.cos + 2 * fasciaRun;
+  const planes = sides.map(
+    (side): RoofPlane => ({
+      origin: [side.sign === 1 ? ends[0] : ends[1], side.map(lowEdge[0]), lowEdge[1]],
+      u: [side.sign, 0, 0],
+      v: [0, side.sign * pitch.cos, pitch.sin],
+      length: ends[1] - ends[0],
+      width: slopeLength,
+    }),
+  );
+  return { members, warnings, planes };
 }
 
 // Seat the full wall depth, shortened so the notch is no deeper than 1/3 of the rafter depth,

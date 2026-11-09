@@ -57,5 +57,7 @@ RF-7      2  2x6              24"  Fascia
 RF-8     14  2x4             144"  Rafter tie. Square ends.
 RF-9     14  2x4          54-7/8"  Collar tie. Ends cut 26.6° to the roof line.
 SOLID Anchor bolt, 1/2" x14
+SOLID Roof sheathing, 7/16" OSB x14
 SOLID Slab x1
 SOLID Thickened edge x4
+SOLID Wall sheathing, 7/16" OSB x36

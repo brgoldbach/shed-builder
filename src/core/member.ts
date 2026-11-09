@@ -1,4 +1,4 @@
-import type { LumberSize } from './catalog';
+import { LUMBER, type LumberSize } from './catalog';
 
 export type Vec3 = readonly [number, number, number];
 export type Point = readonly [number, number];
@@ -70,13 +70,27 @@ export const ROLES = {
 } as const;
 export type Role = keyof typeof ROLES;
 
+/**
+ * A flat part: `outline` and `holes` in (u, v) plane coordinates from `origin`, extruded `thick`
+ * along u × v.
+ */
+export interface Panel {
+  kind: 'panel';
+  origin: Vec3;
+  u: Vec3;
+  v: Vec3;
+  thick: number;
+  outline: Point[];
+  holes: Point[][];
+}
+
 /** A non-lumber part shown in 3D: concrete, sheet goods, or hardware. */
 export interface Solid {
   id: string;
   label: string;
   layer: Layer;
   material: 'concrete' | 'sheet' | 'steel';
-  shape: { kind: 'box'; min: Vec3; max: Vec3 } | { kind: 'cylinder'; base: Vec3; radius: number; height: number };
+  shape: { kind: 'box'; min: Vec3; max: Vec3 } | { kind: 'cylinder'; base: Vec3; radius: number; height: number } | Panel;
 }
 
 /** A design problem found while framing. `source` names the opening or part. */
@@ -104,4 +118,32 @@ export interface Member {
   axes: { length: Vec3; width: Vec3; thick: Vec3 };
   profile?: { points: readonly Point[]; depth: number };
   note?: string; // shop instruction for the cut list
+}
+
+/** A member's corners: its profile on both faces, or its eight box corners. */
+export function corners(member: Member): Vec3[] {
+  const { origin, axes } = member;
+  const at = (along: number, across: number, through: number): Vec3 => [
+    origin[0] + axes.length[0] * along + axes.width[0] * across + axes.thick[0] * through,
+    origin[1] + axes.length[1] * along + axes.width[1] * across + axes.thick[1] * through,
+    origin[2] + axes.length[2] * along + axes.width[2] * across + axes.thick[2] * through,
+  ];
+  if (member.profile) {
+    const { points, depth } = member.profile;
+    return [0, depth].flatMap((through) => points.map(([along, across]) => at(along, across, through)));
+  }
+  const { width, thick } = LUMBER[member.size];
+  return [0, member.length].flatMap((along) => [0, width].flatMap((across) => [0, thick].map((through) => at(along, across, through))));
+}
+
+/** A panel's outline corners on both faces. */
+export function panelCorners({ origin, u, v, thick, outline }: Panel): Vec3[] {
+  const normal: Vec3 = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  return [0, thick].flatMap((through) =>
+    outline.map(([a, b]): Vec3 => [
+      origin[0] + u[0] * a + v[0] * b + normal[0] * through,
+      origin[1] + u[1] * a + v[1] * b + normal[1] * through,
+      origin[2] + u[2] * a + v[2] * b + normal[2] * through,
+    ]),
+  );
 }

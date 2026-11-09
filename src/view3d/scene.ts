@@ -14,6 +14,7 @@ import {
   Matrix4,
   Mesh,
   MeshStandardMaterial,
+  Path,
   PerspectiveCamera,
   Raycaster,
   Scene,
@@ -204,6 +205,17 @@ export class FramingScene {
 
   private solidMesh(solid: Solid): Mesh {
     const { shape } = solid;
+    if (shape.kind === 'panel') {
+      const outline = new Shape(shape.outline.map(([a, b]) => new Vector2(a, b)));
+      outline.holes = shape.holes.map((hole) => new Path(hole.map(([a, b]) => new Vector2(a, b))));
+      const geometry = new ExtrudeGeometry(outline, { depth: shape.thick, bevelEnabled: false });
+      const mesh = new Mesh(geometry, this.materials[solid.material]);
+      const [u, v] = [vector(shape.u), vector(shape.v)];
+      mesh.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(u, v, u.clone().cross(v)));
+      mesh.position.copy(vector(shape.origin));
+      mesh.add(new LineSegments(new EdgesGeometry(geometry), this.materials.edges));
+      return mesh;
+    }
     if (shape.kind === 'cylinder') {
       // Three.js cylinders stand along y; turn the axis to z.
       const geometry = new CylinderGeometry(shape.radius, shape.radius, shape.height, 24).rotateX(Math.PI / 2);
