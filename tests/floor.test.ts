@@ -90,12 +90,13 @@ describe('slab foundation', () => {
   it('bolts each mud sill within 12 in of its ends and at most 72 in apart', () => {
     const bolts = frameWalls(parse({ foundation: slab })).solids;
     expect(bolts).toHaveLength(10);
-    // Front wall sill 0 to 120: 3 bolts at 12, 60, 108, on the 2x4 sill's centerline.
+    // Front wall sill 3-1/2 to 116-1/2, between the end walls: 3 bolts at 15-1/2, 60, 104-1/2, on
+    // the 2x4 sill's centerline.
     const front = bolts.filter((bolt) => bolt.id.startsWith('FW'));
     expect(front.map((bolt) => (bolt.shape.kind === 'cylinder' ? bolt.shape.base.slice(0, 2) : []))).toEqual([
-      [12, 1.75],
+      [15.5, 1.75],
       [60, 1.75],
-      [108, 1.75],
+      [104.5, 1.75],
     ]);
   });
 
@@ -103,7 +104,7 @@ describe('slab foundation', () => {
     const openingTypes = [{ name: 'door', kind: 'door', width: 38, height: 82.25 }];
     const openings = [{ type: 'door', wall: 'front', along: 'left', at: [41] }];
     const bolts = frameWalls(parse({ foundation: slab, openingTypes, openings })).solids.filter((bolt) => bolt.id.startsWith('FW'));
-    // Sill parts 0 to 41 and 79 to 120: two bolts each, 12 in from each end.
-    expect(bolts.map((bolt) => (bolt.shape.kind === 'cylinder' ? bolt.shape.base[0] : 0))).toEqual([12, 29, 91, 108]);
+    // Sill parts 3-1/2 to 41 and 79 to 116-1/2: two bolts each, 12 in from each end.
+    expect(bolts.map((bolt) => (bolt.shape.kind === 'cylinder' ? bolt.shape.base[0] : 0))).toEqual([15.5, 29, 91, 104.5]);
   });
 });

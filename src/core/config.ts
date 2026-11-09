@@ -12,6 +12,7 @@ export const PIER_DIAMETERS = [8, 10, 12] as const;
 export const POST_SIZES = ['none', '4x4', '6x6'] as const;
 export const WALL_STUDS = ['2x4', '2x6'] as const;
 export const CORNERS = ['four-stud', 'three-stud', 'california', 'two-stud'] as const;
+export const THROUGH = ['ends', 'eaves'] as const;
 export const WALLS = ['front', 'back', 'left', 'right'] as const;
 export const FRONTS = ['eave', 'gable'] as const;
 export const OPENING_KINDS = ['door', 'window', 'overhead', 'custom'] as const;
@@ -90,6 +91,7 @@ const walls = z.strictObject({
   capPlate: z.boolean().default(true),
   mudSill: z.enum(MUD_SILLS).default('match'), // on a slab: PT mud sill under the bottom plate. match: the stud size.
   corner: z.enum(CORNERS).default('four-stud'),
+  through: z.enum(THROUGH).default('ends'), // walls that run to the corners on a gable roof; a lean-to's eave walls always do
   header: twoBy.default('2x8'),
   doubleJackOver: len(24, 240).default(72), // RO width above which auto jacks become 2 per side
   sillPlies: count(1, 2).default(1),

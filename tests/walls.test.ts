@@ -33,20 +33,20 @@ function corners(member: Member): number[][] {
 describe('frameWalls, 8x10 with 4-stud corners', () => {
   const members = build();
 
-  it('frames the front wall: 6 corner studs, 7 layout studs, full-length plates, short cap', () => {
-    const front = wall(members, 'front');
-    expect(ofRole(front, 'corner')).toHaveLength(6);
-    expect(ofRole(front, 'stud')).toHaveLength(7);
-    expect(lengths(ofRole(front, 'plate.bottom', 'plate.top'))).toEqual([120, 120]);
-    expect(lengths(ofRole(front, 'plate.cap'))).toEqual([113]);
+  it('runs the gable-end walls through: 6 corner studs, 5 layout studs, full-length plates, short cap', () => {
+    const left = wall(members, 'left');
+    expect(ofRole(left, 'corner')).toHaveLength(6);
+    expect(ofRole(left, 'stud')).toHaveLength(5);
+    expect(lengths(ofRole(left, 'plate.bottom', 'plate.top'))).toEqual([96, 96]);
+    expect(lengths(ofRole(left, 'plate.cap'))).toEqual([89]);
   });
 
-  it('fits the end walls between the eave walls; their caps lap to the corners', () => {
-    const left = wall(members, 'left');
-    expect(ofRole(left, 'corner')).toHaveLength(2);
-    expect(ofRole(left, 'stud')).toHaveLength(5);
-    expect(lengths(ofRole(left, 'plate.bottom', 'plate.top'))).toEqual([89, 89]);
-    expect(lengths(ofRole(left, 'plate.cap'))).toEqual([96]);
+  it('fits the eave walls between the end walls; their caps lap to the corners', () => {
+    const front = wall(members, 'front');
+    expect(ofRole(front, 'corner')).toHaveLength(2);
+    expect(ofRole(front, 'stud')).toHaveLength(7);
+    expect(lengths(ofRole(front, 'plate.bottom', 'plate.top'))).toEqual([113, 113]);
+    expect(lengths(ofRole(front, 'plate.cap'))).toEqual([120]);
   });
 
   it('puts layout stud centers on 16 in multiples from each wall’s left corner', () => {
@@ -57,9 +57,9 @@ describe('frameWalls, 8x10 with 4-stud corners', () => {
     expect(centers('left', 1, -1).map((y) => y + 96)).toEqual([16, 32, 48, 64, 80]);
   });
 
-  it('builds each eave-wall corner post from 3 face-nailed studs', () => {
-    const posts = ofRole(wall(members, 'front'), 'corner').map((stud) => stud.origin[0]);
-    expect(posts.sort((first, second) => first - second)).toEqual([0, 1.5, 3, 115.5, 117, 118.5]);
+  it('builds each end-wall corner post from 3 face-nailed studs', () => {
+    const posts = ofRole(wall(members, 'right'), 'corner').map((stud) => stud.origin[1]);
+    expect(posts.sort((first, second) => first - second)).toEqual([0, 1.5, 3, 91.5, 93, 94.5]);
   });
 
   it('keeps every member inside the footprint and the wall height', () => {
@@ -77,20 +77,27 @@ describe('frameWalls, 8x10 with 4-stud corners', () => {
 
 describe('frameWalls options', () => {
   it('builds a 3-stud corner from an end stud and a backing stud at the wall depth', () => {
-    const posts = ofRole(wall(build({ walls: { corner: 'three-stud' } }), 'front'), 'corner').map((stud) => stud.origin[0]);
-    expect(posts.sort((first, second) => first - second)).toEqual([0, 3.5, 115, 118.5]);
+    const posts = ofRole(wall(build({ walls: { corner: 'three-stud' } }), 'right'), 'corner').map((stud) => stud.origin[1]);
+    expect(posts.sort((first, second) => first - second)).toEqual([0, 3.5, 91, 94.5]);
   });
 
   it('builds a California corner from an end stud and a flat backing stud', () => {
-    const front = wall(build({ walls: { corner: 'california' } }), 'front');
-    const flat = ofRole(front, 'corner').filter((stud) => stud.axes.thick[1] !== 0);
-    expect(ofRole(front, 'corner')).toHaveLength(4);
+    const right = wall(build({ walls: { corner: 'california' } }), 'right');
+    const flat = ofRole(right, 'corner').filter((stud) => stud.axes.thick[0] !== 0);
+    expect(ofRole(right, 'corner')).toHaveLength(4);
     expect(flat).toHaveLength(2);
-    expect(flat[0].origin).toEqual([1.5, 2, 1.5]);
+    expect(flat[0].origin).toEqual([118, 1.5, 1.5]);
   });
 
   it('builds a 2-stud corner from the end studs only', () => {
-    expect(ofRole(wall(build({ walls: { corner: 'two-stud' } }), 'front'), 'corner')).toHaveLength(2);
+    expect(ofRole(wall(build({ walls: { corner: 'two-stud' } }), 'right'), 'corner')).toHaveLength(2);
+  });
+
+  it('puts the corner posts on the eave walls when chosen', () => {
+    const members = build({ walls: { through: 'eaves' } });
+    expect(ofRole(wall(members, 'front'), 'corner')).toHaveLength(6);
+    expect(lengths(ofRole(wall(members, 'front'), 'plate.bottom', 'plate.cap'))).toEqual([120, 113]);
+    expect(lengths(ofRole(wall(members, 'left'), 'plate.bottom', 'plate.cap'))).toEqual([89, 96]);
   });
 
   it('lays a treated mud sill on a slab, with the bottom plate on top', () => {
@@ -151,17 +158,17 @@ describe('frameWalls options', () => {
   });
 
   it('splices a 24 ft plate on a stud, with the cap splice 24 in or more from the top splice', () => {
-    const front = wall(build({ length: 288, catalog: { maxLength: 240 } }), 'front');
-    expect(lengths(ofRole(front, 'plate.top'))).toEqual([240, 48]);
+    const right = wall(build({ width: 288, catalog: { maxLength: 240 } }), 'right');
+    expect(lengths(ofRole(right, 'plate.top'))).toEqual([240, 48]);
     // Cap runs 3-1/2 to 284-1/2. The 224 stud is 16 in from the top splice, so the splice drops to 208.
-    expect(lengths(ofRole(front, 'plate.cap'))).toEqual([204.5, 76.5]);
+    expect(lengths(ofRole(right, 'plate.cap'))).toEqual([204.5, 76.5]);
   });
 
   it('splices at the longest stock, 16 ft by default', () => {
-    const front = wall(build({ length: 288 }), 'front');
-    expect(lengths(ofRole(front, 'plate.top'))).toEqual([192, 96]);
+    const right = wall(build({ width: 288 }), 'right');
+    expect(lengths(ofRole(right, 'plate.top'))).toEqual([192, 96]);
     // Cap from 3-1/2: the 192 and 176 studs are within 24 in of the top splice, so it drops to 160.
-    expect(lengths(ofRole(front, 'plate.cap'))).toEqual([156.5, 124.5]);
+    expect(lengths(ofRole(right, 'plate.cap'))).toEqual([156.5, 124.5]);
   });
 });
 
@@ -177,6 +184,12 @@ describe('lean-to walls', () => {
   it('raises the high wall by the rise between the bearing lines', () => {
     // 92-5/8 + 3/12 x (120 - 3-1/2) = 121-3/4
     expect(studLengths(config)).toEqual({ front: 121.75, back: 92.625, left: 92.625, right: 92.625 });
+  });
+
+  it('runs the eave walls through', () => {
+    const members = frameWalls(config).members;
+    expect(lengths(ofRole(wall(members, 'back'), 'plate.bottom'))).toEqual([144]);
+    expect(lengths(ofRole(wall(members, 'left'), 'plate.bottom'))).toEqual([113]);
   });
 
   it('laps caps only at the level corners', () => {

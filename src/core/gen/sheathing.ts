@@ -99,7 +99,7 @@ function centers(members: readonly Member[], along: (point: Vec3) => number): nu
 
 // Sheets stand on the outside face from the bottom of the wall. The face takes in the framing
 // flush with it: wall, gable end, knee wall, and loft rim. The eave walls run past each corner to
-// cover the end-wall sheathing edge; the end walls cover the eave walls' ends, up to their tops.
+// cover the end-wall sheathing edge; the end walls cover the corners, up to the eave walls' tops.
 function wallFace(
   config: ShedConfig,
   wall: Wall,

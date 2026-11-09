@@ -1,26 +1,26 @@
-FW-1      1  2x4 PT      177-3/4"  Mud sill
-FW-2      1  2x4 PT       62-1/4"  Mud sill. After anchoring, cut out door 36 (front 22" from right) from 2-1/4" to 40-1/4" from the left end, viewed from outside.
-FW-3      1  2x4         177-3/4"  Bottom plate
-FW-4      1  2x4          62-1/4"  Bottom plate. After anchoring, cut out door 36 (front 22" from right) from 2-1/4" to 40-1/4" from the left end, viewed from outside.
-FW-5      1  2x4         177-3/4"  Top plate
-FW-6      1  2x4          62-1/4"  Top plate
-FW-7      1  2x4         140-1/2"  Cap plate
-FW-8      1  2x4          92-1/2"  Cap plate
-FW-9      6  2x4         104-5/8"  Corner stud
+FW-1      1  2x4 PT      174-1/4"  Mud sill
+FW-2      1  2x4 PT       58-3/4"  Mud sill. After anchoring, cut out door 36 (front 22" from right) from 2-1/4" to 40-1/4" from the left end, viewed from outside.
+FW-3      1  2x4         174-1/4"  Bottom plate
+FW-4      1  2x4          58-3/4"  Bottom plate. After anchoring, cut out door 36 (front 22" from right) from 2-1/4" to 40-1/4" from the left end, viewed from outside.
+FW-5      1  2x4         174-1/4"  Top plate
+FW-6      1  2x4          58-3/4"  Top plate
+FW-7      1  2x4             144"  Cap plate
+FW-8      1  2x4              96"  Cap plate
+FW-9      2  2x4         104-5/8"  Corner stud
 FW-10    12  2x4         104-5/8"  Stud
 FW-11     2  2x4         104-5/8"  King stud
 FW-12     2  2x4          79-1/4"  Jack stud
 FW-13     2  2x8              41"  Header
 FW-14     2  2x4          18-1/8"  Cripple
-BW-1      1  2x4 PT          192"  Mud sill
-BW-2      1  2x4 PT           48"  Mud sill
-BW-3      1  2x4             192"  Bottom plate
-BW-4      1  2x4              48"  Bottom plate
-BW-5      1  2x4             192"  Top plate
-BW-6      1  2x4              48"  Top plate
-BW-7      1  2x4         156-1/2"  Cap plate
-BW-8      1  2x4          76-1/2"  Cap plate
-BW-9      6  2x4         104-5/8"  Corner stud
+BW-1      1  2x4 PT      188-1/2"  Mud sill
+BW-2      1  2x4 PT       44-1/2"  Mud sill
+BW-3      1  2x4         188-1/2"  Bottom plate
+BW-4      1  2x4          44-1/2"  Bottom plate
+BW-5      1  2x4         188-1/2"  Top plate
+BW-6      1  2x4          44-1/2"  Top plate
+BW-7      1  2x4             160"  Cap plate
+BW-8      1  2x4              80"  Cap plate
+BW-9      2  2x4         104-5/8"  Corner stud
 BW-10    12  2x4         104-5/8"  Stud
 BW-11     2  2x4         104-5/8"  King stud
 BW-12     2  2x4          79-1/4"  Jack stud
@@ -28,20 +28,20 @@ BW-13     2  2x8              27"  Header
 BW-14     1  2x4              24"  Rough sill
 BW-15     2  2x4          41-3/4"  Cripple
 BW-16     2  2x4          18-1/8"  Cripple
-LW-1      1  2x4 PT          137"  Mud sill. After anchoring, cut out door garage 9x7 (left 50%) from 14-1/2" to 122-1/2" from the left end, viewed from outside.
-LW-2      1  2x4             137"  Bottom plate. After anchoring, cut out door garage 9x7 (left 50%) from 14-1/2" to 122-1/2" from the left end, viewed from outside.
-LW-3      1  2x4             137"  Top plate
-LW-4      1  2x4             144"  Cap plate
-LW-5      2  2x4         104-5/8"  Corner stud
+LW-1      1  2x4 PT          144"  Mud sill. After anchoring, cut out door garage 9x7 (left 50%) from 18" to 126" from the left end, viewed from outside.
+LW-2      1  2x4             144"  Bottom plate. After anchoring, cut out door garage 9x7 (left 50%) from 18" to 126" from the left end, viewed from outside.
+LW-3      1  2x4             144"  Top plate
+LW-4      1  2x4             137"  Cap plate
+LW-5      6  2x4         104-5/8"  Corner stud
 LW-6      2  2x4         104-5/8"  King stud
 LW-7      4  2x4              81"  Jack stud
 LW-8      2  2x12            114"  Header
 LW-9      6  2x4          12-3/8"  Cripple
-RW-1      1  2x4 PT          137"  Mud sill
-RW-2      1  2x4             137"  Bottom plate
-RW-3      1  2x4             137"  Top plate
-RW-4      1  2x4             144"  Cap plate
-RW-5      2  2x4         104-5/8"  Corner stud
+RW-1      1  2x4 PT          144"  Mud sill
+RW-2      1  2x4             144"  Bottom plate
+RW-3      1  2x4             144"  Top plate
+RW-4      1  2x4             137"  Cap plate
+RW-5      6  2x4         104-5/8"  Corner stud
 RW-6      8  2x4         104-5/8"  Stud
 GL-1      2  2x4          75-3/4"  Gable top plate. Level cut on the wall plate. Plumb cut 26.6° at the ridge post.
 GL-2      2  2x4        28-15/16"  Gable stud. Top cut 26.6°.
@@ -69,15 +69,16 @@ SOLID Roof sheathing, 7/16" OSB x14
 SOLID Slab x1
 SOLID Thickened edge x4
 SOLID Wall sheathing, 7/16" OSB x36
-STOCK 2x4 16' 0" x23
-STOCK 2x4 12' 0" x16
+STOCK 2x4 16' 0" x20
+STOCK 2x4 12' 0" x19
 STOCK 2x4 8' 8-5/8" x54
+STOCK 2x4 8' 0" x1
 STOCK 2x4 7' 8-5/8" x1
 STOCK 2x8 16' 0" x1
 STOCK 2x8 8' 0" x3
-STOCK 2x4 PT 16' 0" x3
-STOCK 2x4 PT 12' 0" x1
-STOCK 2x4 PT 7' 8-5/8" x1
+STOCK 2x4 PT 16' 0" x2
+STOCK 2x4 PT 12' 0" x2
+STOCK 2x4 PT 8' 8-5/8" x1
 STOCK 2x12 10' 0" x2
 STOCK 2x6 16' 0" x20
 STOCK 2x6 14' 0" x1

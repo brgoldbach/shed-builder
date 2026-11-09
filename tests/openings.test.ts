@@ -44,10 +44,10 @@ describe('door on the left wall: RO 64 x 76 at 16 in, double 2x8 header', () => 
 
   it('runs the bottom plate through the doorway, with a note to cut it out after anchoring', () => {
     const plates = ofRole(left, 'plate.bottom');
-    expect(lengths(plates)).toEqual([89]);
-    // The plate starts 3-1/2 in from the corner. RO 16 to 80 from the corner.
+    expect(lengths(plates)).toEqual([96]);
+    // The end wall of a gable roof runs through, so the plate starts at the corner. RO 16 to 80.
     expect(plates[0].note).toBe(
-      'After anchoring, cut out door (left 16" from left) from 12-1/2" to 76-1/2" from the left end, viewed from outside.',
+      'After anchoring, cut out door (left 16" from left) from 16" to 80" from the left end, viewed from outside.',
     );
   });
 });
@@ -69,7 +69,7 @@ describe('window on the front wall: RO 24-1/2 x 36-1/2 at 48 in, sill 46 in', ()
   it('takes cripples at layout 64 above and below; other layout studs stay full height', () => {
     expect(lengths(ofRole(front, 'cripple'))).toEqual([4.375, 43]);
     expect(ofRole(front, 'stud')).toHaveLength(5); // 16, 32, 80, 96, 112
-    expect(lengths(ofRole(front, 'plate.bottom'))).toEqual([120]);
+    expect(lengths(ofRole(front, 'plate.bottom'))).toEqual([113]);
     expect(ofRole(front, 'plate.bottom')[0].note).toBeUndefined();
   });
 });

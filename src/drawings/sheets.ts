@@ -184,16 +184,15 @@ function wallElevation({ config, model, names, marks }: Context, wall: Wall): Dr
   const view: View = { origin: frame.origin, right: frame.u, up: UP, forward: frame.v };
   const own = model.members.filter((member) => ELEVATION[wall].includes(member.assembly));
   const framing = own.filter((member) => member.assembly === `wall.${wall}`);
-  // The end rafter over a gable-end wall, for reference.
+  // For reference: the end rafter over a gable-end wall, and the adjacent walls' framing at the
+  // corners, seen end-on.
   const wallDepth = LUMBER[config.walls.stud].width;
-  const context = model.members.filter(
-    (member) =>
-      member.role === 'rafter' &&
-      corners(member).every((point) => {
-        const depth = depthOf(view, point);
-        return depth > -NEAR && depth < wallDepth + NEAR;
-      }),
-  );
+  const context = model.members.filter((member) => {
+    const depths = corners(member).map((point) => depthOf(view, point));
+    const [near, far] = [Math.min(...depths), Math.max(...depths)];
+    if (member.role === 'rafter') return near > -NEAR && far < wallDepth + NEAR;
+    return member.assembly.startsWith('wall.') && member.assembly !== `wall.${wall}` && near < wallDepth - NEAR && far > NEAR;
+  });
 
   const plates = extentOf(view, framing.filter((member) => member.role === 'plate.bottom' || member.role === 'plate.sill'));
   const [start, end] = [plates.min[0], plates.max[0]];

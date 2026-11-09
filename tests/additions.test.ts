@@ -156,9 +156,9 @@ describe('lean-to outputs', () => {
     // 12 main rafters at 1 seat each, and 12 lean-to rafters on their beams.
     expect(quantity('Hurricane tie, rafter to plate')).toBe(24);
     expect(quantity('Post base, 4x4')).toBe(6);
-    // Front: 6 corner studs, 5 studs, 2 kings, and 2 jacks (tops at 82-1/4) reach the ledger; the
-    // cripple above the header starts at 89-1/2, over it. Back: 6 corner studs and 7 studs.
-    expect(model.leanTos.map(({ lags }) => lags)).toEqual([30, 26]);
-    expect(quantity('Ledger lag screw, 1/2"')).toBe(56);
+    // Front: 2 corner studs, 5 studs, 2 kings, and 2 jacks (tops at 82-1/4) reach the ledger; the
+    // cripple above the header starts at 89-1/2, over it. Back: 2 corner studs and 7 studs.
+    expect(model.leanTos.map(({ lags }) => lags)).toEqual([22, 18]);
+    expect(quantity('Ledger lag screw, 1/2"')).toBe(40);
   });
 });

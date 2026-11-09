@@ -18,7 +18,9 @@ import {
   SPACINGS,
   STUD_HEIGHTS,
   TAIL_CUTS,
+  THROUGH,
   WALL_STUDS,
+  WALLS,
   type ShedConfig,
 } from '../core/config';
 import {
@@ -36,7 +38,7 @@ import {
   type Edit,
   type SectionProps,
 } from './fields';
-import { studLengths, wallTops } from '../core/gen/walls';
+import { studLengths, wallTops, type Wall } from '../core/gen/walls';
 import { naming, type Naming } from '../core/naming';
 import { formatInches, formatLength } from '../core/units';
 import { AdditionsEditor } from './AdditionsEditor';
@@ -120,7 +122,7 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       </Section>
       <FoundationSection value={value.foundation} onChange={set('foundation')} />
       {value.foundation.type !== 'slab' && <FloorSection value={value.floor} onChange={set('floor')} />}
-      <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} />
+      <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} gable={value.roof.style === 'gable'} names={names} />
       <Section title="Opening types">
         <OpeningTypesEditor value={value} onChange={onChange} />
       </Section>
@@ -197,8 +199,14 @@ function FloorSection({ value, onChange }: SectionProps<Floor>) {
   );
 }
 
-function WallsSection({ value, onChange, onSlab }: SectionProps<Walls> & { onSlab: boolean }) {
+function WallsSection({ value, onChange, onSlab, gable, names }: SectionProps<Walls> & { onSlab: boolean; gable: boolean; names: Naming }) {
   const set = setter(value, onChange);
+  // The user's names for a wall pair, front before back and left before right.
+  const pair = (walls: Wall[], kind: string) => {
+    const [first, second] = walls.map(names.side).sort((one, other) => WALLS.indexOf(one) - WALLS.indexOf(other));
+    return `${capitalize(first)} and ${second} (${kind})`;
+  };
+  const throughLabels = { ends: pair(['left', 'right'], 'gable ends'), eaves: pair(['front', 'back'], 'eaves') };
   return (
     <Section title="Walls">
       <SelectField label="Stud" value={value.stud} options={WALL_STUDS} onChange={set('stud')} />
@@ -214,6 +222,9 @@ function WallsSection({ value, onChange, onSlab }: SectionProps<Walls> & { onSla
       )}
       <CheckField label="Cap plate" value={value.capPlate} onChange={set('capPlate')} />
       <SelectField label="Corner" value={value.corner} options={CORNERS} describe={(corner) => CORNER_LABELS[corner]} onChange={set('corner')} />
+      {gable && (
+        <SelectField label="Corner posts on" value={value.through} options={THROUGH} describe={(walls) => throughLabels[walls]} onChange={set('through')} />
+      )}
       <SelectField label="Default header" value={value.header} options={TWO_BY} onChange={set('header')} />
       <LengthField label="2 jacks when RO over" value={value.doubleJackOver} onChange={set('doubleJackOver')} />
       <SelectField label="Rough sill plies" value={value.sillPlies} options={[1, 2]} onChange={set('sillPlies')} />

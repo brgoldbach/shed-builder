@@ -39,7 +39,7 @@ export function wallFrames(width: number, length: number): Record<Wall, Frame> {
   };
 }
 
-/** Walls at u = 0 and at u = span. Front and back run through; left and right fit between them. */
+/** Walls at u = 0 and at u = span. */
 export const ADJACENT: Record<Wall, readonly [Wall, Wall]> = {
   front: ['left', 'right'],
   back: ['right', 'left'],
@@ -47,11 +47,18 @@ export const ADJACENT: Record<Wall, readonly [Wall, Wall]> = {
   right: ['front', 'back'],
 };
 
-// The eave walls run through and carry the rafters.
-const isThrough = (wall: Wall) => wall === 'front' || wall === 'back';
+// The eave walls carry the rafters. The end walls carry the gable-end framing.
+const isEave = (wall: Wall) => wall === 'front' || wall === 'back';
+
+/**
+ * Whether a wall runs through to the building corners and carries the corner posts. The other two
+ * walls fit between. A gable roof's end walls run through by default, so each gable end is one
+ * full-width frame. A lean-to's end walls stop below the high wall, so its eave walls run through.
+ */
+const isThrough = ({ roof, walls }: ShedConfig, wall: Wall) => isEave(wall) !== (roof.style === 'gable' && walls.through === 'ends');
 
 /** An end-wall row with its sill at or above the wall top: framed in the gable, not the wall. */
-export const inGable = (config: ShedConfig, row: Opening) => !isThrough(row.wall) && row.sill >= wallTops(config)[row.wall] - NEAR;
+export const inGable = (config: ShedConfig, row: Opening) => !isEave(row.wall) && row.sill >= wallTops(config)[row.wall] - NEAR;
 
 const overlaps = ([low, high]: Span, [otherLow, otherHigh]: Span) => low < otherHigh && high > otherLow;
 
@@ -265,7 +272,7 @@ function fitOpening(
     }
   }
 
-  if (header.style === 'flat' && isThrough(context.wall)) warn('A flat header is on a bearing wall.');
+  if (header.style === 'flat' && isEave(context.wall)) warn('A flat header is on a bearing wall.');
   const headroom = context.wallTop - roTop;
   if (type.kind === 'overhead' && headroom < type.headroom) {
     warn(`The headroom above the RO is ${formatInches(headroom)}. The door needs ${formatInches(type.headroom)}.`);
@@ -288,8 +295,8 @@ function frameWall(
   const assembly = `wall.${wall}` as const;
   const { prefix } = ASSEMBLIES[assembly];
   const depth = LUMBER[walls.stud].width;
-  const through = isThrough(wall);
-  const span = through ? config.length : config.width;
+  const through = isThrough(config, wall);
+  const span = isEave(wall) ? config.length : config.width;
   const start = through ? 0 : depth;
   const end = span - start;
   const studLength = heights[wall];

@@ -55,16 +55,17 @@ describe('wall elevation', () => {
   const front = find(drawingsOf(), 'wall-front');
 
   it('runs the layout from the left end of the bottom plate', () => {
-    // Studs at 16 in o.c.; kings 1 jack out from the 48 to 72 RO; a cripple at 63-1/4 under the sill.
+    // The eave wall fits between the end walls, so its plate starts at 3-1/2. Studs at 16 in o.c.
+    // from the corner; kings 1 jack out from the 48 to 72 RO; a cripple at 63-1/4 under the sill.
     expect(ofKind(front, 'running')).toEqual([
-      { kind: 'running', side: 'bottom', tier: 1, origin: 0, at: [15.25, 31.25, 45, 63.25, 73.5, 79.25, 95.25, 111.25] },
+      { kind: 'running', side: 'bottom', tier: 1, origin: 3.5, at: [15.25, 31.25, 45, 63.25, 73.5, 79.25, 95.25, 111.25] },
     ]);
   });
 
   it('chains the RO edges, then the wall length and height', () => {
     expect(ofKind(front, 'chain')).toEqual([
-      { kind: 'chain', side: 'bottom', tier: 2, at: [0, 48, 72, 120] },
-      { kind: 'chain', side: 'bottom', tier: 3, at: [0, 120], feet: true },
+      { kind: 'chain', side: 'bottom', tier: 2, at: [3.5, 48, 72, 116.5] },
+      { kind: 'chain', side: 'bottom', tier: 3, at: [3.5, 116.5], feet: true },
       { kind: 'chain', side: 'right', tier: 1, at: [0, 97.125], feet: true },
     ]);
   });
@@ -72,6 +73,16 @@ describe('wall elevation', () => {
   it('sizes the RO inside the opening: width, sill height, height', () => {
     expect(ofKind(front, 'aligned').map(length)).toEqual([24, 46.25, 36]);
     expect(front.labels).toEqual([{ at: [60, 64.25], text: 'window 24x36', room: 24 }]);
+  });
+
+  it('shows the adjacent walls end-on at the corners, for reference', () => {
+    const left = find(drawingsOf(), 'wall-left');
+    const walls = left.shapes.filter((shape) => shape.kind === 'context' && shape.role !== 'rafter');
+    // The eave walls' caps lap over the end wall's top plate at each corner, 95-5/8 to 97-1/8 up.
+    expect(walls.map((shape) => bounds([shape]))).toEqual([
+      { min: [92.5, 95.625], max: [96, 97.125] },
+      { min: [0, 95.625], max: [3.5, 97.125] },
+    ]);
   });
 });
 
