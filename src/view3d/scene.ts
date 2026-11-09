@@ -1,8 +1,10 @@
 import {
   Box3,
   BoxGeometry,
+  type BufferGeometry,
   DirectionalLight,
   EdgesGeometry,
+  ExtrudeGeometry,
   GridHelper,
   Group,
   HemisphereLight,
@@ -14,6 +16,7 @@ import {
   PerspectiveCamera,
   Raycaster,
   Scene,
+  Shape,
   Sphere,
   Vector2,
   Vector3,
@@ -28,6 +31,36 @@ const VIEW_FROM = new Vector3(-0.55, -1, 0.6).normalize(); // front-left, above
 
 const vector = (value: Vec3) => new Vector3(value[0], value[1], value[2]);
 
+function boxGeometry(member: Member): BufferGeometry {
+  const { width, thick } = LUMBER[member.size];
+  return new BoxGeometry(member.length, width, thick);
+}
+
+function profileGeometry(member: Member): BufferGeometry {
+  const { points, depth } = member.profile!;
+  const shape = new Shape(points.map(([along, across]) => new Vector2(along, across)));
+  return new ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+}
+
+// A profile's axes are right-handed, so they form a rotation. A box is centered, so the sign of
+// its third basis vector does not matter.
+function placeMesh(mesh: Mesh, member: Member) {
+  const along = vector(member.axes.length);
+  const across = vector(member.axes.width);
+  const third = member.profile ? vector(member.axes.thick) : along.clone().cross(across);
+  mesh.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(along, across, third));
+  if (member.profile) {
+    mesh.position.copy(vector(member.origin));
+    return;
+  }
+  const { width, thick } = LUMBER[member.size];
+  mesh.position
+    .copy(vector(member.origin))
+    .addScaledVector(along, member.length / 2)
+    .addScaledVector(across, width / 2)
+    .addScaledVector(vector(member.axes.thick), thick / 2);
+}
+
 // Plates, headers, and sills take the darker color, so they read apart from the studs.
 const HORIZONTAL = new Set<Role>([
   'plate.sill',
@@ -37,6 +70,10 @@ const HORIZONTAL = new Set<Role>([
   'header',
   'header.plate',
   'sill',
+  'plate.gable',
+  'ridge',
+  'fascia',
+  'lookout',
 ]);
 
 /** Three.js view of the framing members. Building z is up. Renders on demand only. */
@@ -88,18 +125,9 @@ export class FramingScene {
   setMembers(members: readonly Member[]) {
     this.clearMembers();
     for (const member of members) {
-      const { width, thick } = LUMBER[member.size];
-      const geometry = new BoxGeometry(member.length, width, thick);
+      const geometry = member.profile ? profileGeometry(member) : boxGeometry(member);
       const mesh = new Mesh(geometry, this.baseMaterial(member));
-      const along = vector(member.axes.length);
-      const across = vector(member.axes.width);
-      // A centered box is symmetric, so the sign of the third basis vector does not matter.
-      mesh.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(along, across, along.clone().cross(across)));
-      mesh.position
-        .copy(vector(member.origin))
-        .addScaledVector(along, member.length / 2)
-        .addScaledVector(across, width / 2)
-        .addScaledVector(vector(member.axes.thick), thick / 2);
+      placeMesh(mesh, member);
       mesh.userData = { id: member.id, base: mesh.material };
       mesh.add(new LineSegments(new EdgesGeometry(geometry), this.materials.edges));
       this.members.add(mesh);

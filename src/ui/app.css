@@ -324,6 +324,26 @@ button {
   right: 12px;
 }
 
+.layer-toggles {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  max-width: calc(100% - 110px);
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.layer-toggles label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
 .pick-info {
   position: absolute;
   left: 12px;

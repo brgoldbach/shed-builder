@@ -28,3 +28,21 @@ RW-2      1  2x4             113"  Top plate
 RW-3      1  2x4         116-1/2"  Cap plate
 RW-4      2  2x4          92-5/8"  Corner stud
 RW-5      7  2x4          92-5/8"  Stud
+GL-1      1  2x4         116-1/2"  Gable top plate. Level cut on the wall plate. Plumb cut 14.0° at the high wall.
+GL-2      1  2x4          25-3/4"  Gable stud. Top cut 14.0°.
+GL-3      1  2x4          21-3/4"  Gable stud. Top cut 14.0°.
+GL-4      1  2x4          17-3/4"  Gable stud. Top cut 14.0°.
+GL-5      1  2x4          13-3/4"  Gable stud. Top cut 14.0°.
+GL-6      1  2x4           9-3/4"  Gable stud. Top cut 14.0°.
+GL-7      1  2x4           5-3/4"  Gable stud. Top cut 14.0°.
+GR-1      1  2x4         116-1/2"  Gable top plate. Level cut on the wall plate. Plumb cut 14.0° at the high wall.
+GR-2      1  2x4          23-3/4"  Gable stud. Top cut 14.0°.
+GR-3      1  2x4          19-3/4"  Gable stud. Top cut 14.0°.
+GR-4      1  2x4          15-3/4"  Gable stud. Top cut 14.0°.
+GR-5      1  2x4          11-3/4"  Gable stud. Top cut 14.0°.
+GR-6      1  2x4           7-3/4"  Gable stud. Top cut 14.0°.
+GR-7      1  2x4           3-3/4"  Gable stud. Top cut 14.0°.
+RF-1     10  2x8         150-1/4"  Rafter. Birdsmouths on the top edge, 12-3/8" and 132-7/16" from its low end; each seat 3-1/2", heel 7/8". Both ends plumb cut 14.0°.
+RF-2      2  2x8         150-1/4"  Fly rafter. No birdsmouth. Both ends plumb cut 14.0°.
+RF-3     16  2x4           6-1/2"  Lookout
+RF-4      2  2x6             160"  Fascia

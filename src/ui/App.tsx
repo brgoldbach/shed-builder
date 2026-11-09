@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
-import { ASSEMBLIES, ROLES } from '../core/member';
+import { ASSEMBLIES, LAYERS, ROLES, type Layer } from '../core/member';
 import { buildModel } from '../core/model';
 import { buildCutList } from '../core/out/cutlist';
 import { PRESETS } from '../core/presets';
@@ -51,6 +51,7 @@ export function App() {
   const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
   const [tab, setTab] = useState<TabId>('3d');
   const [selected, setSelected] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
   const active = TABS.find((entry) => entry.id === tab)!;
 
@@ -59,6 +60,10 @@ export function App() {
   const markOf = useMemo(
     () => new Map(cutList.flatMap((line) => line.ids.map((id) => [id, line.mark] as const))),
     [cutList],
+  );
+  const shown = useMemo(
+    () => model.members.filter((member) => !hidden.has(ASSEMBLIES[member.assembly].layer)),
+    [model, hidden],
   );
   const selectedLine = cutList.find((line) => line.mark === selected);
   const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
@@ -166,7 +171,25 @@ export function App() {
           ))}
         </nav>
         <section className="panel viewport" role="tabpanel" hidden={tab !== '3d'}>
-          <View3D members={model.members} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
+          <View3D members={shown} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
+            <div className="layer-toggles">
+              {(Object.keys(LAYERS) as Layer[]).map((layer) => (
+                <label key={layer}>
+                  <input
+                    type="checkbox"
+                    checked={!hidden.has(layer)}
+                    onChange={() =>
+                      setHidden((current) => {
+                        const next = new Set(current);
+                        if (!next.delete(layer)) next.add(layer);
+                        return next;
+                      })
+                    }
+                  />
+                  {LAYERS[layer]}
+                </label>
+              ))}
+            </div>
             {selectedLine && (
               <div className="pick-info">
                 <strong>{selectedLine.mark}</strong> {ASSEMBLIES[selectedLine.assembly].label},{' '}

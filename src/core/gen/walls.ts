@@ -67,6 +67,18 @@ export function studLengths(config: ShedConfig): Record<Wall, number> {
   return lengths;
 }
 
+/** Top of each wall's top plate, or cap plate: the rafter bearing height. */
+export function wallTops(config: ShedConfig): Record<Wall, number> {
+  const lengths = studLengths(config);
+  const plates = PLY * (config.walls.capPlate ? 3 : 2);
+  return {
+    front: lengths.front + plates,
+    back: lengths.back + plates,
+    left: lengths.left + plates,
+    right: lengths.right + plates,
+  };
+}
+
 /** Plates, corners, layout studs, and opening framing of the four walls. */
 export function frameWalls(config: ShedConfig): { members: Member[]; warnings: Warning[] } {
   const heights = studLengths(config);
@@ -407,7 +419,12 @@ function frameWall(
  * Split a plate into stock-length pieces, with each splice on a stud center and clear of the
  * `avoid` positions. Leaves one long piece when no legal splice exists.
  */
-function splitPlate([start, end]: Span, maxLength: number, studCenters: number[], avoid: number[] = []): Span[] {
+export function splitPlate(
+  [start, end]: Span,
+  maxLength: number,
+  studCenters: readonly number[],
+  avoid: readonly number[] = [],
+): Span[] {
   const pieces: Span[] = [];
   let from = start;
   while (end - from > maxLength) {
