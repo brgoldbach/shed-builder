@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ROLES } from '../src/core/member';
 import { buildModel } from '../src/core/model';
+import { naming } from '../src/core/naming';
 import { buildCutList } from '../src/core/out/cutlist';
 import { PRESETS } from '../src/core/presets';
 import { formatInches } from '../src/core/units';
@@ -10,7 +11,7 @@ import { formatInches } from '../src/core/units';
 describe('preset cut lists', () => {
   it.each(PRESETS.map((preset) => [preset.name, preset] as const))('%s', async (name, preset) => {
     const model = buildModel(preset);
-    const lines = buildCutList(model.members).map((line) =>
+    const lines = buildCutList(model.members, naming(preset)).map((line) =>
       [
         line.mark.padEnd(6),
         String(line.ids.length).padStart(3),

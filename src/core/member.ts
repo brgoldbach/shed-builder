@@ -47,6 +47,10 @@ export const ROLES = {
   'joist.loft': 'Loft joist',
   'rim.loft': 'Loft rim joist',
   'ledger.loft': 'Loft ledger',
+  'edge.loft': 'Loft edge joist',
+  'trimmer.loft': 'Hatch trimmer',
+  'header.loft': 'Hatch header',
+  'tail.loft': 'Tail joist',
 } as const;
 export type Role = keyof typeof ROLES;
 

@@ -1,6 +1,7 @@
 import { LUMBER, stockLengths, type LumberSize, type TwoBy } from '../catalog';
 import { WALLS, type Opening, type OpeningType, type ShedConfig } from '../config';
 import { ASSEMBLIES, type Member, type Role, type Vec3, type Warning } from '../member';
+import { naming } from '../naming';
 import { positionText, roOffset } from '../placement';
 import { formatInches } from '../units';
 
@@ -116,11 +117,12 @@ interface Placed {
 
 function placements(config: ShedConfig): Placed[] {
   const types = new Map(config.openingTypes.map((type) => [type.name, type]));
+  const { side } = naming(config);
   return config.openings
     .filter((row) => row.enabled)
     .flatMap((row) =>
       row.at.map((position) => ({
-        label: `${row.type} (${row.wall} ${positionText(row.along, position)})`,
+        label: `${row.type} (${side(row.wall)} ${positionText(row.along, position)})`,
         type: types.get(row.type)!,
         row,
         position,

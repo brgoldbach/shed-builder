@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
 import { ASSEMBLIES, LAYERS, ROLES, type Layer } from '../core/member';
 import { buildModel } from '../core/model';
+import { naming } from '../core/naming';
 import { buildCutList } from '../core/out/cutlist';
 import { PRESETS } from '../core/presets';
 import { formatInches } from '../core/units';
@@ -56,7 +57,8 @@ export function App() {
   const active = TABS.find((entry) => entry.id === tab)!;
 
   const model = useMemo(() => buildModel(config), [config]);
-  const cutList = useMemo(() => buildCutList(model.members), [model]);
+  const names = useMemo(() => naming(config), [config]);
+  const cutList = useMemo(() => buildCutList(model.members, names), [model, names]);
   const markOf = useMemo(
     () => new Map(cutList.flatMap((line) => line.ids.map((id) => [id, line.mark] as const))),
     [cutList],
@@ -171,7 +173,7 @@ export function App() {
           ))}
         </nav>
         <section className="panel viewport" role="tabpanel" hidden={tab !== '3d'}>
-          <View3D members={shown} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
+          <View3D members={shown} front={config.front} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
             <div className="layer-toggles">
               {(Object.keys(LAYERS) as Layer[]).map((layer) => (
                 <label key={layer}>
@@ -192,7 +194,7 @@ export function App() {
             </div>
             {selectedLine && (
               <div className="pick-info">
-                <strong>{selectedLine.mark}</strong> {ASSEMBLIES[selectedLine.assembly].label},{' '}
+                <strong>{selectedLine.mark}</strong> {names.assembly(selectedLine.assembly).label},{' '}
                 {ROLES[selectedLine.role].toLowerCase()}: {selectedLine.ids.length} × {stockLabel(selectedLine)} at{' '}
                 {formatInches(selectedLine.length)}
               </div>
@@ -200,7 +202,7 @@ export function App() {
           </View3D>
         </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'cutlist'}>
-          <CutListTable lines={cutList} selected={selected} onSelect={toggle} />
+          <CutListTable lines={cutList} names={names} selected={selected} onSelect={toggle} />
         </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'warnings'}>
           {model.warnings.length === 0 ? (

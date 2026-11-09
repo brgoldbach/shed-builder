@@ -1,15 +1,17 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import type { ShedConfig } from '../core/config';
 import type { Member } from '../core/member';
 import { FramingScene } from '../view3d/scene';
 
 interface Props {
   members: readonly Member[];
+  front: ShedConfig['front'];
   selected: ReadonlySet<string>;
   onPick: (id: string | null) => void;
   children?: ReactNode;
 }
 
-export function View3D({ members, selected, onPick, children }: Props) {
+export function View3D({ members, front, selected, onPick, children }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<FramingScene | null>(null);
   const pick = useRef(onPick);
@@ -34,6 +36,10 @@ export function View3D({ members, selected, onPick, children }: Props) {
   useEffect(() => {
     view.current?.setSelection(selected);
   }, [selected]);
+
+  useEffect(() => {
+    view.current?.setFront(front);
+  }, [front]);
 
   return (
     <>

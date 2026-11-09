@@ -1,5 +1,6 @@
 import type { LumberSize } from '../catalog';
-import { ASSEMBLIES, ROLES, type Assembly, type Member, type Role } from '../member';
+import { ROLES, type Assembly, type Member, type Role } from '../member';
+import { naming, type Naming } from '../naming';
 
 /** Identical pieces of one assembly. `mark` is the label written on each piece. */
 export interface CutLine {
@@ -13,11 +14,13 @@ export interface CutLine {
   ids: string[];
 }
 
-const ASSEMBLY_ORDER = Object.keys(ASSEMBLIES);
 const ROLE_ORDER = Object.keys(ROLES);
 
-/** Group members into cut lines: by assembly, then role, then longest first. Lengths round to 1/16 in. */
-export function buildCutList(members: readonly Member[]): CutLine[] {
+/**
+ * Group members into cut lines: by assembly, then role, then longest first. Lengths round to
+ * 1/16 in. Assembly order and mark prefixes follow the user's side names.
+ */
+export function buildCutList(members: readonly Member[], names: Naming = naming({ front: 'eave' })): CutLine[] {
   const lines = new Map<string, Omit<CutLine, 'mark'>>();
   for (const member of members) {
     const length = Math.round(member.length * 16) / 16;
@@ -29,7 +32,7 @@ export function buildCutList(members: readonly Member[]): CutLine[] {
 
   const sorted = [...lines.values()].sort(
     (first, second) =>
-      ASSEMBLY_ORDER.indexOf(first.assembly) - ASSEMBLY_ORDER.indexOf(second.assembly) ||
+      names.rank(first.assembly) - names.rank(second.assembly) ||
       ROLE_ORDER.indexOf(first.role) - ROLE_ORDER.indexOf(second.role) ||
       second.length - first.length,
   );
@@ -38,7 +41,7 @@ export function buildCutList(members: readonly Member[]): CutLine[] {
   return sorted.map((line) => {
     const count = (counts.get(line.assembly) ?? 0) + 1;
     counts.set(line.assembly, count);
-    return { mark: `${ASSEMBLIES[line.assembly].prefix}-${count}`, ...line };
+    return { mark: `${names.assembly(line.assembly).prefix}-${count}`, ...line };
   });
 }
 

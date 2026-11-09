@@ -3,11 +3,11 @@ import {
   ALONG,
   HEADER_STYLES,
   OPENING_KINDS,
-  WALLS,
   type Opening,
   type OpeningType,
   type ShedConfig,
 } from '../core/config';
+import { naming } from '../core/naming';
 import { evenPercents, positionFor, roOffset, wallSpan } from '../core/placement';
 import { formatInches, parseLength } from '../core/units';
 import {
@@ -280,6 +280,7 @@ interface RowProps extends SectionProps<Opening> {
 
 function OpeningRow({ value, config, names, onChange, onRemove }: RowProps) {
   const set = setter(value, onChange);
+  const sides = naming(config);
   const type = config.openingTypes.find((candidate) => candidate.name === value.type)!;
   const span = wallSpan(config, value.wall);
 
@@ -320,8 +321,8 @@ function OpeningRow({ value, config, names, onChange, onRemove }: RowProps) {
         <SelectInput
           label="Wall"
           value={value.wall}
-          options={WALLS}
-          describe={capitalize}
+          options={sides.sides}
+          describe={(wall) => capitalize(sides.side(wall))}
           disabled={!value.enabled}
           onChange={set('wall')}
         />

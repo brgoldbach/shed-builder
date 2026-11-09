@@ -12,11 +12,13 @@ export const POST_SIZES = ['none', '4x4', '6x6'] as const;
 export const WALL_STUDS = ['2x4', '2x6'] as const;
 export const CORNERS = ['four-stud', 'three-stud', 'california', 'two-stud'] as const;
 export const WALLS = ['front', 'back', 'left', 'right'] as const;
+export const FRONTS = ['eave', 'gable'] as const;
 export const OPENING_KINDS = ['door', 'window', 'overhead', 'custom'] as const;
 export const HEADER_STYLES = ['single', 'double', 'triple', 'flat'] as const;
 export const ALONG = ['percent', 'left', 'right'] as const;
 export const ROOF_STYLES = ['gable', 'lean-to'] as const;
 export const LOFT_SUPPORTS = ['plates', 'hung'] as const;
+export const LOFT_OPEN_ENDS = ['none', 'left', 'right'] as const;
 export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
 export const TAIL_CUTS = ['plumb', 'square'] as const;
 export const SHEATHING = ['none', ...SHEET_KEYS] as const;
@@ -159,6 +161,25 @@ const roof = z.strictObject({
       deck: z.enum(SHEET_KEYS).default('tg-23/32'),
       // plates: on the eave-wall plates. hung: in hangers between ledgers, tops flush with the walls.
       support: z.enum(LOFT_SUPPORTS).default('plates'),
+      // No loft floor for `length` from one gable end.
+      open: z
+        .strictObject({
+          end: z.enum(LOFT_OPEN_ENDS).default('none'),
+          length: len(12, 480).default(48),
+        })
+        .prefault({}),
+      // Openings in the loft floor. x: left gable end to the left edge. y: front wall to the front
+      // edge. width along the length, depth front to back. All from the outside faces.
+      hatches: z
+        .array(
+          z.strictObject({
+            x: len(0, 480),
+            y: len(0, 480),
+            width: len(12, 240),
+            depth: len(12, 240),
+          }),
+        )
+        .default([]),
     })
     .prefault({}),
   kneeWalls: z
@@ -181,6 +202,8 @@ export const shedSchema = z.strictObject({
   width: len(48, 480).default(120), // front to back
   length: len(48, 480).default(144), // left to right
   wallHeight: len(60, 200).default(97.125), // floor surface to the top of the top plates
+  // The side the user calls the front. Only names change: the model's front stays an eave wall.
+  front: z.enum(FRONTS).default('eave'),
   foundation: foundation.prefault({}),
   floor: floor.prefault({}),
   walls: walls.prefault({}),

@@ -3,6 +3,8 @@ import {
   CORNERS,
   FASCIA,
   FOUNDATION_TYPES,
+  FRONTS,
+  LOFT_OPEN_ENDS,
   LOFT_SUPPORTS,
   MUD_SILLS,
   PIER_DIAMETERS,
@@ -27,9 +29,11 @@ import {
   TextField,
   capitalize,
   setter,
+  type Edit,
   type SectionProps,
 } from './fields';
 import { studLengths } from '../core/gen/walls';
+import { naming, type Naming } from '../core/naming';
 import { formatInches } from '../core/units';
 import { OpeningRowsEditor, OpeningTypesEditor } from './OpeningsEditor';
 
@@ -49,17 +53,37 @@ const CORNER_LABELS = {
   'two-stud': '2-stud + clips',
 };
 
+const FRONT_LABELS = { eave: 'Eave wall', gable: 'Gable end' };
+
 const sheetLabel = (key: (typeof SHEATHING)[number]) => (key === 'none' ? 'None' : SHEETS[key].label);
 const noneLabel = (option: string) => (option === 'none' ? 'None' : option);
 
 export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
   const set = setter(value, onChange);
+  const names = naming(value);
+  // Width runs across the ridge, length along it; their directions follow the user's front.
+  const gableFront = value.front === 'gable';
   return (
     <>
       <Section title="Shed" open>
         <TextField label="Name" value={value.name} onChange={set('name')} />
-        <LengthField label="Width (front to back)" value={value.width} onChange={set('width')} />
-        <LengthField label="Length (left to right)" value={value.length} onChange={set('length')} />
+        <SelectField
+          label="Front of the shed"
+          value={value.front}
+          options={FRONTS}
+          describe={(front) => FRONT_LABELS[front]}
+          onChange={set('front')}
+        />
+        <LengthField
+          label={gableFront ? 'Width (left to right)' : 'Width (front to back)'}
+          value={value.width}
+          onChange={set('width')}
+        />
+        <LengthField
+          label={gableFront ? 'Length (front to back)' : 'Length (left to right)'}
+          value={value.length}
+          onChange={set('length')}
+        />
         <LengthField label="Wall height" value={value.wallHeight} onChange={set('wallHeight')} />
         <p className="muted hint">
           Floor to the top of the top plates. Studs: {formatInches(studLengths(value).left)}.
@@ -74,7 +98,7 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       <Section title="Openings">
         <OpeningRowsEditor value={value} onChange={onChange} />
       </Section>
-      <RoofSection value={value.roof} onChange={set('roof')} />
+      <RoofSection value={value.roof} onChange={set('roof')} names={names} />
       <CatalogSection value={value.catalog} onChange={set('catalog')} />
     </>
   );
@@ -167,12 +191,13 @@ function WallsSection({ value, onChange, onSlab }: SectionProps<Walls> & { onSla
   );
 }
 
-function RoofSection({ value, onChange }: SectionProps<Roof>) {
+function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: Naming }) {
   const set = setter(value, onChange);
   const ladder = setter(value.rakeLadder, set('rakeLadder'));
   const ties = setter(value.rafterTies, set('rafterTies'));
   const collar = setter(value.collarTies, set('collarTies'));
   const loft = setter(value.loft, set('loft'));
+  const open = setter(value.loft.open, loft('open'));
   const knee = setter(value.kneeWalls, set('kneeWalls'));
   return (
     <Section title="Roof">
@@ -189,7 +214,13 @@ function RoofSection({ value, onChange }: SectionProps<Roof>) {
       <SelectField label="Lookout o.c. (in)" value={value.rakeLadder.spacing} options={SPACINGS} onChange={ladder('spacing')} />
 
       {value.style === 'lean-to' && (
-        <SelectField label="High side" value={value.highSide} options={['front', 'back'] as const} describe={capitalize} onChange={set('highSide')} />
+        <SelectField
+          label="High side"
+          value={value.highSide}
+          options={['front', 'back'] as const}
+          describe={(side) => capitalize(names.side(side))}
+          onChange={set('highSide')}
+        />
       )}
 
       {value.style === 'gable' && (
@@ -210,6 +241,17 @@ function RoofSection({ value, onChange }: SectionProps<Roof>) {
                 onChange={loft('support')}
               />
               <SelectField label="Deck" value={value.loft.deck} options={SHEET_KEYS} describe={sheetLabel} onChange={loft('deck')} />
+              <SelectField
+                label="Open end"
+                value={value.loft.open.end}
+                options={LOFT_OPEN_ENDS}
+                describe={(end) => (end === 'none' ? 'None' : capitalize(names.side(end)))}
+                onChange={open('end')}
+              />
+              {value.loft.open.end !== 'none' && (
+                <LengthField label="Open length" value={value.loft.open.length} onChange={open('length')} />
+              )}
+              <HatchesEditor value={value.loft.hatches} onChange={loft('hatches')} names={names} />
               <CheckField label="Knee walls" value={value.kneeWalls.enabled} onChange={knee('enabled')} />
               {value.kneeWalls.enabled && (
                 <>
@@ -269,5 +311,40 @@ function CatalogSection({ value, onChange }: SectionProps<Catalog>) {
         />
       ))}
     </Section>
+  );
+}
+
+type Hatch = Roof['loft']['hatches'][number];
+
+function HatchesEditor({ value, onChange, names }: SectionProps<Hatch[]> & { names: Naming }) {
+  const update =
+    (index: number): Edit<Hatch> =>
+    (next) =>
+      onChange(value.map((hatch, at) => (at === index ? next : hatch)));
+  return (
+    <>
+      {value.map((hatch, index) => {
+        const set = setter(hatch, update(index));
+        return (
+          <fieldset className="card" key={index}>
+            <legend>Hatch {index + 1}</legend>
+            <button
+              className="remove"
+              aria-label={`Remove hatch ${index + 1}`}
+              onClick={() => onChange(value.filter((_, at) => at !== index))}
+            >
+              ×
+            </button>
+            <LengthField label={`From ${names.side('left')} end`} value={hatch.x} onChange={set('x')} />
+            <LengthField label={`From ${names.side('front')} wall`} value={hatch.y} onChange={set('y')} />
+            <LengthField label="Along the ridge" value={hatch.width} onChange={set('width')} />
+            <LengthField label="Across the ridge" value={hatch.depth} onChange={set('depth')} />
+          </fieldset>
+        );
+      })}
+      <div className="add-row">
+        <button onClick={() => onChange([...value, { x: 24, y: 24, width: 24, depth: 30 }])}>+ Hatch</button>
+      </div>
+    </>
   );
 }

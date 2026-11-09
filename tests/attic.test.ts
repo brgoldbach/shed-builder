@@ -153,6 +153,59 @@ describe('loft joists hung from ledgers', () => {
   });
 });
 
+describe('loft openings', () => {
+  const hung = { enabled: true, joist: '2x6', oc: 16, support: 'hung' };
+  const lengths = (members: Member[]) => members.map((member) => member.length).sort((first, second) => first - second);
+
+  it('leaves an open end with a doubled edge joist and nothing across it', () => {
+    const { members } = roofOf({ loft: { ...hung, open: { end: 'left', length: 48 } } });
+    expect(xs(ofRole(members, 'edge.loft'))).toEqual([48, 49.5]);
+    // Layout joists from 51 (inside the edge) to the end joist at 115.
+    expect(xs(ofRole(members, 'joist.loft'))).toEqual([63.25, 79.25, 95.25, 111.25, 115]);
+    // Ledgers under the floor only: 48 to 120 - 3-1/2.
+    expect(lengths(ofRole(members, 'ledger.loft'))).toEqual([68.5, 68.5]);
+    expect(ofRole(members, 'tie.rafter')).toHaveLength(0);
+  });
+
+  it('moves a lapping edge joist clear of the rafter it lands on', () => {
+    const { members } = roofOf({ loft: { enabled: true, joist: '2x6', oc: 16, open: { end: 'left', length: 48 } } });
+    // A rafter starts at 47-1/4, so the plies move to its far side.
+    expect(xs(ofRole(members, 'edge.loft'))).toEqual([48.75, 50.25]);
+  });
+
+  it('frames a hatch with doubled trimmers, doubled headers, and tail joists', () => {
+    // Opening 24 x 30 at x 60, y 30. Joists run 5 to 91 between the ledgers.
+    const { members, warnings } = roofOf({ loft: { ...hung, hatches: [{ x: 60, y: 30, width: 24, depth: 30 }] } });
+    expect(warnings).toEqual([]);
+    const trimmers = ofRole(members, 'trimmer.loft');
+    expect(xs(trimmers)).toEqual([57, 58.5, 84, 85.5]);
+    expect(lengths(trimmers)).toEqual([86, 86, 86, 86]);
+    const headers = ofRole(members, 'header.loft');
+    expect(headers.map((header) => header.origin[1]).sort((first, second) => first - second)).toEqual([27, 28.5, 60, 61.5]);
+    expect(lengths(headers)).toEqual([24, 24, 24, 24]);
+    // Layout 63-1/4 and 79-1/4 fall between the trimmers: tails 27 - 5 = 22 and 91 - 63 = 28.
+    const tails = ofRole(members, 'tail.loft');
+    expect(xs(tails)).toEqual([63.25, 63.25, 79.25, 79.25]);
+    expect(lengths(tails)).toEqual([22, 22, 28, 28]);
+    expect(tails[0].note).toBe('Joist hanger at the hatch header. Joist hanger at the ledger.');
+    expect(xs(ofRole(members, 'joist.loft'))).toEqual([3.5, 15.25, 31.25, 47.25, 95.25, 111.25, 115]);
+  });
+
+  it('warns about long headers, hatches near the eaves, and overlapping hatches', () => {
+    const hatches = [
+      { x: 30, y: 30, width: 60, depth: 30 },
+      { x: 40, y: 30, width: 24, depth: 30 },
+      { x: 100, y: 4, width: 12, depth: 30 },
+    ];
+    const { warnings } = roofOf({ loft: { ...hung, hatches } });
+    expect(warnings).toEqual([
+      { source: 'Hatch 1', message: 'The 60" hatch headers are longer than 4 ft. Check their size.' },
+      { source: 'Hatch 2', message: 'The hatch overlaps another hatch.' },
+      { source: 'Hatch 3', message: 'The hatch is too close to the eaves to leave tail joists.' },
+    ]);
+  });
+});
+
 describe('lean-to roofs', () => {
   it('get no ties and no loft', () => {
     const { members } = roofOf({ style: 'lean-to', pitch: 3, loft: { enabled: true } });

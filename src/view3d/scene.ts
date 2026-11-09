@@ -27,7 +27,11 @@ import { LUMBER } from '../core/catalog';
 import type { Member, Role, Vec3 } from '../core/member';
 
 const CLICK_SLOP = 4; // px of pointer travel that still counts as a click, not an orbit
-const VIEW_FROM = new Vector3(-0.55, -1, 0.6).normalize(); // front-left, above
+// From the user's front-left corner, above. A gable front is the model's -x end, with +y on its left.
+const VIEW_FROM = {
+  eave: new Vector3(-0.55, -1, 0.6).normalize(),
+  gable: new Vector3(-1, 0.55, 0.6).normalize(),
+};
 
 const vector = (value: Vec3) => new Vector3(value[0], value[1], value[2]);
 
@@ -96,6 +100,7 @@ export class FramingScene {
     edges: new LineBasicMaterial({ color: 0x3b2f22, transparent: true, opacity: 0.5 }),
   };
   private selection: ReadonlySet<string> = new Set();
+  private viewFrom = VIEW_FROM.eave;
   private fitted = false;
   private pointerDown: { x: number; y: number } | null = null;
 
@@ -137,6 +142,13 @@ export class FramingScene {
     else this.render();
   }
 
+  /** Turn the camera to look from the user's front-left corner. */
+  setFront(front: 'eave' | 'gable') {
+    if (this.viewFrom === VIEW_FROM[front]) return;
+    this.viewFrom = VIEW_FROM[front];
+    this.fit();
+  }
+
   setSelection(ids: ReadonlySet<string>) {
     this.selection = ids;
     this.applySelection();
@@ -151,7 +163,7 @@ export class FramingScene {
     const halfFov = (this.camera.fov * Math.PI) / 360;
     const narrowHalfFov = Math.min(halfFov, Math.atan(Math.tan(halfFov) * this.camera.aspect));
     const distance = (sphere.radius / Math.sin(narrowHalfFov)) * 1.05;
-    this.camera.position.copy(sphere.center).addScaledVector(VIEW_FROM, distance);
+    this.camera.position.copy(sphere.center).addScaledVector(this.viewFrom, distance);
     this.camera.near = distance / 100;
     this.camera.far = distance * 20;
     this.camera.updateProjectionMatrix();
