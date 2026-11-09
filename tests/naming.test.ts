@@ -35,8 +35,8 @@ describe('naming', () => {
   it('lists and marks the cut list from the user front', () => {
     const preset = { ...PRESETS[0], front: 'gable' as const };
     const lines = buildCutList(buildModel(preset).members, naming(preset));
-    // The 8x10's door wall is the model's left gable wall: now the front wall, listed first.
-    expect(lines[0]).toMatchObject({ mark: 'FW-1', assembly: 'wall.left' });
+    // The 8x10's door wall is the model's left gable wall: now the front wall, the first wall listed.
+    expect(lines.find((line) => line.assembly.startsWith('wall'))).toMatchObject({ mark: 'FW-1', assembly: 'wall.left' });
   });
 
   it('names opening placements by the user side', () => {

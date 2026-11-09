@@ -1,3 +1,7 @@
+FD-1      2  4x6 PT          120"  Skid
+FL-1      2  2x6 PT          120"  Rim joist
+FL-2      2  2x6 PT           93"  End joist
+FL-3      7  2x6 PT           93"  Floor joist
 FW-1      1  2x4             120"  Bottom plate
 FW-2      1  2x4             120"  Top plate
 FW-3      1  2x4             113"  Cap plate
@@ -42,3 +46,4 @@ RF-4     16  2x4           6-1/2"  Lookout
 RF-5      2  2x6             136"  Fascia
 RF-6      4  2x4              96"  Rafter tie. Ends cut 26.6° to the roof line.
 RF-7      4  2x4          37-1/2"  Collar tie. Ends cut 26.6° to the roof line.
+SOLID Subfloor, 23/32" T&G (3/4") x1

@@ -1,17 +1,19 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { ShedConfig } from '../core/config';
-import type { Member } from '../core/member';
+import type { Member, Solid } from '../core/member';
 import { FramingScene } from '../view3d/scene';
 
 interface Props {
   members: readonly Member[];
+  solids: readonly Solid[];
   front: ShedConfig['front'];
   selected: ReadonlySet<string>;
   onPick: (id: string | null) => void;
+  toolbar?: ReactNode;
   children?: ReactNode;
 }
 
-export function View3D({ members, front, selected, onPick, children }: Props) {
+export function View3D({ members, solids, front, selected, onPick, toolbar, children }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<FramingScene | null>(null);
   const pick = useRef(onPick);
@@ -30,8 +32,8 @@ export function View3D({ members, front, selected, onPick, children }: Props) {
   }, []);
 
   useEffect(() => {
-    view.current?.setMembers(members);
-  }, [members]);
+    view.current?.setModel(members, solids);
+  }, [members, solids]);
 
   useEffect(() => {
     view.current?.setSelection(selected);
@@ -44,8 +46,11 @@ export function View3D({ members, front, selected, onPick, children }: Props) {
   return (
     <>
       <div ref={host} className="canvas-host" />
-      <div className="overlay-actions">
-        <button onClick={() => view.current?.fit()}>Fit view</button>
+      <div className="view-toolbar">
+        {toolbar}
+        <button className="fit" onClick={() => view.current?.fit()}>
+          Fit view
+        </button>
       </div>
       {children}
     </>

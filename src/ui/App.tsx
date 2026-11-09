@@ -52,7 +52,8 @@ export function App() {
   const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
   const [tab, setTab] = useState<TabId>('3d');
   const [selected, setSelected] = useState<string | null>(null);
-  const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set());
+  // Sheathing would hide the framing, so it starts hidden.
+  const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(['sheathing']));
   const fileInput = useRef<HTMLInputElement>(null);
   const active = TABS.find((entry) => entry.id === tab)!;
 
@@ -67,6 +68,7 @@ export function App() {
     () => model.members.filter((member) => !hidden.has(ASSEMBLIES[member.assembly].layer)),
     [model, hidden],
   );
+  const shownSolids = useMemo(() => model.solids.filter((solid) => !hidden.has(solid.layer)), [model, hidden]);
   const selectedLine = cutList.find((line) => line.mark === selected);
   const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
   const toggle = (mark: string | null) => setSelected((current) => (current === mark ? null : mark));
@@ -173,25 +175,33 @@ export function App() {
           ))}
         </nav>
         <section className="panel viewport" role="tabpanel" hidden={tab !== '3d'}>
-          <View3D members={shown} front={config.front} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
-            <div className="layer-toggles">
-              {(Object.keys(LAYERS) as Layer[]).map((layer) => (
-                <label key={layer}>
-                  <input
-                    type="checkbox"
-                    checked={!hidden.has(layer)}
-                    onChange={() =>
-                      setHidden((current) => {
-                        const next = new Set(current);
-                        if (!next.delete(layer)) next.add(layer);
-                        return next;
-                      })
-                    }
-                  />
-                  {LAYERS[layer]}
-                </label>
-              ))}
-            </div>
+          <View3D
+            members={shown}
+            solids={shownSolids}
+            front={config.front}
+            toolbar={
+              <div className="layer-toggles">
+                {(Object.keys(LAYERS) as Layer[]).map((layer) => (
+                  <label key={layer}>
+                    <input
+                      type="checkbox"
+                      checked={!hidden.has(layer)}
+                      onChange={() =>
+                        setHidden((current) => {
+                          const next = new Set(current);
+                          if (!next.delete(layer)) next.add(layer);
+                          return next;
+                        })
+                      }
+                    />
+                    {LAYERS[layer]}
+                  </label>
+                ))}
+              </div>
+            }
+            selected={selectedIds}
+            onPick={(id) => toggle(id && (markOf.get(id) ?? null))}
+          >
             {selectedLine && (
               <div className="pick-info">
                 <strong>{selectedLine.mark}</strong> {names.assembly(selectedLine.assembly).label},{' '}

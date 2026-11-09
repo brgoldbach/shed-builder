@@ -147,8 +147,6 @@ function FoundationSection({ value, onChange }: SectionProps<Foundation>) {
           <LengthField label="Bolt to plate end" value={value.slab.anchorEndDistance} onChange={slab('anchorEndDistance')} />
         </>
       )}
-      <LengthField label="Gravel depth" value={value.gravelDepth} onChange={set('gravelDepth')} />
-      <LengthField label="Gravel margin" value={value.gravelMargin} onChange={set('gravelMargin')} />
     </Section>
   );
 }

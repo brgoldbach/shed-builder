@@ -1,6 +1,6 @@
 import { LUMBER, stockLengths, type LumberSize, type TwoBy } from '../catalog';
 import { WALLS, type Opening, type OpeningType, type ShedConfig } from '../config';
-import { ASSEMBLIES, type Member, type Role, type Vec3, type Warning } from '../member';
+import { ASSEMBLIES, type Member, type Role, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
 import { positionText, roOffset } from '../placement';
 import { formatInches } from '../units';
@@ -13,6 +13,7 @@ const PLY = 1.5; // thickness of a 2x plate or stud
 const CAP_SPLICE_OFFSET = 24; // min distance from a cap-plate splice to a top-plate splice
 const MIN_PLATE_PIECE = 24; // no short offcut pieces at a plate end
 const MIN_CRIPPLE = 3; // a smaller gap above a header closes: the header goes tight to the plate
+const BOLT_EMBED = 7; // shown embedment of the anchor bolts in the slab
 const UP: Vec3 = [0, 0, 1];
 
 type VerticalRole = Extract<Role, 'corner' | 'stud' | 'king' | 'jack' | 'cripple'>;
@@ -92,7 +93,7 @@ export function wallTops(config: ShedConfig): Record<Wall, number> {
 }
 
 /** Plates, corners, layout studs, and opening framing of the four walls. */
-export function frameWalls(config: ShedConfig): { members: Member[]; warnings: Warning[] } {
+export function frameWalls(config: ShedConfig): { members: Member[]; warnings: Warning[]; solids: Solid[] } {
   const heights = studLengths(config);
   const frame = frames(config.width, config.length);
   const placed = placements(config);
@@ -101,10 +102,11 @@ export function frameWalls(config: ShedConfig): { members: Member[]; warnings: W
   if (sillSize && LUMBER[sillSize].width < LUMBER[config.walls.stud].width) {
     warnings.push({ source: 'Walls', message: `The ${sillSize} mud sill is narrower than the ${config.walls.stud} walls.` });
   }
+  const solids: Solid[] = [];
   const members = WALLS.flatMap((wall) =>
-    frameWall(config, wall, frame[wall], heights, placed.filter(({ row }) => row.wall === wall), warnings),
+    frameWall(config, wall, frame[wall], heights, placed.filter(({ row }) => row.wall === wall), warnings, solids),
   );
-  return { members, warnings };
+  return { members, warnings, solids };
 }
 
 // One opening at one position. The label names it in warnings and notes: "window 24x36 (front 50%)".
@@ -244,6 +246,7 @@ function frameWall(
   heights: Record<Wall, number>,
   placed: readonly Placed[],
   warnings: Warning[],
+  solids: Solid[],
 ): Member[] {
   const { walls } = config;
   const assembly = `wall.${wall}` as const;
@@ -274,10 +277,13 @@ function frameWall(
     treated = false,
     note?: string,
   ) {
+    members.push({ id: nextId(code), assembly, role, size, treated, length, origin, axes, ...(note && { note }) });
+  }
+
+  function nextId(code: string) {
     const count = (counts.get(code) ?? 0) + 1;
     counts.set(code, count);
-    const id = `${prefix}-${code}${String(count).padStart(2, '0')}`;
-    members.push({ id, assembly, role, size, treated, length, origin, axes, ...(note && { note }) });
+    return `${prefix}-${code}${String(count).padStart(2, '0')}`;
   }
 
   function upright(role: VerticalRole, from: number, bottom = base, length = studLength) {
@@ -420,6 +426,24 @@ function frameWall(
     } else {
       flatBoard(onSlab ? 'SL' : 'BP', onSlab ? 'plate.sill' : 'plate.bottom', piece, 0, onSlab, note);
     }
+    if (onSlab) {
+      // Anchor bolts on the sill's centerline, in each part of the piece clear of doorways.
+      const { anchorSpacing, anchorEndDistance } = config.foundation.slab;
+      const sillWidth = LUMBER[sillSize ?? walls.stud].width;
+      const doorSpans: Span[] = doorways.map(({ offset, type }) => [offset, offset + type.width]);
+      for (const [low, high] of subtract(piece, doorSpans)) {
+        for (const u of boltPositions(low, high, anchorEndDistance, anchorSpacing)) {
+          const [x, y] = at(frame, u, sillWidth / 2, 0);
+          solids.push({
+            id: nextId('AB'),
+            label: 'Anchor bolt, 1/2"',
+            layer: 'foundation',
+            material: 'steel',
+            shape: { kind: 'cylinder', base: [x, y, -BOLT_EMBED], radius: 0.25, height: BOLT_EMBED + PLY + 1 },
+          });
+        }
+      }
+    }
   }
   const topPieces = splitPlate([start, end], maxStock, centers);
   topPieces.forEach((piece) => flatBoard('TP', 'plate.top', piece, plateUnder));
@@ -440,6 +464,29 @@ function frameWall(
   }
 
   return members;
+}
+
+/** The parts of `span` outside the holes. */
+function subtract([start, end]: Span, holes: readonly Span[]): Span[] {
+  const pieces: Span[] = [];
+  let from = start;
+  for (const [low, high] of [...holes].sort((first, second) => first[0] - second[0])) {
+    if (low > from) pieces.push([from, Math.min(low, end)]);
+    from = Math.max(from, high);
+  }
+  if (end > from) pieces.push([from, end]);
+  return pieces.filter(([low, high]) => high > low);
+}
+
+/**
+ * Bolts along [low, high]: one `end` in from each end, the rest evenly spaced at most `spacing`
+ * apart. A part shorter than two end distances gets one bolt at its middle.
+ */
+function boltPositions(low: number, high: number, end: number, spacing: number): number[] {
+  const length = high - low;
+  if (length <= 2 * end) return [low + length / 2];
+  const count = Math.ceil((length - 2 * end) / spacing) + 1;
+  return Array.from({ length: count }, (_, index) => low + end + (index * (length - 2 * end)) / (count - 1));
 }
 
 /**

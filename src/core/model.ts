@@ -1,18 +1,23 @@
 import type { ShedConfig } from './config';
+import { frameFloor } from './gen/floor';
 import { frameRoof } from './gen/roof';
 import { frameWalls } from './gen/walls';
-import type { Member, Warning } from './member';
+import type { Member, Solid, Warning } from './member';
 
 export interface Model {
   members: Member[];
+  solids: Solid[];
   warnings: Warning[];
 }
 
-/** Every framing member of the design, and the problems found while framing it. */
+/** Every framing member and non-lumber part of the design, and the problems found while framing it. */
 export function buildModel(config: ShedConfig): Model {
-  const parts = [frameWalls(config), frameRoof(config)];
+  const floor = frameFloor(config);
+  const walls = frameWalls(config);
+  const roof = frameRoof(config);
   return {
-    members: parts.flatMap((part) => part.members),
-    warnings: parts.flatMap((part) => part.warnings),
+    members: [...floor.members, ...walls.members, ...roof.members],
+    solids: [...floor.solids, ...walls.solids],
+    warnings: [...walls.warnings, ...roof.warnings],
   };
 }

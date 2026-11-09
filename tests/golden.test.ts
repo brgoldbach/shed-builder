@@ -21,7 +21,9 @@ describe('preset cut lists', () => {
       ].join('  '),
     );
     const warnings = model.warnings.map((warning) => `WARNING ${warning.source}: ${warning.message}`);
-    await expect(`${[...lines, ...warnings].join('\n')}\n`).toMatchFileSnapshot(
+    const counts = Map.groupBy(model.solids, (solid) => solid.label);
+    const solids = [...counts].sort(([first], [second]) => first.localeCompare(second)).map(([label, group]) => `SOLID ${label} x${group.length}`);
+    await expect(`${[...lines, ...warnings, ...solids].join('\n')}\n`).toMatchFileSnapshot(
       `golden/${name.replaceAll(' ', '-')}.txt`,
     );
   });

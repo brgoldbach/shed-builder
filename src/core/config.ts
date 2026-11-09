@@ -63,8 +63,6 @@ const foundation = z.strictObject({
       anchorEndDistance: len(2, 24).default(12),
     })
     .prefault({}),
-  gravelDepth: len(0, 12).default(4),
-  gravelMargin: len(0, 36).default(12),
 });
 
 const floor = z.strictObject({

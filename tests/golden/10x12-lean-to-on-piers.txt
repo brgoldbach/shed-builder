@@ -1,3 +1,7 @@
+FD-1      6  2x8 PT          144"  Girder ply
+FL-1      2  2x6 PT          144"  Rim joist
+FL-2      2  2x6 PT          117"  End joist
+FL-3      8  2x6 PT          117"  Floor joist
 FW-1      1  2x4             144"  Bottom plate. After anchoring, cut out door 36 (front 50%) from 53" to 91" from the left end, viewed from outside.
 FW-2      1  2x4             144"  Top plate
 FW-3      1  2x4             144"  Cap plate
@@ -46,3 +50,5 @@ RF-1     10  2x8         150-1/4"  Rafter. Birdsmouths on the top edge, 12-3/8" 
 RF-2      2  2x8         150-1/4"  Fly rafter. No birdsmouth. Both ends plumb cut 14.0°.
 RF-3     16  2x4           6-1/2"  Lookout
 RF-4      2  2x6             160"  Fascia
+SOLID Pier, 10" diameter x9
+SOLID Subfloor, 23/32" T&G (3/4") x1

@@ -3,11 +3,20 @@ import type { LumberSize } from './catalog';
 export type Vec3 = readonly [number, number, number];
 export type Point = readonly [number, number];
 
-export const LAYERS = { walls: 'Walls', roof: 'Roof', loft: 'Loft' } as const;
+export const LAYERS = {
+  foundation: 'Foundation',
+  floor: 'Floor',
+  walls: 'Walls',
+  roof: 'Roof',
+  loft: 'Loft',
+  sheathing: 'Sheathing',
+} as const;
 export type Layer = keyof typeof LAYERS;
 
 // Key order is the cut-list order.
 export const ASSEMBLIES = {
+  foundation: { label: 'Foundation', prefix: 'FD', layer: 'foundation' },
+  floor: { label: 'Floor', prefix: 'FL', layer: 'floor' },
   'wall.front': { label: 'Front wall', prefix: 'FW', layer: 'walls' },
   'wall.back': { label: 'Back wall', prefix: 'BW', layer: 'walls' },
   'wall.left': { label: 'Left wall', prefix: 'LW', layer: 'walls' },
@@ -51,8 +60,24 @@ export const ROLES = {
   'trimmer.loft': 'Hatch trimmer',
   'header.loft': 'Hatch header',
   'tail.loft': 'Tail joist',
+  skid: 'Skid',
+  girder: 'Girder ply',
+  post: 'Post',
+  'rim.floor': 'Rim joist',
+  'joist.end': 'End joist',
+  'joist.floor': 'Floor joist',
+  blocking: 'Blocking',
 } as const;
 export type Role = keyof typeof ROLES;
+
+/** A non-lumber part shown in 3D: concrete, sheet goods, or hardware. */
+export interface Solid {
+  id: string;
+  label: string;
+  layer: Layer;
+  material: 'concrete' | 'sheet' | 'steel';
+  shape: { kind: 'box'; min: Vec3; max: Vec3 } | { kind: 'cylinder'; base: Vec3; radius: number; height: number };
+}
 
 /** A design problem found while framing. `source` names the opening or part. */
 export interface Warning {

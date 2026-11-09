@@ -2,6 +2,7 @@ import {
   Box3,
   BoxGeometry,
   type BufferGeometry,
+  CylinderGeometry,
   DirectionalLight,
   EdgesGeometry,
   ExtrudeGeometry,
@@ -24,7 +25,7 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { LUMBER } from '../core/catalog';
-import type { Member, Role, Vec3 } from '../core/member';
+import type { Member, Role, Solid, Vec3 } from '../core/member';
 
 const CLICK_SLOP = 4; // px of pointer travel that still counts as a click, not an orbit
 // From the user's front-left corner, above. A gable front is the model's -x end, with +y on its left.
@@ -89,6 +90,7 @@ export class FramingScene {
   private readonly camera = new PerspectiveCamera(35, 1, 1, 20000);
   private readonly controls: OrbitControls;
   private readonly members = new Group();
+  private readonly solids = new Group(); // not pickable
   private readonly grid = new GridHelper(1200, 100, 0x8a8a84, 0x8a8a84);
   private readonly raycaster = new Raycaster();
   private readonly resizeObserver: ResizeObserver;
@@ -97,6 +99,9 @@ export class FramingScene {
     plate: new MeshStandardMaterial({ color: 0xc49b6a, roughness: 0.85 }),
     treated: new MeshStandardMaterial({ color: 0x9fae84, roughness: 0.85 }),
     selected: new MeshStandardMaterial({ color: 0xe0914a, emissive: 0x6a3000, roughness: 0.6 }),
+    concrete: new MeshStandardMaterial({ color: 0x9b9a95, roughness: 0.95 }),
+    sheet: new MeshStandardMaterial({ color: 0xd8b27a, roughness: 0.9, transparent: true, opacity: 0.6 }),
+    steel: new MeshStandardMaterial({ color: 0x5a5f66, roughness: 0.4, metalness: 0.6 }),
     edges: new LineBasicMaterial({ color: 0x3b2f22, transparent: true, opacity: 0.5 }),
   };
   private selection: ReadonlySet<string> = new Set();
@@ -119,7 +124,7 @@ export class FramingScene {
     this.grid.rotateX(Math.PI / 2);
     (this.grid.material as LineBasicMaterial).transparent = true;
     (this.grid.material as LineBasicMaterial).opacity = 0.25;
-    this.scene.add(new HemisphereLight(0xffffff, 0x8a7a66, 2), sun, this.grid, this.members);
+    this.scene.add(new HemisphereLight(0xffffff, 0x8a7a66, 2), sun, this.grid, this.members, this.solids);
 
     this.renderer.domElement.addEventListener('pointerdown', this.handlePointerDown);
     this.renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
@@ -127,8 +132,9 @@ export class FramingScene {
     this.resizeObserver.observe(host);
   }
 
-  setMembers(members: readonly Member[]) {
-    this.clearMembers();
+  setModel(members: readonly Member[], solids: readonly Solid[]) {
+    this.clearModel();
+    for (const solid of solids) this.solids.add(this.solidMesh(solid));
     for (const member of members) {
       const geometry = member.profile ? profileGeometry(member) : boxGeometry(member);
       const mesh = new Mesh(geometry, this.baseMaterial(member));
@@ -157,7 +163,7 @@ export class FramingScene {
 
   /** Point the camera at the whole frame from the front-left. */
   fit = () => {
-    const box = new Box3().setFromObject(this.members);
+    const box = new Box3().setFromObject(this.members).union(new Box3().setFromObject(this.solids));
     if (box.isEmpty() || this.host.clientWidth === 0) return;
     const sphere = box.getBoundingSphere(new Sphere());
     const halfFov = (this.camera.fov * Math.PI) / 360;
@@ -168,7 +174,8 @@ export class FramingScene {
     this.camera.far = distance * 20;
     this.camera.updateProjectionMatrix();
     this.controls.target.copy(sphere.center);
-    this.grid.position.set(sphere.center.x, sphere.center.y, 0);
+    // The grid stands for the ground: at the lowest piece of lumber.
+    this.grid.position.set(sphere.center.x, sphere.center.y, new Box3().setFromObject(this.members).min.z);
     this.controls.update();
     this.fitted = true;
     this.render();
@@ -177,7 +184,7 @@ export class FramingScene {
   dispose() {
     this.resizeObserver.disconnect();
     this.controls.dispose();
-    this.clearMembers();
+    this.clearModel();
     this.grid.dispose();
     Object.values(this.materials).forEach((material) => material.dispose());
     this.renderer.dispose();
@@ -195,12 +202,31 @@ export class FramingScene {
     }
   }
 
-  private clearMembers() {
-    for (const mesh of this.members.children as Mesh[]) {
-      mesh.geometry.dispose();
-      (mesh.children[0] as LineSegments).geometry.dispose();
+  private solidMesh(solid: Solid): Mesh {
+    const { shape } = solid;
+    if (shape.kind === 'cylinder') {
+      // Three.js cylinders stand along y; turn the axis to z.
+      const geometry = new CylinderGeometry(shape.radius, shape.radius, shape.height, 24).rotateX(Math.PI / 2);
+      const mesh = new Mesh(geometry, this.materials[solid.material]);
+      mesh.position.set(shape.base[0], shape.base[1], shape.base[2] + shape.height / 2);
+      return mesh;
     }
-    this.members.clear();
+    const size = [0, 1, 2].map((axis) => shape.max[axis] - shape.min[axis]);
+    const geometry = new BoxGeometry(size[0], size[1], size[2]);
+    const mesh = new Mesh(geometry, this.materials[solid.material]);
+    mesh.position.set(...([0, 1, 2].map((axis) => shape.min[axis] + size[axis] / 2) as [number, number, number]));
+    mesh.add(new LineSegments(new EdgesGeometry(geometry), this.materials.edges));
+    return mesh;
+  }
+
+  private clearModel() {
+    for (const group of [this.members, this.solids]) {
+      for (const mesh of group.children as Mesh[]) {
+        mesh.geometry.dispose();
+        (mesh.children[0] as LineSegments | undefined)?.geometry.dispose();
+      }
+      group.clear();
+    }
   }
 
   private render = () => {
