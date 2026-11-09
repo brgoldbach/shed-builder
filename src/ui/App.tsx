@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
+import { ASSEMBLIES, ROLES } from '../core/member';
+import { buildModel } from '../core/model';
+import { buildCutList } from '../core/out/cutlist';
 import { PRESETS } from '../core/presets';
+import { formatInches } from '../core/units';
+import { CutListTable, stockLabel } from './CutListTable';
 import { DesignForm } from './DesignForm';
+import { View3D } from './View3D';
 
 const TABS = [
-  { id: '3d', label: '3D', milestone: 'M2' },
+  { id: '3d', label: '3D' },
   { id: 'framing', label: 'Framing', milestone: 'M6' },
-  { id: 'cutlist', label: 'Cut list', milestone: 'M2' },
+  { id: 'cutlist', label: 'Cut list' },
   { id: 'bom', label: 'BOM', milestone: 'M7' },
   { id: 'warnings', label: 'Warnings', milestone: 'M8' },
 ] as const;
@@ -44,8 +50,19 @@ export function App() {
   const [revision, setRevision] = useState(0);
   const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
   const [tab, setTab] = useState<TabId>('3d');
+  const [selected, setSelected] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const active = TABS.find((entry) => entry.id === tab)!;
+
+  const members = useMemo(() => buildModel(config), [config]);
+  const cutList = useMemo(() => buildCutList(members), [members]);
+  const markOf = useMemo(
+    () => new Map(cutList.flatMap((line) => line.ids.map((id) => [id, line.mark] as const))),
+    [cutList],
+  );
+  const selectedLine = cutList.find((line) => line.mark === selected);
+  const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
+  const toggle = (mark: string | null) => setSelected((current) => (current === mark ? null : mark));
 
   useEffect(() => {
     try {
@@ -147,11 +164,27 @@ export function App() {
             </button>
           ))}
         </nav>
-        <section className="panel" role="tabpanel">
-          <p className="muted">
-            {active.label} view arrives in {active.milestone}.
-          </p>
+        <section className="panel viewport" role="tabpanel" hidden={tab !== '3d'}>
+          <View3D members={members} selected={selectedIds} onPick={(id) => toggle(id && (markOf.get(id) ?? null))}>
+            {selectedLine && (
+              <div className="pick-info">
+                <strong>{selectedLine.mark}</strong> {ASSEMBLIES[selectedLine.assembly].label},{' '}
+                {ROLES[selectedLine.role].toLowerCase()}: {selectedLine.ids.length} × {stockLabel(selectedLine)} at{' '}
+                {formatInches(selectedLine.length)}
+              </div>
+            )}
+          </View3D>
         </section>
+        <section className="panel" role="tabpanel" hidden={tab !== 'cutlist'}>
+          <CutListTable lines={cutList} selected={selected} onSelect={toggle} />
+        </section>
+        {'milestone' in active && (
+          <section className="panel" role="tabpanel">
+            <p className="muted">
+              {active.label} view arrives in {active.milestone}.
+            </p>
+          </section>
+        )}
       </main>
     </div>
   );

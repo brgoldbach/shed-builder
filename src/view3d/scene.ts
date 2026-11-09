@@ -1,0 +1,186 @@
+import {
+  Box3,
+  BoxGeometry,
+  DirectionalLight,
+  EdgesGeometry,
+  GridHelper,
+  Group,
+  HemisphereLight,
+  LineBasicMaterial,
+  LineSegments,
+  Matrix4,
+  Mesh,
+  MeshStandardMaterial,
+  PerspectiveCamera,
+  Raycaster,
+  Scene,
+  Sphere,
+  Vector2,
+  Vector3,
+  WebGLRenderer,
+} from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { LUMBER } from '../core/catalog';
+import type { Member, Vec3 } from '../core/member';
+
+const CLICK_SLOP = 4; // px of pointer travel that still counts as a click, not an orbit
+const VIEW_FROM = new Vector3(-0.55, -1, 0.6).normalize(); // front-left, above
+
+const vector = (value: Vec3) => new Vector3(value[0], value[1], value[2]);
+
+/** Three.js view of the framing members. Building z is up. Renders on demand only. */
+export class FramingScene {
+  private readonly host: HTMLElement;
+  private readonly onPick: (id: string | null) => void;
+  private readonly renderer = new WebGLRenderer({ antialias: true, alpha: true });
+  private readonly scene = new Scene();
+  private readonly camera = new PerspectiveCamera(35, 1, 1, 20000);
+  private readonly controls: OrbitControls;
+  private readonly members = new Group();
+  private readonly grid = new GridHelper(1200, 100, 0x8a8a84, 0x8a8a84);
+  private readonly raycaster = new Raycaster();
+  private readonly resizeObserver: ResizeObserver;
+  private readonly materials = {
+    stud: new MeshStandardMaterial({ color: 0xdcc096, roughness: 0.85 }),
+    plate: new MeshStandardMaterial({ color: 0xc49b6a, roughness: 0.85 }),
+    treated: new MeshStandardMaterial({ color: 0x9fae84, roughness: 0.85 }),
+    selected: new MeshStandardMaterial({ color: 0xe0914a, emissive: 0x6a3000, roughness: 0.6 }),
+    edges: new LineBasicMaterial({ color: 0x3b2f22, transparent: true, opacity: 0.5 }),
+  };
+  private selection: ReadonlySet<string> = new Set();
+  private fitted = false;
+  private pointerDown: { x: number; y: number } | null = null;
+
+  constructor(host: HTMLElement, onPick: (id: string | null) => void) {
+    this.host = host;
+    this.onPick = onPick;
+    this.camera.up.set(0, 0, 1);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    host.appendChild(this.renderer.domElement);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.addEventListener('change', this.render);
+
+    const sun = new DirectionalLight(0xffffff, 2);
+    sun.position.set(-2, -3, 4);
+    this.grid.rotateX(Math.PI / 2);
+    (this.grid.material as LineBasicMaterial).transparent = true;
+    (this.grid.material as LineBasicMaterial).opacity = 0.25;
+    this.scene.add(new HemisphereLight(0xffffff, 0x8a7a66, 2), sun, this.grid, this.members);
+
+    this.renderer.domElement.addEventListener('pointerdown', this.handlePointerDown);
+    this.renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
+    this.resizeObserver = new ResizeObserver(this.resize);
+    this.resizeObserver.observe(host);
+  }
+
+  setMembers(members: readonly Member[]) {
+    this.clearMembers();
+    for (const member of members) {
+      const { width, thick } = LUMBER[member.size];
+      const geometry = new BoxGeometry(member.length, width, thick);
+      const mesh = new Mesh(geometry, this.baseMaterial(member));
+      const along = vector(member.axes.length);
+      const across = vector(member.axes.width);
+      // A centered box is symmetric, so the sign of the third basis vector does not matter.
+      mesh.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(along, across, along.clone().cross(across)));
+      mesh.position
+        .copy(vector(member.origin))
+        .addScaledVector(along, member.length / 2)
+        .addScaledVector(across, width / 2)
+        .addScaledVector(vector(member.axes.thick), thick / 2);
+      mesh.userData = { id: member.id, base: mesh.material };
+      mesh.add(new LineSegments(new EdgesGeometry(geometry), this.materials.edges));
+      this.members.add(mesh);
+    }
+    this.applySelection();
+    if (!this.fitted) this.fit();
+    else this.render();
+  }
+
+  setSelection(ids: ReadonlySet<string>) {
+    this.selection = ids;
+    this.applySelection();
+    this.render();
+  }
+
+  /** Point the camera at the whole frame from the front-left. */
+  fit = () => {
+    const box = new Box3().setFromObject(this.members);
+    if (box.isEmpty() || this.host.clientWidth === 0) return;
+    const sphere = box.getBoundingSphere(new Sphere());
+    const halfFov = (this.camera.fov * Math.PI) / 360;
+    const narrowHalfFov = Math.min(halfFov, Math.atan(Math.tan(halfFov) * this.camera.aspect));
+    const distance = (sphere.radius / Math.sin(narrowHalfFov)) * 1.05;
+    this.camera.position.copy(sphere.center).addScaledVector(VIEW_FROM, distance);
+    this.camera.near = distance / 100;
+    this.camera.far = distance * 20;
+    this.camera.updateProjectionMatrix();
+    this.controls.target.copy(sphere.center);
+    this.grid.position.set(sphere.center.x, sphere.center.y, 0);
+    this.controls.update();
+    this.fitted = true;
+    this.render();
+  };
+
+  dispose() {
+    this.resizeObserver.disconnect();
+    this.controls.dispose();
+    this.clearMembers();
+    this.grid.dispose();
+    Object.values(this.materials).forEach((material) => material.dispose());
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
+  }
+
+  private baseMaterial(member: Member) {
+    if (member.treated) return this.materials.treated;
+    return member.role.startsWith('plate') ? this.materials.plate : this.materials.stud;
+  }
+
+  private applySelection() {
+    for (const mesh of this.members.children as Mesh[]) {
+      mesh.material = this.selection.has(mesh.userData.id) ? this.materials.selected : mesh.userData.base;
+    }
+  }
+
+  private clearMembers() {
+    for (const mesh of this.members.children as Mesh[]) {
+      mesh.geometry.dispose();
+      (mesh.children[0] as LineSegments).geometry.dispose();
+    }
+    this.members.clear();
+  }
+
+  private render = () => {
+    this.renderer.render(this.scene, this.camera);
+  };
+
+  private resize = () => {
+    const { clientWidth, clientHeight } = this.host;
+    if (clientWidth === 0 || clientHeight === 0) return;
+    this.renderer.setSize(clientWidth, clientHeight);
+    this.camera.aspect = clientWidth / clientHeight;
+    this.camera.updateProjectionMatrix();
+    if (!this.fitted) this.fit();
+    this.render();
+  };
+
+  private handlePointerDown = (event: PointerEvent) => {
+    this.pointerDown = { x: event.clientX, y: event.clientY };
+  };
+
+  private handlePointerUp = (event: PointerEvent) => {
+    const down = this.pointerDown;
+    this.pointerDown = null;
+    if (!down || Math.hypot(event.clientX - down.x, event.clientY - down.y) > CLICK_SLOP) return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const pointer = new Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(pointer, this.camera);
+    const [hit] = this.raycaster.intersectObjects(this.members.children, false);
+    this.onPick(hit ? (hit.object.userData.id as string) : null);
+  };
+}

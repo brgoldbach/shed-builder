@@ -235,3 +235,69 @@ button {
   padding: 16px;
   overflow: auto;
 }
+
+.panel.viewport {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+.canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas-host canvas {
+  display: block;
+}
+
+.overlay-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.pick-info {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  max-width: calc(100% - 24px);
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.cutlist {
+  width: 100%;
+  max-width: 720px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.cutlist th,
+.cutlist td {
+  padding: 4px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.cutlist .number {
+  text-align: right;
+}
+
+.cutlist .group th {
+  padding-top: 16px;
+}
+
+.cutlist tbody tr:not(.group) {
+  cursor: pointer;
+}
+
+.cutlist tr.selected {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.cutlist tfoot td {
+  border-bottom: none;
+}

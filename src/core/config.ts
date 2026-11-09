@@ -10,7 +10,7 @@ export const SKID_SIZES = ['4x4', '4x6', '6x6'] as const;
 export const PIER_DIAMETERS = [8, 10, 12] as const;
 export const POST_SIZES = ['none', '4x4', '6x6'] as const;
 export const WALL_STUDS = ['2x4', '2x6'] as const;
-export const CORNERS = ['three-stud', 'california', 'two-stud'] as const;
+export const CORNERS = ['four-stud', 'three-stud', 'california', 'two-stud'] as const;
 export const WALLS = ['front', 'back', 'left', 'right'] as const;
 export const OPENING_KINDS = ['door', 'window', 'overhead', 'custom'] as const;
 export const ROOF_STYLES = ['gable', 'lean-to'] as const;
@@ -74,7 +74,7 @@ const walls = z.strictObject({
   oc: spacing.default(16),
   studLength: len(48, 192).default(92.625),
   capPlate: z.boolean().default(true),
-  corner: z.enum(CORNERS).default('three-stud'),
+  corner: z.enum(CORNERS).default('four-stud'),
   header: twoBy.default('2x8'),
   doubleJackOver: len(24, 240).default(72), // RO width above which auto jacks become 2 per side
   sheathing: z.enum(SHEATHING).default('osb-7/16'),

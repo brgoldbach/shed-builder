@@ -35,7 +35,12 @@ type Walls = ShedConfig['walls'];
 type Roof = ShedConfig['roof'];
 type Catalog = ShedConfig['catalog'];
 
-const CORNER_LABELS = { 'three-stud': '3-stud', california: 'California', 'two-stud': '2-stud + clips' };
+const CORNER_LABELS = {
+  'four-stud': '4-stud post',
+  'three-stud': '3-stud',
+  california: 'California',
+  'two-stud': '2-stud + clips',
+};
 
 const sheetLabel = (key: (typeof SHEATHING)[number]) => (key === 'none' ? 'None' : SHEETS[key].label);
 const noneLabel = (option: string) => (option === 'none' ? 'None' : option);

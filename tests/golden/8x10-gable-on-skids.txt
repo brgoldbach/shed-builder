@@ -1,0 +1,20 @@
+FW-1      1  2x4             120"  Bottom plate
+FW-2      1  2x4             120"  Top plate
+FW-3      1  2x4             113"  Cap plate
+FW-4      6  2x4          92-5/8"  Corner stud
+FW-5      7  2x4          92-5/8"  Stud
+BW-1      1  2x4             120"  Bottom plate
+BW-2      1  2x4             120"  Top plate
+BW-3      1  2x4             113"  Cap plate
+BW-4      6  2x4          92-5/8"  Corner stud
+BW-5      7  2x4          92-5/8"  Stud
+LW-1      1  2x4              89"  Bottom plate
+LW-2      1  2x4              89"  Top plate
+LW-3      1  2x4              96"  Cap plate
+LW-4      2  2x4          92-5/8"  Corner stud
+LW-5      5  2x4          92-5/8"  Stud
+RW-1      1  2x4              89"  Bottom plate
+RW-2      1  2x4              89"  Top plate
+RW-3      1  2x4              96"  Cap plate
+RW-4      2  2x4          92-5/8"  Corner stud
+RW-5      5  2x4          92-5/8"  Stud
