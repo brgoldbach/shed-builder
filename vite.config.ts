@@ -5,6 +5,5 @@ export default defineConfig({
   plugins: [react()],
   test: {
     include: ['tests/**/*.test.ts'],
-    passWithNoTests: true,
   },
 });

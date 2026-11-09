@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
+import { PRESETS } from '../core/presets';
+import { DesignForm } from './DesignForm';
 
 const TABS = [
   { id: '3d', label: '3D', milestone: 'M2' },
@@ -10,18 +13,126 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
+const STORAGE_KEY = 'shed-builder.config';
+
+function restore(): ShedConfig {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const result = saved === null ? null : parseConfigText(saved);
+    if (result?.ok) return result.config;
+  } catch {
+    // Storage is blocked. Start from the first preset.
+  }
+  return PRESETS[0];
+}
+
+function download(filename: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url));
+}
+
+const fileName = (name: string) =>
+  `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'shed'}.shed.json`;
+
 export function App() {
+  const [config, setConfig] = useState(restore);
+  // Remounts the form after a load, so no field keeps a draft from the old design.
+  const [revision, setRevision] = useState(0);
+  const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
   const [tab, setTab] = useState<TabId>('3d');
+  const fileInput = useRef<HTMLInputElement>(null);
   const active = TABS.find((entry) => entry.id === tab)!;
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, serializeConfig(config));
+    } catch {
+      // Storage is blocked. Autosave is off.
+    }
+  }, [config]);
+
+  function edit(next: ShedConfig): string | null {
+    const result = shedSchema.safeParse(next);
+    if (!result.success) return result.error.issues[0].message;
+    setConfig(result.data);
+    return null;
+  }
+
+  function replace(next: ShedConfig) {
+    setConfig(next);
+    setRevision((count) => count + 1);
+    setLoadError(null);
+  }
+
+  async function open(file: File) {
+    const result = parseConfigText(await file.text());
+    if (result.ok) replace(result.config);
+    else setLoadError({ file: file.name, errors: result.errors });
+  }
+
   return (
-    <div className="app">
+    <div
+      className="app"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        const file = event.dataTransfer.files[0];
+        if (file) void open(file);
+      }}
+    >
       <header className="topbar">
         <h1>Shed Builder</h1>
+        <span className="muted title">{config.name}</span>
+        <div className="actions">
+          <select
+            value=""
+            aria-label="New from preset"
+            onChange={(event) => {
+              const preset = PRESETS[Number(event.target.value)];
+              if (confirm(`Replace the current design with "${preset.name}"?`)) replace(preset);
+            }}
+          >
+            <option value="" disabled>
+              New from preset…
+            </option>
+            {PRESETS.map((preset, index) => (
+              <option key={preset.name} value={index}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
+          <button onClick={() => fileInput.current?.click()}>Open…</button>
+          <button onClick={() => download(fileName(config.name), serializeConfig(config))}>Save</button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) void open(file);
+            }}
+          />
+        </div>
       </header>
       <aside className="sidebar">
-        <h2>Design</h2>
-        <p className="muted">Config form arrives in M1.</p>
+        {loadError && (
+          <div className="banner" role="alert">
+            <strong>Cannot load {loadError.file}</strong>
+            <ul>
+              {loadError.errors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+            <button onClick={() => setLoadError(null)}>Dismiss</button>
+          </div>
+        )}
+        <DesignForm key={revision} value={config} onChange={edit} />
       </aside>
       <main className="workspace">
         <nav className="tabs" role="tablist">
