@@ -31,6 +31,7 @@ export const LOFT_USES = ['storage', 'sleeping'] as const;
 export const LEAN_TO_POSTS = ['4x4', '6x6'] as const;
 export const LEAN_TO_FLOORS = ['none', 'slab'] as const;
 export const LEAN_TO_ROOFING = ['sheathing', 'metal'] as const;
+export const ATTACHMENTS = ['soffit', 'extension'] as const;
 export const PURLINS = ['1x4', '2x4'] as const;
 export const OPPOSITE = { front: 'back', back: 'front', left: 'right', right: 'left' } as const;
 
@@ -203,10 +204,13 @@ const roof = z.strictObject({
 const addition = z.strictObject({
   side: z.enum(WALLS), // model side
   mirror: z.boolean().default(false), // also on the opposite side, mirrored
+  // soffit: own rafters from a ledger under the main roof. extension: rafters lapping the main
+  // rafters at a downhill eave, in place of the main eave overhang; full length only.
+  attach: z.enum(ATTACHMENTS).default('soffit'),
   depth: len(24, 240).default(96), // main wall outside face to the outside of the posts
   length: z.union([z.literal('full'), len(24, 480)]).default('full'), // along the main wall
   center: z.number().min(0, 'Min 0%').max(100, 'Max 100%').default(50), // percent along the wall from its left corner
-  pitch: z.number().min(1, 'Min 1/12').max(12, 'Max 12/12').default(3),
+  pitch: z.union([z.literal('main'), z.number().min(1, 'Min 1/12').max(12, 'Max 12/12')]).default(3), // main: the main roof's
   drop: len(0, 48).default(0), // ledger below the highest that clears the main roof
   rafter: twoBy.default('2x6'),
   oc: spacing.default(24),
@@ -223,6 +227,10 @@ const addition = z.strictObject({
   floor: z.enum(LEAN_TO_FLOORS).default('none'),
 });
 export type Addition = z.infer<typeof addition>;
+
+/** Model sides whose eave a lean-to roof extension takes over. */
+export const extensionSides = (additions: readonly Addition[]): Set<Addition['side']> =>
+  new Set(additions.filter(({ attach }) => attach === 'extension').flatMap(({ side, mirror }) => (mirror ? [side, OPPOSITE[side]] : [side])));
 /** A lean-to with every default, on `side`. */
 export const newAddition = (side: Addition['side']): Addition => addition.parse({ side });
 
@@ -262,10 +270,21 @@ export const shedSchema = z.strictObject({
   catalog: catalog.prefault({}),
 }).superRefine((config, context) => {
   const sides = config.additions.flatMap(({ side, mirror }) => (mirror ? [side, OPPOSITE[side]] : [side]));
-  config.additions.forEach(({ side, mirror }, index) => {
+  // A roof extension continues a roof that slopes down to its side: either eave of a gable roof,
+  // the low eave of a lean-to roof.
+  const lowSide = config.roof.highSide === 'back' ? 'front' : 'back';
+  const downhill = (side: string) => (config.roof.style === 'gable' ? side === 'front' || side === 'back' : side === lowSide);
+  config.additions.forEach(({ side, mirror, attach, length }, index) => {
     const own = mirror ? [side, OPPOSITE[side]] : [side];
     if (own.some((taken) => sides.filter((other) => other === taken).length > 1)) {
       context.addIssue({ code: 'custom', message: 'One lean-to per side', path: ['additions', index, 'side'] });
+    }
+    if (attach !== 'extension') return;
+    if (!own.every(downhill)) {
+      context.addIssue({ code: 'custom', message: 'A roof extension needs an eave the roof slopes down to', path: ['additions', index, 'attach'] });
+    }
+    if (length !== 'full') {
+      context.addIssue({ code: 'custom', message: 'A roof extension runs the full wall length', path: ['additions', index, 'length'] });
     }
   });
   const names = config.openingTypes.map((type) => type.name);

@@ -1,5 +1,5 @@
 import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
-import type { ShedConfig } from '../config';
+import { extensionSides, type ShedConfig } from '../config';
 import type { Assembly, Member, Point, Role, Vec3, Warning } from '../member';
 import { roOffset } from '../placement';
 import { formatInches } from '../units';
@@ -70,6 +70,9 @@ export function frameRoof(config: ShedConfig): {
   openings: RoughOpening[];
   rafterSpan: number; // horizontal clear span between bearings, or from the bearing to the ridge board
   soffit: Soffit;
+  // At a downhill eave's wall: the rafter top over the outside face, the bearing plate's top, and
+  // the bearing depth. Roof extensions start here.
+  eave: { top: number; plate: number; bearing: number };
 } {
   const { roof, walls, width, length } = config;
   const members: Member[] = [];
@@ -129,17 +132,28 @@ export function frameRoof(config: ShedConfig): {
   const planeAt = (x: number, side: Side): Plane =>
     side.sign === 1 ? { origin: [x, 0, 0], h: [0, 1, 0] } : { origin: [x + PLY, width, 0], h: [0, -1, 0] };
 
-  const rafterOutline = outline(slope, from, to, notches, tailCut, highCut);
-  const rafterNote = gable
-    ? `Plumb cut ${degrees(pitch)} at the ridge. Birdsmouth: heel line ${formatInches(to / pitch.cos)} ` +
-      `from the ridge long point on the top edge; seat ${formatInches(seat)}, heel ${formatInches(pitch.rise * seat)}. ` +
-      tailNote(tailCut, eave / pitch.cos)
-    : `Birdsmouths on the top edge, ${formatInches(eave / pitch.cos)} and ` +
-      `${formatInches((width - wallDepth + eave) / pitch.cos)} from its low end; each seat ${formatInches(seat)}, ` +
-      `heel ${formatInches(pitch.rise * seat)}. Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
+  // A roof extension takes over a side's low eave: there the rafters stop, plumb cut, at the wall's
+  // outside face. The side's own drawn eave is its low end.
+  const extended = extensionSides(config.additions);
+  const isExtended = (side: Side) => extended.has(side.sign === 1 ? 'front' : 'back');
+  const lowEnd = (side: Side) => (isExtended(side) ? 0 : from);
+  const lowCut = (side: Side): Cut => (isExtended(side) ? 'plumb' : tailCut);
+  const tailText = (side: Side) =>
+    isExtended(side) ? 'No tail: plumb cut at the wall line, under the lean-to rafter beside it.' : tailNote(tailCut, eave / pitch.cos);
+  const rafterNote = (side: Side) => {
+    const run = -lowEnd(side);
+    return gable
+      ? `Plumb cut ${degrees(pitch)} at the ridge. Birdsmouth: heel line ${formatInches(to / pitch.cos)} ` +
+          `from the ridge long point on the top edge; seat ${formatInches(seat)}, heel ${formatInches(pitch.rise * seat)}. ` +
+          tailText(side)
+      : `Birdsmouths on the top edge, ${formatInches(run / pitch.cos)} and ` +
+          `${formatInches((width - wallDepth + run) / pitch.cos)} from its low end; each seat ${formatInches(seat)}, ` +
+          `heel ${formatInches(pitch.rise * seat)}. Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
+  };
   for (const side of sides) {
+    const rafterOutline = outline(slope, lowEnd(side), to, notches, lowCut(side), highCut);
     for (const x of rafters) {
-      const base = { id: nextId('R'), assembly: 'roof', role: 'rafter', size: roof.rafter, note: rafterNote } as const;
+      const base = { id: nextId('R'), assembly: 'roof', role: 'rafter', size: roof.rafter, note: rafterNote(side) } as const;
       members.push(planeMember(base, planeAt(x, side), rafterOutline, [pitch.cos, pitch.sin]));
     }
   }
@@ -163,25 +177,27 @@ export function frameRoof(config: ShedConfig): {
   }
 
   if (rake > 0) {
-    const flyOutline = outline(slope, from, to, [], tailCut, highCut);
-    const flyNote = gable
-      ? `Plumb cut ${degrees(pitch)} at the ridge. No birdsmouth. ${tailNote(tailCut, eave / pitch.cos)}`
-      : `No birdsmouth. Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
+    const flyNote = (side: Side) =>
+      gable
+        ? `Plumb cut ${degrees(pitch)} at the ridge. No birdsmouth. ${tailText(side)}`
+        : `No birdsmouth. Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
     const lookoutLength = rake - PLY;
     for (const side of sides) {
+      const start = lowEnd(side);
+      const flyOutline = outline(slope, start, to, [], lowCut(side), highCut);
       for (const x of [-rake, length + rake - PLY]) {
-        const base = { id: nextId('FR'), assembly: 'roof', role: 'rafter.fly', size: roof.rafter, note: flyNote } as const;
+        const base = { id: nextId('FR'), assembly: 'roof', role: 'rafter.fly', size: roof.rafter, note: flyNote(side) } as const;
         members.push(planeMember(base, planeAt(x, side), flyOutline, [pitch.cos, pitch.sin]));
       }
       if (lookoutLength < PLY) continue;
       // Lookouts on edge, flush with the rafter tops, evenly spaced from tail to high end. The
       // last stops where its lower corner meets the high end's plumb line.
       const lookoutDepth = LUMBER[roof.rakeLadder.size].width;
-      const reach = (to - from) / pitch.cos - PLY - lookoutDepth * pitch.rise;
+      const reach = (to - start) / pitch.cos - PLY - lookoutDepth * pitch.rise;
       const count = Math.max(2, Math.ceil(reach / roof.rakeLadder.spacing) + 1);
       for (let index = 0; index < count; index++) {
         const along = (index * reach) / (count - 1);
-        const drawn: Point = [from + along * pitch.cos, slope.top(from) + along * pitch.sin];
+        const drawn: Point = [start + along * pitch.cos, slope.top(start) + along * pitch.sin];
         for (const x of [-rake + PLY, length]) {
           members.push(box(nextId('LO'), 'lookout', roof.rakeLadder.size, lookoutLength, [x, side.map(drawn[0]), drawn[1]], {
             length: X,
@@ -195,8 +211,11 @@ export function frameRoof(config: ShedConfig): {
 
   if (roof.fascia !== 'none') {
     const fasciaSize = roof.fascia;
-    const eaves: { y: number; out: 1 | -1 }[] = gable ? [{ y: from, out: -1 }] : [{ y: from, out: -1 }, { y: to, out: 1 }];
     for (const side of sides) {
+      const eaves: { y: number; out: 1 | -1 }[] = [
+        ...(isExtended(side) ? [] : [{ y: from, out: -1 as const }]),
+        ...(gable ? [] : [{ y: to, out: 1 as const }]),
+      ];
       for (const { y, out } of eaves) {
         const axes =
           tailCut === 'plumb'
@@ -216,22 +235,24 @@ export function frameRoof(config: ShedConfig): {
   const gableEnds = frameGableEnds(config, slope, sides, gable, tops.left, wallDepth, bearingDepth, warnings);
   members.push(...gableEnds.members);
 
-  // The fascia thickness, measured along the slope.
+  // The fascia thickness, measured along the slope. An extended side's sheathing stops at the wall
+  // line, where the extension's takes over.
   const fasciaRun = roof.fascia === 'none' ? 0 : LUMBER[roof.fascia].thick / (tailCut === 'plumb' ? pitch.cos : 1);
-  const lowEdge: Point = [from - fasciaRun * pitch.cos, slope.top(from) - fasciaRun * pitch.sin];
-  const slopeLength = gable ? (width / 2 - from) / pitch.cos + fasciaRun : (to - from) / pitch.cos + 2 * fasciaRun;
-  const planes = sides.map(
-    (side): RoofPlane => ({
+  const planes = sides.map((side): RoofPlane => {
+    const lowRun = isExtended(side) ? 0 : fasciaRun;
+    const lowEdge: Point = [lowEnd(side) - lowRun * pitch.cos, slope.top(lowEnd(side)) - lowRun * pitch.sin];
+    const slopeLength = (gable ? (width / 2 - lowEnd(side)) / pitch.cos : (to - lowEnd(side)) / pitch.cos + fasciaRun) + lowRun;
+    return {
       assembly: 'roof',
-      eaves: gable ? 1 : 2,
+      eaves: (gable ? 0 : 1) + (isExtended(side) ? 0 : 1),
       sheathed: true,
       origin: [side.sign === 1 ? ends[0] : ends[1], side.map(lowEdge[0]), lowEdge[1]],
       u: [side.sign, 0, 0],
       v: [0, side.sign * pitch.cos, pitch.sin],
       length: ends[1] - ends[0],
       width: slopeLength,
-    }),
-  );
+    };
+  });
   const rafterSpan = (gable ? to : width - wallDepth) - seat;
 
   // Rafter underside over real y, from whichever side covers it.
@@ -251,7 +272,7 @@ export function frameRoof(config: ShedConfig): {
     },
     breaks: (wall) => (wall === 'left' || wall === 'right' ? [0, rake] : [0, eave, eave + fasciaThick]),
   };
-  return { members, warnings, planes, openings: gableEnds.openings, rafterSpan, soffit };
+  return { members, warnings, planes, openings: gableEnds.openings, rafterSpan, soffit, eave: { top: slope.top(0), plate, bearing: bearingDepth } };
 }
 
 // Seat the full wall depth, shortened so the notch is no deeper than 1/3 of the rafter depth,

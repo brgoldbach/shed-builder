@@ -233,16 +233,16 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   const add = (item: string, quantity: number, note?: string) => {
     if (quantity > 0) lines.push({ item, quantity, unit: 'ea', ...(note && { note }) });
   };
-  const leanTo = ({ assembly }: Member) => assembly.startsWith('addition');
 
   add('Anchor bolt, 1/2", with nut and washer', model.solids.filter(({ label }) => label.startsWith('Anchor bolt')).length);
   const seats = config.roof.style === 'lean-to' ? 2 : 1;
-  const rafters = model.members.filter(({ role }) => role === 'rafter');
-  const leanToRafters = rafters.filter(leanTo);
+  const rafters = (assembly: string) => model.members.filter((member) => member.role === 'rafter' && member.assembly === assembly);
+  // A lean-to rafter seats on its beam, and an extension rafter on the main wall too.
+  const leanTos = model.leanTos.map(({ side, addition }) => ({ rafters: rafters(`addition.${side}`), extension: addition.attach === 'extension' }));
   add(
     'Hurricane tie, rafter to plate',
-    (rafters.length - leanToRafters.length) * seats + leanToRafters.length,
-    `One at each rafter seat: ${seats} per main rafter${leanToRafters.length ? ', 1 per lean-to rafter on its beam' : ''}.`,
+    rafters('roof').length * seats + leanTos.reduce((sum, { rafters, extension }) => sum + rafters.length * (extension ? 2 : 1), 0),
+    `One at each rafter seat: ${seats} per main rafter${leanTos.length ? '; per lean-to rafter, 1 on its beam and 1 on the main wall for an extension' : ''}.`,
   );
   for (const [size, posts] of Map.groupBy(model.members.filter(({ role }) => role === 'post'), ({ size }) => size)) {
     add(`Post base, ${size}`, posts.length, 'Set in the pier, or anchored to the slab.');
@@ -256,7 +256,8 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   const singles = new Map<string, number>();
   const single = (size: string, quantity: number) => singles.set(size, (singles.get(size) ?? 0) + quantity);
   single(loft.joist, count('tail.loft') * (hung ? 2 : 1) + (hung ? 2 * count('joist.loft') : 0));
-  leanToRafters.forEach(({ size }) => single(size, 1));
+  // Below-soffit lean-to rafters hang from their ledgers.
+  leanTos.filter(({ extension }) => !extension).forEach(({ rafters }) => rafters.forEach(({ size }) => single(size, 1)));
   for (const [size, quantity] of singles) add(`Joist hanger, ${size}`, quantity);
   add(`Joist hanger, double ${loft.joist}`, count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0));
   add('Ledger lag screw, 1/2"', model.leanTos.reduce((sum, { lags }) => sum + lags, 0), 'Two at each main-wall stud behind a lean-to ledger.');

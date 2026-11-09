@@ -22,7 +22,7 @@ export function buildModel(config: ShedConfig): Model {
   const walls = frameWalls(config);
   const roof = frameRoof(config);
   const shed = [...floor.members, ...walls.members, ...roof.members];
-  const additions = frameAdditions(config, roof.soffit, shed);
+  const additions = frameAdditions(config, roof, shed);
   const members = [...shed, ...additions.members];
   const openings = [...walls.openings, ...roof.openings];
   const planes = [...roof.planes, ...additions.planes];

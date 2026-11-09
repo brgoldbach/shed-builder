@@ -1,5 +1,6 @@
 import { TWO_BY } from '../core/catalog';
 import {
+  ATTACHMENTS,
   FASCIA,
   LEAN_TO_FLOORS,
   LEAN_TO_POSTS,
@@ -17,6 +18,7 @@ import { CheckField, LengthField, NumberField, SelectField, capitalize, setter, 
 
 const FLOOR_LABELS = { none: 'None: posts on piers', slab: 'Slab' };
 const ROOFING_LABELS = { sheathing: 'Sheathing', metal: 'Metal on purlins' };
+const ATTACH_LABELS = { soffit: 'Below the main eave', extension: 'Extends the main roof' };
 const sidesOf = ({ side, mirror }: Addition) => (mirror ? [side, OPPOSITE[side]] : [side]);
 
 /** Open lean-tos on posts, one per side of the shed. */
@@ -52,6 +54,7 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
 
 function AdditionCard({ value, names, onChange, onRemove }: SectionProps<Addition> & { names: Naming; onRemove: () => void }) {
   const set = setter(value, onChange);
+  const extension = value.attach === 'extension';
   const title = `${capitalize(names.side(value.side))} lean-to${value.mirror ? `s, mirrored to the ${names.side(OPPOSITE[value.side])}` : ''}`;
   return (
     <fieldset className="card">
@@ -61,20 +64,36 @@ function AdditionCard({ value, names, onChange, onRemove }: SectionProps<Additio
       </button>
       <SelectField label="Side" value={value.side} options={WALLS} describe={(side) => capitalize(names.side(side))} onChange={set('side')} />
       <CheckField label="Mirror to the opposite side" value={value.mirror} onChange={set('mirror')} />
-      <LengthField label="Depth (wall to post outside)" value={value.depth} onChange={set('depth')} />
-      <CheckField
-        label="Full wall length"
-        value={value.length === 'full'}
-        onChange={(full) => onChange({ ...value, length: full ? 'full' : 96 })}
+      <SelectField
+        label="Attachment"
+        value={value.attach}
+        options={ATTACHMENTS}
+        describe={(attach) => ATTACH_LABELS[attach]}
+        // An extension takes over the whole eave.
+        onChange={(attach) => onChange({ ...value, attach, ...(attach === 'extension' && { length: 'full' as const }) })}
       />
+      {extension && <p className="muted hint">On an eave the main roof slopes down to. Its rafters lap the main rafters.</p>}
+      <LengthField label="Depth (wall to post outside)" value={value.depth} onChange={set('depth')} />
+      {!extension && (
+        <CheckField
+          label="Full wall length"
+          value={value.length === 'full'}
+          onChange={(full) => onChange({ ...value, length: full ? 'full' : 96 })}
+        />
+      )}
       {value.length !== 'full' && (
         <>
           <LengthField label="Length" value={value.length} onChange={set('length')} />
           <NumberField label="Center (% from left corner)" value={value.center} onChange={set('center')} />
         </>
       )}
-      <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} />
-      <LengthField label="Ledger drop" value={value.drop} onChange={set('drop')} />
+      <CheckField
+        label={extension ? 'Main roof plane' : 'Main roof pitch'}
+        value={value.pitch === 'main'}
+        onChange={(main) => onChange({ ...value, pitch: main ? 'main' : 3 })}
+      />
+      {value.pitch !== 'main' && <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} />}
+      {!extension && <LengthField label="Ledger drop" value={value.drop} onChange={set('drop')} />}
       <SelectField label="Rafters" value={value.rafter} options={TWO_BY} onChange={set('rafter')} />
       <SelectField label="Rafter spacing" value={value.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={set('oc')} />
       <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} />

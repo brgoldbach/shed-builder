@@ -11,6 +11,7 @@ const PLY = 1.5;
 const CLEARANCE = 1.5; // lean-to roof surface to the main roof's underside
 const HEADROOM = 80; // a lower clear height under the beam gets a warning
 const MIN_POST = 12;
+const LAP = 24; // an extension rafter in the main roof's plane laps its main rafter this far in from the wall line
 const UP: Vec3 = [0, 0, 1];
 const DOWN: Vec3 = [0, 0, -1];
 const NEAR = 0.01;
@@ -19,23 +20,29 @@ const NEAR = 0.01;
 export interface LeanTo {
   side: Wall;
   addition: Addition;
-  rafterSpan: number; // ledger face to the inner end of the seat, horizontal
+  rafterSpan: number; // ledger face, or the wall's outside face, to the inner end of the beam seat, horizontal
   postSpacing: number; // post center to post center
   beamTributary: number; // horizontal roof carried per unit length of beam
   lags: number; // two at each main-wall stud behind the ledger
 }
 
-/** Open lean-tos on posts against the main walls, below the main roof's soffit. */
+/** The main roof facts a lean-to builds against. */
+export interface MainRoof {
+  soffit: Soffit;
+  eave: { top: number; plate: number; bearing: number };
+}
+
+/** Open lean-tos on posts against the main walls: below the main roof's soffit, or extending its eave. */
 export function frameAdditions(
   config: ShedConfig,
-  soffit: Soffit,
+  main: MainRoof,
   framing: readonly Member[],
 ): { members: Member[]; solids: Solid[]; warnings: Warning[]; planes: RoofPlane[]; leanTos: LeanTo[] } {
   const out = { members: [] as Member[], solids: [] as Solid[], warnings: [] as Warning[], planes: [] as RoofPlane[], leanTos: [] as LeanTo[] };
   for (const addition of config.additions) {
-    frameLeanTo(config, addition, addition.side, addition.center, soffit, framing, out);
+    frameLeanTo(config, addition, addition.side, addition.center, main, framing, out);
     // The mirror image across the building: the same distance from the opposite corner.
-    if (addition.mirror) frameLeanTo(config, addition, OPPOSITE[addition.side], 100 - addition.center, soffit, framing, out);
+    if (addition.mirror) frameLeanTo(config, addition, OPPOSITE[addition.side], 100 - addition.center, main, framing, out);
   }
   return out;
 }
@@ -52,7 +59,7 @@ function frameLeanTo(
   addition: Addition,
   side: Wall,
   center: number,
-  soffit: Soffit,
+  { soffit, eave }: MainRoof,
   framing: readonly Member[],
   out: ReturnType<typeof frameAdditions>,
 ) {
@@ -85,26 +92,36 @@ function frameLeanTo(
   const metal = addition.roofing === 'metal';
   // What sits on the rafters under the roofing: purlins, or the main roof's sheathing.
   const roofSheet = metal ? LUMBER[addition.purlin].thick : roof.sheathing === 'none' ? 0 : SHEETS[roof.sheathing].thick;
-  const angle = Math.atan(addition.pitch / 12);
-  const [rise, cos, sin] = [addition.pitch / 12, Math.cos(angle), Math.sin(angle)];
+  const extension = addition.attach === 'extension';
+  const pitch = addition.pitch === 'main' ? roof.pitch : addition.pitch;
+  const samePlane = extension && pitch === roof.pitch;
+  const angle = Math.atan(pitch / 12);
+  const [rise, cos, sin] = [pitch / 12, Math.cos(angle), Math.sin(angle)];
   const depth = LUMBER[addition.rafter].width;
   const plumb = depth / cos;
   const ledger = TWO_BY.find((size) => LUMBER[size].width >= plumb) ?? '2x12';
-  if (LUMBER[ledger].width < plumb) warn(`A 2x12 ledger is shallower than the rafter's ${formatInches(plumb)} plumb end.`);
+  if (!extension && LUMBER[ledger].width < plumb) warn(`A 2x12 ledger is shallower than the rafter's ${formatInches(plumb)} plumb end.`);
   const ledgerDepth = LUMBER[ledger].width;
-  const start = wallSheet + PLY; // the rafters' plumb ends, against the ledger
 
-  // The highest ledger that keeps the lean-to roof under the main roof, less the drop. Both are
-  // straight between the soffit's breaks, so the breaks and the lean-to's ends bound it.
-  const limits = soffit.breaks(side).flatMap((x) =>
-    [u0, u1].flatMap((u) => {
-      const point = Math.max(x, wallSheet);
-      const under = soffit.under(side, u, point);
-      return under === null ? [] : [under - CLEARANCE - roofSheet + rise * (point - start)];
-    }),
-  );
-  const ledgerTop = Math.min(...limits) - addition.drop;
-  const top = (x: number) => ledgerTop - rise * (x - start);
+  // Below the soffit: the rafters' plumb ends meet the ledger, as high as the main roof allows less
+  // the drop. Main roof and lean-to roof are straight between the soffit's breaks, so the breaks
+  // and the lean-to's ends bound it. Extension: the rafters continue the main roof's top line from
+  // over the wall's outside face, and lap the main rafters inward: 2 ft in the same plane, or to the
+  // wall's inside face at a broken pitch.
+  const start = extension ? (samePlane ? -LAP : -eave.bearing) : wallSheet + PLY;
+  const ledgerTop = extension
+    ? 0
+    : Math.min(
+        ...soffit.breaks(side).flatMap((x) =>
+          [u0, u1].flatMap((u) => {
+            const point = Math.max(x, wallSheet);
+            const under = soffit.under(side, u, point);
+            return under === null ? [] : [under - CLEARANCE - roofSheet + rise * (point - start)];
+          }),
+        ),
+      ) - addition.drop;
+  const [anchorX, anchorZ] = extension ? [0, eave.top] : [start, ledgerTop];
+  const top = (x: number) => anchorZ - rise * (x - anchorX);
   const bottom = (x: number) => top(x) - plumb;
 
   // Posts centered on the support line, the beam centered on the posts.
@@ -119,7 +136,7 @@ function frameLeanTo(
     warn(`A 1-1/2 in seat cuts the birdsmouth deeper than 1/3 of the ${addition.rafter} rafter. Use a deeper rafter or a lower pitch.`);
     seat = PLY;
   }
-  if (heel - seat <= start) {
+  if (heel - seat <= Math.max(start, 0)) {
     warn('The lean-to is too shallow for its beam. Make it deeper.');
     return;
   }
@@ -135,28 +152,58 @@ function frameLeanTo(
   const clear = beamTop - beamDepth - grade;
   if (clear < HEADROOM) warn(`The clear height under the beam is ${formatLength(clear)}, less than 6' 8".`);
 
-  // Rafters: one flush with each end, the rest on o.c. multiples from the left end.
-  const starts = [u0, u1 - PLY];
-  for (let index = 1; u0 + index * addition.oc < u1; index++) {
-    const from = u0 + index * addition.oc - PLY / 2;
-    if (from >= u0 + PLY && from + PLY <= u1 - PLY) starts.push(from);
-  }
-  starts.sort((first, second) => first - second);
-  const centers = starts.map((u) => u + PLY / 2);
   const degrees = `${((angle * 180) / Math.PI).toFixed(1)}°`;
-  const outline: Point[] = [
+  const beamText = `on the beam: heel line ${formatInches((heel - start) / cos)} from the upper end on the top edge; seat ${formatInches(seat)}, heel ${formatInches(rise * seat)}. Tail ${formatInches((tail - heel) / cos)} past the heel line on the top edge, plumb cut.`;
+  let starts: number[];
+  let outline: Point[];
+  let note: string;
+  const toBeam: Point[] = [
     [start, top(start)],
     [tail, top(tail)],
     [tail, bottom(tail)],
     [heel, bottom(heel)],
     [heel, beamTop],
     [heel - seat, beamTop],
-    [start, bottom(start)],
   ];
-  const note =
-    `Plumb cut ${degrees} at the ledger, in a joist hanger. Birdsmouth: heel line ${formatInches((heel - start) / cos)} ` +
-    `from the ledger end on the top edge; seat ${formatInches(seat)}, heel ${formatInches(rise * seat)}. ` +
-    `Tail ${formatInches((tail - heel) / cos)} past the heel line on the top edge, plumb cut.`;
+  if (extension) {
+    // Beside each main rafter, away from its ties: on the -x side, or the +x side of the first.
+    const xs = [
+      ...new Set(
+        framing
+          .filter(({ role, assembly }) => role === 'rafter' && assembly === 'roof')
+          .map((member) => Math.round(Math.min(...corners(member).map(([x]) => x)) * 16) / 16),
+      ),
+    ].sort((first, second) => first - second);
+    // Extensions are on eave walls, whose u runs along ±x.
+    const uOf = (x: number) => (x - frame.origin[0]) * frame.u[0];
+    starts = xs
+      .map((x) => (x < NEAR ? x + PLY : x - PLY))
+      .map((x) => Math.min(uOf(x), uOf(x + PLY)))
+      .sort((first, second) => first - second);
+    // A second birdsmouth on the main wall's bearing plate: heel at the outside face, seat inward
+    // to where the rafter's underside meets the plate.
+    const seatEnd = (anchorZ - plumb - eave.plate) / rise;
+    if (-seatEnd > Math.floor((depth / 3 / sin) * 16) / 16 + NEAR) {
+      warn(`The birdsmouth on the main wall cuts deeper than 1/3 of the ${addition.rafter} rafter. Use a rafter no deeper than the main rafters.`);
+    }
+    const stand = (rise - roof.pitch / 12) * -start;
+    if (stand > 0.125) warn(`At the steeper pitch the lean-to rafters stand ${formatInches(stand)} over the main roof plane at their upper ends. Trim them flush.`);
+    outline = [...toBeam, [0, bottom(0)], [0, eave.plate], ...(seatEnd > start ? ([[seatEnd, eave.plate], [start, bottom(start)]] as Point[]) : ([[start, eave.plate]] as Point[]))];
+    note =
+      `Laps the main rafter ${formatInches(-start)} in from the wall line, nailed to it; upper end plumb cut ${degrees}. ` +
+      `Birdsmouths on the main wall (heel at its outside face, seat ${formatInches(Math.min(-seatEnd, -start))}) and ${beamText}`;
+  } else {
+    // One flush with each end, the rest on o.c. multiples from the left end.
+    starts = [u0, u1 - PLY];
+    for (let index = 1; u0 + index * addition.oc < u1; index++) {
+      const from = u0 + index * addition.oc - PLY / 2;
+      if (from >= u0 + PLY && from + PLY <= u1 - PLY) starts.push(from);
+    }
+    starts.sort((first, second) => first - second);
+    outline = [...toBeam, [start, bottom(start)]];
+    note = `Plumb cut ${degrees} at the ledger, in a joist hanger. Birdsmouth ${beamText}`;
+  }
+  const centers = starts.map((u) => u + PLY / 2);
   // The plane extrudes along outward × up; start each rafter at the end that extrusion leaves from.
   const along = outward[1] * frame.u[0] - outward[0] * frame.u[1];
   for (const u of starts) {
@@ -168,8 +215,10 @@ function frameLeanTo(
     out.members.push({ id: nextId(code), assembly, role, size, treated, length, origin, axes, ...(note && { note }) });
   const alongWall = { length: frame.u, width: UP, thick: frame.v };
 
-  for (const [from, to] of splitPlate([u0, u1], maxStock(ledger), centers)) {
-    board('L', 'ledger', ledger, false, to - from, at(from, start, ledgerTop - ledgerDepth), alongWall, 'Lag-bolt through the sheathing into each main-wall stud.');
+  if (!extension) {
+    for (const [from, to] of splitPlate([u0, u1], maxStock(ledger), centers)) {
+      board('L', 'ledger', ledger, false, to - from, at(from, start, ledgerTop - ledgerDepth), alongWall, 'Lag-bolt through the sheathing into each main-wall stud.');
+    }
   }
 
   const count = Math.max(2, Math.ceil((run - post) / addition.maxSpacing) + 1);
@@ -234,7 +283,7 @@ function frameLeanTo(
     u: frame.u,
     v: [frame.v[0] * cos, frame.v[1] * cos, sin],
     length: run,
-    width: (low - wallSheet) / cos,
+    width: (low - (extension ? 0 : wallSheet)) / cos,
     eaves: 1,
   });
 
@@ -253,9 +302,9 @@ function frameLeanTo(
   out.leanTos.push({
     side,
     addition,
-    rafterSpan: heel - seat - start,
+    rafterSpan: heel - seat - (extension ? 0 : start),
     postSpacing: (run - post) / (count - 1),
-    beamTributary: (line - start) / 2 + (tail - line),
-    lags: 2 * studs.length,
+    beamTributary: (line - (extension ? 0 : start)) / 2 + (tail - line),
+    lags: extension ? 0 : 2 * studs.length,
   });
 }

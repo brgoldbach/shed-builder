@@ -83,6 +83,64 @@ describe('below-soffit lean-to', () => {
   });
 });
 
+describe('roof extension', () => {
+  const extension = (extra: object = {}) =>
+    buildModel(withLeanTo({ side: 'front', attach: 'extension', pitch: 'main', rafter: '2x4', ...extra }));
+  const same = extension();
+  const roofFront = same.members.filter(({ assembly, origin }) => assembly === 'roof' && origin[1] < 48);
+
+  it('cuts the main rafters and fascia back to the wall line on that side', () => {
+    // Top edge from the wall line to the ridge face, 47-1/4 × √1.25, plus the plumb low end's long
+    // point, 3-1/2 × √1.25 × sin.
+    const short = 47.25 * Math.hypot(1, 0.5) + 3.5 * Math.hypot(1, 0.5) * (0.5 / Math.hypot(1, 0.5));
+    for (const rafter of ofRole(roofFront, 'rafter')) expect(rafter.length).toBeCloseTo(short, 9);
+    expect(ofRole(same.members.filter(({ assembly }) => assembly === 'roof'), 'fascia')).toHaveLength(1);
+  });
+
+  it('laps a rafter beside each main rafter, clear of the ties, and continues the main plane', () => {
+    const rafters = ofRole(same.members.filter(({ assembly }) => assembly === 'addition.front'), 'rafter');
+    // Beside 0 (on its +x side), 23-1/4, 47-1/4, 71-1/4, 95-1/4, 118-1/2 (on their -x sides).
+    const xs = rafters.map((rafter) => Math.min(rafter.origin[0], rafter.origin[0] - 1.5));
+    expect(xs).toEqual([1.5, 21.75, 45.75, 69.75, 93.75, 117]);
+    // 2 ft lap to the 108 in tail along the slope, plus the 1-3/4 in long point at the tail.
+    for (const rafter of rafters) expect(rafter.length).toBeCloseTo(132 * Math.hypot(1, 0.5) + 1.75, 9);
+    // The extension's roof plane meets the main one at the wall line.
+    const [main, , lean] = same.planes;
+    expect(main.origin[1]).toBe(0);
+    expect(lean.origin[2] + 0.5 * 109.5).toBeCloseTo(main.origin[2], 9);
+    expect(same.leanTos[0].lags).toBe(0);
+  });
+
+  it('warns when a deeper rafter at a broken pitch notches the wall too deep', () => {
+    const broken = extension({ pitch: 3, rafter: '2x6' });
+    expect(broken.warnings.map(({ message }) => message)).toContain(
+      'The birdsmouth on the main wall cuts deeper than 1/3 of the 2x6 rafter. Use a rafter no deeper than the main rafters.',
+    );
+  });
+
+  it('ties each extension rafter at the wall and the beam, with no hangers', () => {
+    const { hardware } = buildBom(withLeanTo({ side: 'front', attach: 'extension', pitch: 'main', rafter: '2x4' }), same, new Map());
+    expect(hardware.find(({ item }) => item === 'Hurricane tie, rafter to plate')?.quantity).toBe(12 + 6 * 2);
+    expect(hardware.some(({ item }) => item.startsWith('Joist hanger'))).toBe(false);
+  });
+
+  it('extends only a downhill eave, the full length', () => {
+    const errors = (config: object) => {
+      const result = parseConfig(config);
+      return result.ok ? [] : result.errors;
+    };
+    expect(errors({ ...gableSkid, additions: [{ side: 'left', attach: 'extension' }] })).toEqual([
+      'additions.0.attach: A roof extension needs an eave the roof slopes down to',
+    ]);
+    expect(errors({ ...gableSkid, additions: [{ side: 'front', attach: 'extension', length: 96 }] })).toEqual([
+      'additions.0.length: A roof extension runs the full wall length',
+    ]);
+    // The 10x12 lean-to's high side is the front: it slopes down to the back.
+    expect(errors({ ...PRESETS[1], additions: [{ side: 'front', attach: 'extension' }] })).toHaveLength(1);
+    expect(errors({ ...PRESETS[1], additions: [{ side: 'back', attach: 'extension' }] })).toEqual([]);
+  });
+});
+
 describe('lean-to outputs', () => {
   it('checks the rafters and beam', () => {
     const checks = checkSpans(withLeanTo({ side: 'front' }), buildModel(withLeanTo({ side: 'front' })), naming(gableSkid));
