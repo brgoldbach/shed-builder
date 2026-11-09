@@ -1,6 +1,6 @@
 import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
-import type { Member, Point, Role, Vec3, Warning } from '../member';
+import type { Assembly, Member, Point, Role, Vec3, Warning } from '../member';
 import { roOffset } from '../placement';
 import { formatInches } from '../units';
 import { frameAttic } from './attic';
@@ -18,6 +18,7 @@ import {
   type FittedOpening,
   type Placed,
   type RoughOpening,
+  type Wall,
 } from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
@@ -43,11 +44,22 @@ interface Notch {
  * up to the ridge line or over the high fascia, rake edge to rake edge. u × v points out of the roof.
  */
 export interface RoofPlane {
+  assembly: Assembly; // whose rafters carry it
   origin: Vec3;
   u: Vec3;
   v: Vec3;
   length: number; // along u
   width: number; // along v, up the slope
+  eaves: number; // edges along u that take drip edge
+  sheathed: boolean; // false: metal roofing on purlins
+}
+
+/** The underside of the main roof outside a wall: what a lean-to roof must stay under. */
+export interface Soffit {
+  /** Height `x` outside the wall's face at `u` along it, or null past the roof's edge. */
+  under: (wall: Wall, u: number, x: number) => number | null;
+  /** Distances out from the wall's face where `under` changes course, nearest first. */
+  breaks: (wall: Wall) => number[];
 }
 
 /** Rafters, ridge, rake ladders, fascia, gable-end framing, and for a gable roof the attic. */
@@ -57,6 +69,7 @@ export function frameRoof(config: ShedConfig): {
   planes: RoofPlane[];
   openings: RoughOpening[];
   rafterSpan: number; // horizontal clear span between bearings, or from the bearing to the ridge board
+  soffit: Soffit;
 } {
   const { roof, walls, width, length } = config;
   const members: Member[] = [];
@@ -209,6 +222,9 @@ export function frameRoof(config: ShedConfig): {
   const slopeLength = gable ? (width / 2 - from) / pitch.cos + fasciaRun : (to - from) / pitch.cos + 2 * fasciaRun;
   const planes = sides.map(
     (side): RoofPlane => ({
+      assembly: 'roof',
+      eaves: gable ? 1 : 2,
+      sheathed: true,
       origin: [side.sign === 1 ? ends[0] : ends[1], side.map(lowEdge[0]), lowEdge[1]],
       u: [side.sign, 0, 0],
       v: [0, side.sign * pitch.cos, pitch.sin],
@@ -217,7 +233,25 @@ export function frameRoof(config: ShedConfig): {
     }),
   );
   const rafterSpan = (gable ? to : width - wallDepth) - seat;
-  return { members, warnings, planes, openings: gableEnds.openings, rafterSpan };
+
+  // Rafter underside over real y, from whichever side covers it.
+  const rafterUnder = (y: number) => Math.min(...sides.map((side) => slope.bottom(side.map(y))));
+  const [fasciaThick, fasciaDepth] = roof.fascia === 'none' ? [0, 0] : [LUMBER[roof.fascia].thick, LUMBER[roof.fascia].width];
+  const soffit: Soffit = {
+    under: (wall, u, x) => {
+      if (wall === 'left' || wall === 'right') {
+        // Over a gable end the end rafter, lookouts, and fly rafter: the rafter line is the lowest.
+        return x <= rake + NEAR ? rafterUnder(wall === 'left' ? width - u : u) : null;
+      }
+      const y = (eaveOut: number) => (wall === 'front' ? -eaveOut : width + eaveOut);
+      if (x <= eave + NEAR) return rafterUnder(y(x));
+      // The fascia's bottom edge, hung from the rafter top at the tail.
+      if (x <= eave + fasciaThick + NEAR) return rafterUnder(y(eave)) + plumb - fasciaDepth;
+      return null;
+    },
+    breaks: (wall) => (wall === 'left' || wall === 'right' ? [0, rake] : [0, eave, eave + fasciaThick]),
+  };
+  return { members, warnings, planes, openings: gableEnds.openings, rafterSpan, soffit };
 }
 
 // Seat the full wall depth, shortened so the notch is no deeper than 1/3 of the rafter depth,

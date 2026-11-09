@@ -1,4 +1,5 @@
 import type { ShedConfig } from './config';
+import { frameAdditions, type LeanTo } from './gen/additions';
 import { frameFloor } from './gen/floor';
 import { frameRoof, type RoofPlane } from './gen/roof';
 import { frameSheathing } from './gen/sheathing';
@@ -12,6 +13,7 @@ export interface Model {
   openings: RoughOpening[];
   planes: RoofPlane[];
   rafterSpan: number;
+  leanTos: LeanTo[];
 }
 
 /** Every framing member and non-lumber part of the design, and the problems found while framing it. */
@@ -19,14 +21,18 @@ export function buildModel(config: ShedConfig): Model {
   const floor = frameFloor(config);
   const walls = frameWalls(config);
   const roof = frameRoof(config);
-  const members = [...floor.members, ...walls.members, ...roof.members];
+  const shed = [...floor.members, ...walls.members, ...roof.members];
+  const additions = frameAdditions(config, roof.soffit, shed);
+  const members = [...shed, ...additions.members];
   const openings = [...walls.openings, ...roof.openings];
+  const planes = [...roof.planes, ...additions.planes];
   return {
     members,
-    solids: [...floor.solids, ...walls.solids, ...frameSheathing(config, members, openings, roof.planes)],
-    warnings: [...walls.warnings, ...roof.warnings],
+    solids: [...floor.solids, ...walls.solids, ...additions.solids, ...frameSheathing(config, members, openings, planes)],
+    warnings: [...walls.warnings, ...roof.warnings, ...additions.warnings],
     openings,
-    planes: roof.planes,
+    planes,
     rafterSpan: roof.rafterSpan,
+    leanTos: additions.leanTos,
   };
 }

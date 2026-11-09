@@ -98,7 +98,7 @@ describe('counted items', () => {
     const config = shedSchema.parse({ ...leanToPier, foundation: { ...leanToPier.foundation, pier: { ...leanToPier.foundation.pier, post: '4x4' } } });
     const { hardware } = bomOf(config);
     expect(item(hardware, 'Post base, 4x4')?.quantity).toBe(9);
-    expect(item(hardware, 'Post cap, 4x4 to girder')?.quantity).toBe(9);
+    expect(item(hardware, 'Post cap, 4x4')?.quantity).toBe(9);
   });
 
   it('hangs each loft joist between the ledgers', () => {
@@ -119,6 +119,6 @@ describe('CSV', () => {
   it('lists lumber by stock length, then sheets and counted items', () => {
     const rows = bomCsv(bomOf()).split('\n');
     expect(rows[0]).toBe('Section,Item,Length,Qty,Unit,Notes');
-    expect(rows).toContain('Hardware,"Hurricane tie, rafter to plate",,12,ea,One at each rafter seat: 1 per rafter.');
+    expect(rows).toContain('Hardware,"Hurricane tie, rafter to plate",,12,ea,One at each rafter seat: 1 per main rafter.');
   });
 });

@@ -1,4 +1,4 @@
-export const LUMBER_SIZES = ['2x4', '2x6', '2x8', '2x10', '2x12', '4x4', '4x6', '6x6'] as const;
+export const LUMBER_SIZES = ['1x4', '2x4', '2x6', '2x8', '2x10', '2x12', '4x4', '4x6', '6x6'] as const;
 export type LumberSize = (typeof LUMBER_SIZES)[number];
 
 export const TWO_BY = ['2x4', '2x6', '2x8', '2x10', '2x12'] as const satisfies readonly LumberSize[];
@@ -6,6 +6,7 @@ export type TwoBy = (typeof TWO_BY)[number];
 
 // Dry dressed sizes, inches: American Softwood Lumber Standard (DOC PS 20).
 export const LUMBER: Record<LumberSize, { thick: number; width: number }> = {
+  '1x4': { thick: 0.75, width: 3.5 },
   '2x4': { thick: 1.5, width: 3.5 },
   '2x6': { thick: 1.5, width: 5.5 },
   '2x8': { thick: 1.5, width: 7.25 },
@@ -30,6 +31,7 @@ export const DEFAULT_STOCK: Record<LumberSize, readonly number[]> = {
   '4x4': EVEN_FEET,
   '4x6': EVEN_FEET,
   '6x6': EVEN_FEET,
+  '1x4': [96, 120, 144, 192],
 };
 
 export function stockLengths(
@@ -81,10 +83,10 @@ export const SPECIES: Record<Species, { label: string; fb: number | Record<numbe
 const SIZE_FACTOR: Record<number, number> = { 4: 1.5, 6: 1.3, 8: 1.2, 10: 1.1, 12: 1.0 };
 const SIZE_FACTOR_4IN: Record<number, number> = { 4: 1.5, 6: 1.3, 8: 1.3, 10: 1.2, 12: 1.1 };
 
-/** Fb with its size factor, psi; null for sizes without dimension lumber values (6x6 is a timber). */
+/** Fb with its size factor, psi; null for sizes without dimension lumber values: 1x boards and 6x6 timbers. */
 export function bendingValue(species: Species, size: LumberSize): number | null {
   const [thick, width] = size.split('x').map(Number);
-  if (thick > 4) return null;
+  if (thick < 2 || thick > 4) return null;
   const { fb } = SPECIES[species];
   if (typeof fb !== 'number') return fb[width];
   return fb * (thick === 4 ? SIZE_FACTOR_4IN : SIZE_FACTOR)[width];

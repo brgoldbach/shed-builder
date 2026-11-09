@@ -39,6 +39,7 @@ import {
 import { studLengths, wallTops } from '../core/gen/walls';
 import { naming, type Naming } from '../core/naming';
 import { formatInches, formatLength } from '../core/units';
+import { AdditionsEditor } from './AdditionsEditor';
 import { OpeningRowsEditor, OpeningTypesEditor } from './OpeningsEditor';
 
 type Foundation = ShedConfig['foundation'];
@@ -127,6 +128,9 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
         <OpeningRowsEditor value={value} onChange={onChange} />
       </Section>
       <RoofSection value={value.roof} onChange={set('roof')} names={names} />
+      <Section title="Lean-tos">
+        <AdditionsEditor value={value} onChange={onChange} />
+      </Section>
       <LoadsSection value={value} onChange={onChange} />
       <CatalogSection value={value.catalog} onChange={set('catalog')} />
     </>

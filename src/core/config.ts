@@ -28,6 +28,11 @@ export const FASCIA = ['none', ...TWO_BY] as const;
 export const ROOF_LOADS = [20, 30, 40, 50, 60, 70] as const;
 export const ROOF_DEAD_LOADS = [10, 15, 20] as const;
 export const LOFT_USES = ['storage', 'sleeping'] as const;
+export const LEAN_TO_POSTS = ['4x4', '6x6'] as const;
+export const LEAN_TO_FLOORS = ['none', 'slab'] as const;
+export const LEAN_TO_ROOFING = ['sheathing', 'metal'] as const;
+export const PURLINS = ['1x4', '2x4'] as const;
+export const OPPOSITE = { front: 'back', back: 'front', left: 'right', right: 'left' } as const;
 
 const len = (min: number, max: number) =>
   z.number().min(min, `Min ${formatLength(min)}`).max(max, `Max ${formatLength(max)}`);
@@ -194,6 +199,33 @@ const roof = z.strictObject({
     .prefault({}),
 });
 
+// An open lean-to on posts against one side of the shed. Lengths are horizontal.
+const addition = z.strictObject({
+  side: z.enum(WALLS), // model side
+  mirror: z.boolean().default(false), // also on the opposite side, mirrored
+  depth: len(24, 240).default(96), // main wall outside face to the outside of the posts
+  length: z.union([z.literal('full'), len(24, 480)]).default('full'), // along the main wall
+  center: z.number().min(0, 'Min 0%').max(100, 'Max 100%').default(50), // percent along the wall from its left corner
+  pitch: z.number().min(1, 'Min 1/12').max(12, 'Max 12/12').default(3),
+  drop: len(0, 48).default(0), // ledger below the highest that clears the main roof
+  rafter: twoBy.default('2x6'),
+  oc: spacing.default(24),
+  eaveOverhang: len(0, 36).default(12), // past the outside of the posts
+  fascia: z.enum(FASCIA).default('2x6'),
+  // sheathing: the main roof's sheathing. metal: panels on purlins laid flat across the rafters.
+  roofing: z.enum(LEAN_TO_ROOFING).default('sheathing'),
+  purlin: z.enum(PURLINS).default('1x4'),
+  purlinSpacing: len(12, 48).default(24), // along the slope, center to center
+  post: z.enum(LEAN_TO_POSTS).default('4x4'),
+  maxSpacing: len(36, 192).default(96), // post center to post center
+  beam: twoBy.default('2x8'),
+  beamPlies: count(1, 3).default(2),
+  floor: z.enum(LEAN_TO_FLOORS).default('none'),
+});
+export type Addition = z.infer<typeof addition>;
+/** A lean-to with every default, on `side`. */
+export const newAddition = (side: Addition['side']): Addition => addition.parse({ side });
+
 // Loads for the span checks, psf.
 const loads = z.strictObject({
   roof: z.literal(ROOF_LOADS).default(20),
@@ -225,9 +257,17 @@ export const shedSchema = z.strictObject({
   openingTypes: z.array(openingType).default([]),
   openings: z.array(opening).default([]),
   roof: roof.prefault({}),
+  additions: z.array(addition).default([]),
   loads: loads.prefault({}),
   catalog: catalog.prefault({}),
 }).superRefine((config, context) => {
+  const sides = config.additions.flatMap(({ side, mirror }) => (mirror ? [side, OPPOSITE[side]] : [side]));
+  config.additions.forEach(({ side, mirror }, index) => {
+    const own = mirror ? [side, OPPOSITE[side]] : [side];
+    if (own.some((taken) => sides.filter((other) => other === taken).length > 1)) {
+      context.addIssue({ code: 'custom', message: 'One lean-to per side', path: ['additions', index, 'side'] });
+    }
+  });
   const names = config.openingTypes.map((type) => type.name);
   names.forEach((name, index) => {
     if (names.indexOf(name) !== index) {

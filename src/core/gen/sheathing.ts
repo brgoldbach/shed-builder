@@ -63,7 +63,9 @@ export function frameSheathing(
   if (roof.sheathing !== 'none') {
     const { label } = SHEETS[roof.sheathing];
     const nextId = idMaker('RF');
-    for (const plane of planes) solids.push(...panels(roofFace(plane, members), roof.sheathing, nextId, 'SH', `Roof sheathing, ${label}`));
+    for (const plane of planes.filter(({ sheathed }) => sheathed)) {
+      solids.push(...panels(roofFace(plane, members), roof.sheathing, nextId, 'SH', `Roof sheathing, ${label}`));
+    }
   }
   const joists = members.filter((member) => member.role === 'joist.floor' || member.role === 'joist.end');
   if (joists.length > 0) {
@@ -147,7 +149,7 @@ function wallFace(
 
 // Sheets run long edge along the ridge from the lower edge up, with end joints on rafter centers.
 function roofFace(plane: RoofPlane, members: readonly Member[]): Face {
-  const rafters = members.filter((member) => member.role === 'rafter');
+  const rafters = members.filter((member) => member.role === 'rafter' && member.assembly === plane.assembly);
   return {
     origin: plane.origin,
     u: plane.u,

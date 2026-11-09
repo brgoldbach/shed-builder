@@ -69,7 +69,7 @@ export function buildBom(config: ShedConfig, model: Model, marks: ReadonlyMap<st
     sheets: sheetGroups(model.solids, config.catalog.kerf),
     concrete: concrete(model.solids),
     hardware: hardware(config, model),
-    roofing: roofing(config, model),
+    roofing: roofing(model),
     warnings,
   };
 }
@@ -233,33 +233,42 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   const add = (item: string, quantity: number, note?: string) => {
     if (quantity > 0) lines.push({ item, quantity, unit: 'ea', ...(note && { note }) });
   };
+  const leanTo = ({ assembly }: Member) => assembly.startsWith('addition');
 
   add('Anchor bolt, 1/2", with nut and washer', model.solids.filter(({ label }) => label.startsWith('Anchor bolt')).length);
   const seats = config.roof.style === 'lean-to' ? 2 : 1;
-  add('Hurricane tie, rafter to plate', count('rafter') * seats, `One at each rafter seat: ${seats} per rafter.`);
-  const posts = model.members.filter(({ role }) => role === 'post');
-  if (posts.length > 0) {
-    add(`Post base, ${posts[0].size}`, posts.length, 'Set in the pier.');
-    add(`Post cap, ${posts[0].size} to girder`, posts.length);
+  const rafters = model.members.filter(({ role }) => role === 'rafter');
+  const leanToRafters = rafters.filter(leanTo);
+  add(
+    'Hurricane tie, rafter to plate',
+    (rafters.length - leanToRafters.length) * seats + leanToRafters.length,
+    `One at each rafter seat: ${seats} per main rafter${leanToRafters.length ? ', 1 per lean-to rafter on its beam' : ''}.`,
+  );
+  for (const [size, posts] of Map.groupBy(model.members.filter(({ role }) => role === 'post'), ({ size }) => size)) {
+    add(`Post base, ${size}`, posts.length, 'Set in the pier, or anchored to the slab.');
+    add(`Post cap, ${size}`, posts.length, 'To the girder or beam.');
   }
 
-  // Loft hangers. Trimmers, edge joists, and hatch headers are doubled: one double hanger per end.
+  // Joist hangers by size: hung loft joists, hatch framing, and lean-to rafters at their ledgers.
+  // Trimmers, edge joists, and hatch headers are doubled: one double hanger per end.
   const { loft } = config.roof;
   const hung = loft.support === 'hung';
-  const doubles = count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0);
-  const singles = count('tail.loft') * (hung ? 2 : 1) + (hung ? 2 * count('joist.loft') : 0);
-  add(`Joist hanger, ${loft.joist}`, singles);
-  add(`Joist hanger, double ${loft.joist}`, doubles);
+  const singles = new Map<string, number>();
+  const single = (size: string, quantity: number) => singles.set(size, (singles.get(size) ?? 0) + quantity);
+  single(loft.joist, count('tail.loft') * (hung ? 2 : 1) + (hung ? 2 * count('joist.loft') : 0));
+  leanToRafters.forEach(({ size }) => single(size, 1));
+  for (const [size, quantity] of singles) add(`Joist hanger, ${size}`, quantity);
+  add(`Joist hanger, double ${loft.joist}`, count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0));
+  add('Ledger lag screw, 1/2"', model.leanTos.reduce((sum, { lags }) => sum + lags, 0), 'Two at each main-wall stud behind a lean-to ledger.');
   return lines;
 }
 
 // From the sheathing planes: drip edge along every eave and rake, but not along the ridge.
-function roofing(config: ShedConfig, model: Model): Line[] {
+function roofing(model: Model): Line[] {
   const { planes } = model;
   if (planes.length === 0) return [];
   const area = sum(planes.map(({ length, width }) => length * width)) / 144;
-  const edges = config.roof.style === 'lean-to' ? 2 : 1;
-  const eaves = sum(planes.map(({ length }) => length * edges)) / 12;
+  const eaves = sum(planes.map(({ length, eaves }) => length * eaves)) / 12;
   const rakes = sum(planes.map(({ width }) => 2 * width)) / 12;
   return [
     { item: 'Roof area', quantity: round(area, 1), unit: 'sq ft', note: `${round(area / 100, 2)} squares.` },

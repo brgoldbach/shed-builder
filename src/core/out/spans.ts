@@ -163,12 +163,31 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
     );
   }
 
+  for (const { side, addition, rafterSpan, postSpacing, beamTributary } of model.leanTos) {
+    const name = `${capitalize(names.side(side))} lean-to`;
+    joists(`${name} rafters`, addition.rafter, addition.oc, rafterSpan, rafterLoad, roofDuration, `${roofLabel}, L/${RAFTER_LIMIT}`);
+    const feet = beamTributary / 12;
+    const load = { total: (loads.roof + loads.roofDead) * feet, live: loads.roof * feet, floorLive: false };
+    const { thick, width: depth } = LUMBER[addition.beam];
+    beam(
+      `${name} beam`,
+      `${addition.beamPlies}-ply ${addition.beam}`,
+      addition.beam,
+      addition.beamPlies * thick,
+      depth,
+      postSpacing,
+      load,
+      240,
+      `${roofLabel} over ${formatLength(beamTributary)}, L/240`,
+    );
+  }
+
   if (foundation.type === 'pier') {
     const { pier } = foundation;
     const girders = model.members.filter(({ role }) => role === 'girder');
     const lines = mergeRanges(girders.map((member) => extentOf([member], 1)));
     const centers = lines.map(([low, high]) => (low + high) / 2);
-    const piers = [...new Set(model.solids.flatMap(({ shape }) => (shape.kind === 'cylinder' ? [Math.round(shape.base[0] * 16) / 16] : [])))].sort(
+    const piers = [...new Set(model.solids.flatMap(({ id, shape }) => (shape.kind === 'cylinder' && id.startsWith('FD') ? [Math.round(shape.base[0] * 16) / 16] : [])))].sort(
       (first, second) => first - second,
     );
     // Pier center to pier center.

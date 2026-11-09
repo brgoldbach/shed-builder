@@ -123,8 +123,9 @@ function foundationPlan({ config, model, marks }: Context): Drawing {
     const lines = members.filter((member) => member.role === 'skid' || member.role === 'girder');
     const side = across(view, lines[0]);
     const along = side === 0 ? 1 : 0;
+    // The shed's own piers; lean-to piers stand outside the footprint.
     const piers = solids.flatMap((solid) =>
-      solid.shape.kind === 'cylinder' && solid.material === 'concrete' ? [project(view, solid.shape.base)] : [],
+      solid.shape.kind === 'cylinder' && solid.material === 'concrete' && solid.id.startsWith('FD') ? [project(view, solid.shape.base)] : [],
     );
     const centers =
       foundation.type === 'pier'
@@ -245,12 +246,12 @@ function loftPlan({ config, model, marks }: Context): Drawing | null {
 
 function roofPlan({ config, model, marks }: Context): Drawing {
   const view = planView(config);
-  const members = model.members.filter((member) => member.assembly === 'roof');
+  const members = model.members.filter((member) => member.assembly === 'roof' || member.assembly.startsWith('addition'));
   const { roof } = config;
   const box = extentOf(view, members);
   const outline = footprint(config, view);
   const walls = boxOf(outline);
-  const rafters = members.filter((member) => member.role === 'rafter');
+  const rafters = members.filter((member) => member.role === 'rafter' && member.assembly === 'roof');
   return makeDrawing('roof', 'Roof framing plan', {
     shapes: shapesOf(view, members, [], marks),
     dims: [

@@ -9,6 +9,7 @@ export const LAYERS = {
   walls: 'Walls',
   roof: 'Roof',
   loft: 'Loft',
+  additions: 'Lean-tos',
   sheathing: 'Sheathing',
 } as const;
 export type Layer = keyof typeof LAYERS;
@@ -27,6 +28,10 @@ export const ASSEMBLIES = {
   loft: { label: 'Loft', prefix: 'LF', layer: 'loft' },
   'knee.front': { label: 'Front knee wall', prefix: 'KF', layer: 'loft' },
   'knee.back': { label: 'Back knee wall', prefix: 'KB', layer: 'loft' },
+  'addition.front': { label: 'Front lean-to', prefix: 'AF', layer: 'additions' },
+  'addition.back': { label: 'Back lean-to', prefix: 'AB', layer: 'additions' },
+  'addition.left': { label: 'Left lean-to', prefix: 'AL', layer: 'additions' },
+  'addition.right': { label: 'Right lean-to', prefix: 'AR', layer: 'additions' },
 } as const satisfies Record<string, { label: string; prefix: string; layer: Layer }>;
 export type Assembly = keyof typeof ASSEMBLIES;
 
@@ -62,6 +67,9 @@ export const ROLES = {
   'tail.loft': 'Tail joist',
   skid: 'Skid',
   girder: 'Girder ply',
+  ledger: 'Ledger',
+  purlin: 'Purlin',
+  beam: 'Beam ply',
   post: 'Post',
   'rim.floor': 'Rim joist',
   'joist.end': 'End joist',
