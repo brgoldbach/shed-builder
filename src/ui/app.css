@@ -102,6 +102,8 @@ button {
 
 .sidebar {
   grid-area: side;
+  display: flex;
+  flex-direction: column;
   padding: 8px 16px 16px;
   overflow-y: auto;
   background: var(--surface);
@@ -297,6 +299,21 @@ button {
   border-bottom-color: var(--accent);
 }
 
+.notice {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sidebar > .notice {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.print-only {
+  display: none;
+}
+
 .panel {
   flex: 1;
   padding: 16px;
@@ -375,9 +392,17 @@ button {
 .panel-toolbar {
   display: flex;
   gap: 8px;
+  align-items: flex-start;
   justify-content: flex-end;
   max-width: 960px;
   margin-bottom: 8px;
+}
+
+.drawing-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-right: auto;
 }
 
 .bom h3 {
@@ -387,6 +412,10 @@ button {
 
 .bom .cutlist tbody tr {
   cursor: default;
+}
+
+.bom .cutlist.lumber {
+  max-width: 480px;
 }
 
 .bom .cutlist td.unit {
@@ -555,6 +584,11 @@ button {
   text-align: right;
 }
 
+.cutlist td.number,
+.cutlist .nowrap {
+  white-space: nowrap;
+}
+
 .cutlist .note {
   font-size: 0.85rem;
   color: var(--muted);
@@ -636,5 +670,17 @@ button {
 
   .drawing svg {
     max-width: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  .drawing .notice {
+    padding-top: 8px;
+  }
+
+  .workspace:has(.panel.framing:not([hidden])) > .notice {
+    display: none;
   }
 }

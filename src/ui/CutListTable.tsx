@@ -39,11 +39,11 @@ export function CutListTable({ lines, names, selected, onSelect }: Props) {
               className={line.mark === selected ? 'selected' : undefined}
               onClick={() => onSelect(line.mark)}
             >
-              <td>{line.mark}</td>
+              <td className="nowrap">{line.mark}</td>
               <td className="number">{line.ids.length}</td>
-              <td>{stockLabel(line)}</td>
+              <td className="nowrap">{stockLabel(line)}</td>
               <td className="number">{formatInches(line.length)}</td>
-              <td>{ROLES[line.role]}</td>
+              <td className="nowrap">{ROLES[line.role]}</td>
               <td className="note">{line.note}</td>
             </tr>
           ))}

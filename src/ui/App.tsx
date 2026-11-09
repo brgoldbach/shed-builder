@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
+import { DISCLAIMER } from '../core/disclaimer';
 import { ASSEMBLIES, LAYERS, ROLES, type Layer } from '../core/member';
 import { buildModel } from '../core/model';
 import { naming } from '../core/naming';
@@ -176,6 +177,7 @@ export function App() {
           </div>
         )}
         <DesignForm key={revision} value={config} onChange={edit} />
+        <p className="notice">{DISCLAIMER}</p>
       </aside>
       <main className="workspace">
         <nav className="tabs" role="tablist">
@@ -191,6 +193,7 @@ export function App() {
             </button>
           ))}
         </nav>
+        <p className="notice print-only">{DISCLAIMER}</p>
         <section className="panel viewport" role="tabpanel" hidden={tab !== '3d'}>
           <View3D
             members={shown}

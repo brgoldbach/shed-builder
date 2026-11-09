@@ -1,3 +1,4 @@
+import { DISCLAIMER } from '../core/disclaimer';
 import type { Point, Role } from '../core/member';
 import { formatInches, formatLength } from '../core/units';
 import { bounds, type Dimension, type Drawing, type Shape, type Side } from '../drawings/drawing';
@@ -24,10 +25,17 @@ export function FramingView({ drawings, selected, onPick }: Props) {
   return (
     <div className="drawings">
       <div className="panel-toolbar">
+        <nav className="drawing-index" aria-label="Drawings">
+          {drawings.map(({ id, title }) => (
+            <button key={id} onClick={() => document.getElementById(`drawing-${id}`)?.scrollIntoView({ block: 'start' })}>
+              {title.replace(', from outside', '')}
+            </button>
+          ))}
+        </nav>
         <button onClick={() => window.print()}>Print</button>
       </div>
       {drawings.map((drawing) => (
-        <figure key={drawing.id} className="drawing">
+        <figure key={drawing.id} id={`drawing-${drawing.id}`} className="drawing">
           <figcaption>{drawing.title}</figcaption>
           <DrawingSvg drawing={drawing} selected={selected} onPick={onPick} />
           {drawing.notes.length > 0 && (
@@ -37,6 +45,7 @@ export function FramingView({ drawings, selected, onPick }: Props) {
               ))}
             </ul>
           )}
+          <p className="notice print-only">{DISCLAIMER}</p>
         </figure>
       ))}
     </div>

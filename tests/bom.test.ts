@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
+import { DISCLAIMER } from '../src/core/disclaimer';
 import { buildModel } from '../src/core/model';
 import { buildBom, packLumber, packSheets, type Bom } from '../src/core/out/bom';
 import { buildCutList } from '../src/core/out/cutlist';
@@ -119,6 +120,8 @@ describe('CSV', () => {
   it('lists lumber by stock length, then sheets and counted items', () => {
     const rows = bomCsv(bomOf()).split('\n');
     expect(rows[0]).toBe('Section,Item,Length,Qty,Unit,Notes');
+    // The caution closes the file, after the last row.
+    expect(rows.at(-2)).toBe(`"${DISCLAIMER}"`);
     expect(rows).toContain('Hardware,"Hurricane tie, rafter to plate",,12,ea,One at each rafter seat: 1 per main rafter.');
   });
 });

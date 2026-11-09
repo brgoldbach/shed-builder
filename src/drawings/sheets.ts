@@ -182,11 +182,21 @@ function floorPlan({ config, model, marks }: Context): Drawing | null {
 function wallElevation({ config, model, names, marks }: Context, wall: Wall): Drawing {
   const frame = wallFrames(config.width, config.length)[wall];
   const view: View = { origin: frame.origin, right: frame.u, up: UP, forward: frame.v };
-  const own = model.members.filter((member) => ELEVATION[wall].includes(member.assembly));
+  const wallDepth = LUMBER[config.walls.stud].width;
+  const flush = (member: Member) =>
+    corners(member).every((point) => {
+      const depth = depthOf(view, point);
+      return depth > -NEAR && depth < wallDepth + NEAR;
+    });
+  // The loft rims and the deck's edge under a knee wall stand flush with the wall below.
+  const own = model.members.filter((member) => ELEVATION[wall].includes(member.assembly) || (member.role === 'rim.loft' && flush(member)));
+  const deck = model.solids.filter(
+    ({ layer, material, shape }) =>
+      layer === 'loft' && material === 'sheet' && shape.kind === 'panel' && Math.abs(Math.min(...panelCorners(shape).map((point) => depthOf(view, point)))) < NEAR,
+  );
   const framing = own.filter((member) => member.assembly === `wall.${wall}`);
   // For reference: the end rafter over a gable-end wall, and the adjacent walls' framing at the
   // corners, seen end-on.
-  const wallDepth = LUMBER[config.walls.stud].width;
   const context = model.members.filter((member) => {
     const depths = corners(member).map((point) => depthOf(view, point));
     const [near, far] = [Math.min(...depths), Math.max(...depths)];
@@ -221,7 +231,7 @@ function wallElevation({ config, model, names, marks }: Context, wall: Wall): Dr
     'Layout and RO (rough opening) positions run from the left end of the bottom plate, viewed from outside.',
   ];
   return makeDrawing(`wall-${wall}`, `${names.assembly(`wall.${wall}`).label}, from outside`, {
-    shapes: shapesOf(view, own, [], marks, { context }),
+    shapes: shapesOf(view, own, deck, marks, { context }),
     dims,
     labels: openings.map(({ name, left, right, bottom, top }) => ({ at: [(left + right) / 2, (bottom + top) / 2], text: name, room: right - left })),
     notes,

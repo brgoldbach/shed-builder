@@ -75,6 +75,21 @@ describe('wall elevation', () => {
     expect(front.labels).toEqual([{ at: [60, 64.25], text: 'window 24x36', room: 24 }]);
   });
 
+  it('draws the loft rim between an eave wall and its knee wall', () => {
+    const raised = shedSchema.parse({
+      ...gableSkid,
+      roof: { ...gableSkid.roof, loft: { enabled: true, joist: '2x6', oc: 16 }, kneeWalls: { enabled: true, height: 36 } },
+    });
+    const { shapes } = find(drawingsOf(raised), 'wall-front');
+    // On the wall top at 97-1/8, 5-1/2 deep, between the gable-end walls, with the deck's edge on
+    // top: two sheets, 23/32 thick, under the knee wall at 103-11/32.
+    expect(shapes.filter((shape) => shape.role === 'rim.loft').map((shape) => bounds([shape]))).toEqual([{ min: [3.5, 97.125], max: [116.5, 102.625] }]);
+    expect(shapes.filter((shape) => shape.kind === 'sheet').map((shape) => bounds([shape]))).toEqual([
+      { min: [3.5, 102.625], max: [96, 103.34375] },
+      { min: [96, 102.625], max: [116.5, 103.34375] },
+    ]);
+  });
+
   it('shows the adjacent walls end-on at the corners, for reference', () => {
     const left = find(drawingsOf(), 'wall-left');
     const walls = left.shapes.filter((shape) => shape.kind === 'context' && shape.role !== 'rafter');

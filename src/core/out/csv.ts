@@ -1,3 +1,4 @@
+import { DISCLAIMER } from '../disclaimer';
 import { ROLES } from '../member';
 import type { Naming } from '../naming';
 import { formatInches, formatLength } from '../units';
@@ -8,7 +9,8 @@ const cell = (value: string | number) => {
   const text = String(value);
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 };
-const csv = (rows: (string | number)[][]) => `${rows.map((row) => row.map(cell).join(',')).join('\n')}\n`;
+// The caution is the last row, so the header stays the first.
+const csv = (rows: (string | number)[][]) => `${[...rows, [DISCLAIMER]].map((row) => row.map(cell).join(',')).join('\n')}\n`;
 
 /** The cut list as CSV: one row per line, lengths in decimal inches and as written. */
 export function cutListCsv(lines: readonly CutLine[], names: Naming): string {

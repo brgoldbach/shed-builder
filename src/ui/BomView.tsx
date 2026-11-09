@@ -18,11 +18,10 @@ export function BomView({ bom, marks, onCsv }: Props) {
       </div>
 
       <h3>Lumber</h3>
-      <table className="cutlist">
+      <table className="cutlist lumber">
         <thead>
           <tr>
-            <th>Stock</th>
-            <th className="number">Length</th>
+            <th>Length</th>
             <th className="number">Qty</th>
           </tr>
         </thead>
@@ -95,7 +94,7 @@ function LumberRows({ group, marks }: { group: LumberGroup; marks: ReadonlyMap<s
   return (
     <tbody>
       <tr className="group">
-        <th colSpan={3}>
+        <th colSpan={2}>
           {label}{' '}
           <span className="note">
             {group.boards.length} boards, {Math.round(bought / 12)} ft, waste {percent(group.waste)}
@@ -104,21 +103,19 @@ function LumberRows({ group, marks }: { group: LumberGroup; marks: ReadonlyMap<s
       </tr>
       {[...Map.groupBy(group.boards, ({ stock }) => stock)].map(([stock, boards]) => (
         <tr key={stock}>
-          <td>{label}</td>
-          <td className="number">{formatLength(stock)}</td>
+          <td>{formatLength(stock)}</td>
           <td className="number">{boards.length}</td>
         </tr>
       ))}
       {group.tooLong.length > 0 && (
         <tr>
-          <td>{label}</td>
-          <td className="number">Special order</td>
+          <td>Special order</td>
           <td className="number">{group.tooLong.length}</td>
         </tr>
       )}
       {group.tooLong.length > 0 && (
         <tr>
-          <td colSpan={3} className="note">
+          <td colSpan={2} className="note">
             Longer than any stock: {group.tooLong.map((piece) => pieceText(marks, piece)).join(', ')}
           </td>
         </tr>
