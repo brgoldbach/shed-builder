@@ -8,7 +8,7 @@ describe('parseConfig', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.config.width).toBe(120);
-    expect(result.config.walls.studLength).toBe(92.625);
+    expect(result.config.wallHeight).toBe(97.125);
     expect(result.config.roof.collarTies.height).toBe('auto');
     expect(result.config.openings).toEqual([]);
   });

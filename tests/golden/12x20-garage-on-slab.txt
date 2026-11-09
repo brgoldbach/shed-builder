@@ -1,36 +1,40 @@
 FW-1      1  2x4 PT          240"  Mud sill. After anchoring, cut out door 36 (front 22" from right) from 180" to 218" from the left end, viewed from outside.
-FW-2      1  2x4             240"  Top plate
-FW-3      1  2x4             233"  Cap plate
-FW-4      6  2x4         104-5/8"  Corner stud
-FW-5     12  2x4         104-5/8"  Stud
-FW-6      2  2x4         104-5/8"  King stud
-FW-7      2  2x4          80-3/4"  Jack stud
-FW-8      2  2x8              41"  Header
-FW-9      2  2x4          16-5/8"  Cripple
+FW-2      1  2x4             240"  Bottom plate. After anchoring, cut out door 36 (front 22" from right) from 180" to 218" from the left end, viewed from outside.
+FW-3      1  2x4             240"  Top plate
+FW-4      1  2x4             233"  Cap plate
+FW-5      6  2x4         104-5/8"  Corner stud
+FW-6     12  2x4         104-5/8"  Stud
+FW-7      2  2x4         104-5/8"  King stud
+FW-8      2  2x4          79-1/4"  Jack stud
+FW-9      2  2x8              41"  Header
+FW-10     2  2x4          18-1/8"  Cripple
 BW-1      1  2x4 PT          240"  Mud sill
-BW-2      1  2x4             240"  Top plate
-BW-3      1  2x4             233"  Cap plate
-BW-4      6  2x4         104-5/8"  Corner stud
-BW-5     12  2x4         104-5/8"  Stud
-BW-6      2  2x4         104-5/8"  King stud
-BW-7      2  2x4          80-3/4"  Jack stud
-BW-8      2  2x8              27"  Header
-BW-9      1  2x4              24"  Rough sill
-BW-10     2  2x4          43-1/4"  Cripple
-BW-11     2  2x4          16-5/8"  Cripple
+BW-2      1  2x4             240"  Bottom plate
+BW-3      1  2x4             240"  Top plate
+BW-4      1  2x4             233"  Cap plate
+BW-5      6  2x4         104-5/8"  Corner stud
+BW-6     12  2x4         104-5/8"  Stud
+BW-7      2  2x4         104-5/8"  King stud
+BW-8      2  2x4          79-1/4"  Jack stud
+BW-9      2  2x8              27"  Header
+BW-10     1  2x4              24"  Rough sill
+BW-11     2  2x4          41-3/4"  Cripple
+BW-12     2  2x4          18-1/8"  Cripple
 LW-1      1  2x4 PT          137"  Mud sill. After anchoring, cut out door garage 9x7 (left 50%) from 14-1/2" to 122-1/2" from the left end, viewed from outside.
-LW-2      1  2x4             137"  Top plate
-LW-3      1  2x4             144"  Cap plate
-LW-4      2  2x4         104-5/8"  Corner stud
-LW-5      2  2x4         104-5/8"  King stud
-LW-6      4  2x4          82-1/2"  Jack stud
-LW-7      2  2x12            114"  Header
-LW-8      6  2x4          10-7/8"  Cripple
+LW-2      1  2x4             137"  Bottom plate. After anchoring, cut out door garage 9x7 (left 50%) from 14-1/2" to 122-1/2" from the left end, viewed from outside.
+LW-3      1  2x4             137"  Top plate
+LW-4      1  2x4             144"  Cap plate
+LW-5      2  2x4         104-5/8"  Corner stud
+LW-6      2  2x4         104-5/8"  King stud
+LW-7      4  2x4              81"  Jack stud
+LW-8      2  2x12            114"  Header
+LW-9      6  2x4          12-3/8"  Cripple
 RW-1      1  2x4 PT          137"  Mud sill
-RW-2      1  2x4             137"  Top plate
-RW-3      1  2x4             144"  Cap plate
-RW-4      2  2x4         104-5/8"  Corner stud
-RW-5      8  2x4         104-5/8"  Stud
+RW-2      1  2x4             137"  Bottom plate
+RW-3      1  2x4             137"  Top plate
+RW-4      1  2x4             144"  Cap plate
+RW-5      2  2x4         104-5/8"  Corner stud
+RW-6      8  2x4         104-5/8"  Stud
 GL-1      2  2x4          75-3/4"  Gable top plate. Level cut on the wall plate. Plumb cut 26.6° at the ridge post.
 GL-2      2  2x4        28-15/16"  Gable stud. Top cut 26.6°.
 GL-3      2  2x4        20-15/16"  Gable stud. Top cut 26.6°.

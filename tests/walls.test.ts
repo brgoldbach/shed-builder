@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LUMBER } from '../src/core/catalog';
 import { shedSchema } from '../src/core/config';
-import { frameWalls, studLengths } from '../src/core/gen/walls';
+import { frameWalls, studLengths, wallTops } from '../src/core/gen/walls';
 import type { Member, Role } from '../src/core/member';
 
 // 8 x 10 ft, 2x4 at 16 in o.c., 92-5/8 in studs, cap plate, 4-stud corners.
@@ -93,10 +93,45 @@ describe('frameWalls options', () => {
     expect(ofRole(wall(build({ walls: { corner: 'two-stud' } }), 'front'), 'corner')).toHaveLength(2);
   });
 
-  it('uses a treated mud sill on a slab', () => {
-    const sills = ofRole(build({ foundation: { type: 'slab' } }), 'plate.sill');
+  it('lays a treated mud sill on a slab, with the bottom plate on top', () => {
+    const members = build({ foundation: { type: 'slab' } });
+    const sills = ofRole(members, 'plate.sill');
     expect(sills).toHaveLength(4);
-    expect(sills.every((sill) => sill.treated)).toBe(true);
+    expect(sills.every((sill) => sill.treated && sill.origin[2] === 0)).toBe(true);
+    const plates = ofRole(members, 'plate.bottom');
+    expect(plates).toHaveLength(4);
+    expect(plates.every((plate) => !plate.treated && plate.origin[2] === 1.5)).toBe(true);
+    // Studs stand on the bottom plate at 3 in. The 97-1/8 wall height holds, so the studs are
+    // 97-1/8 - 3 x 1-1/2 - 1-1/2 = 91-1/8.
+    const studs = ofRole(members, 'stud');
+    expect(studs.every((stud) => stud.origin[2] === 3 && stud.length === 91.125)).toBe(true);
+    expect(wallTops(shedSchema.parse({ ...base, foundation: { type: 'slab' } })).front).toBe(97.125);
+  });
+
+  it('uses the treated mud sill as the bottom plate when the mud sill option is off', () => {
+    const members = build({ foundation: { type: 'slab' }, walls: { mudSill: 'none' } });
+    expect(ofRole(members, 'plate.sill')).toHaveLength(4);
+    expect(ofRole(members, 'plate.bottom')).toHaveLength(0);
+    expect(ofRole(members, 'stud').every((stud) => stud.origin[2] === 1.5)).toBe(true);
+  });
+
+  it('ignores the mud sill option on a framed floor', () => {
+    expect(ofRole(build({ walls: { mudSill: 'match' } }), 'plate.sill')).toHaveLength(0);
+  });
+
+  it('lays a mud sill of the chosen size, flush with the outside face', () => {
+    const members = build({ foundation: { type: 'slab' }, walls: { mudSill: '2x6' } });
+    const sills = ofRole(members, 'plate.sill');
+    expect(sills.every((sill) => sill.size === '2x6')).toBe(true);
+    // Same 1-1/2 in thickness, so the studs do not change.
+    expect(ofRole(members, 'stud').every((stud) => stud.length === 91.125)).toBe(true);
+  });
+
+  it('warns when the mud sill is narrower than the walls', () => {
+    const { warnings } = frameWalls(
+      shedSchema.parse({ ...base, foundation: { type: 'slab' }, walls: { stud: '2x6', mudSill: '2x4' } }),
+    );
+    expect(warnings).toEqual([{ source: 'Walls', message: 'The 2x4 mud sill is narrower than the 2x6 walls.' }]);
   });
 
   it('omits the cap plate when disabled', () => {

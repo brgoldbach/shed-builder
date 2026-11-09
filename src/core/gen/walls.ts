@@ -1,4 +1,4 @@
-import { LUMBER, stockLengths, type LumberSize } from '../catalog';
+import { LUMBER, stockLengths, type LumberSize, type TwoBy } from '../catalog';
 import { WALLS, type Opening, type OpeningType, type ShedConfig } from '../config';
 import { ASSEMBLIES, type Member, type Role, type Vec3, type Warning } from '../member';
 import { positionText, roOffset } from '../placement';
@@ -55,9 +55,20 @@ function at(frame: Frame, u: number, v: number, z: number): Vec3 {
   ];
 }
 
-/** Stud length of each wall. On a lean-to, the high wall is taller by the roof rise. */
+/** On a slab, the size of the PT mud sill under each wall's bottom plate; null for none. */
+export function mudSillSize(config: ShedConfig): TwoBy | null {
+  const { mudSill, stud } = config.walls;
+  if (config.foundation.type !== 'slab' || mudSill === 'none') return null;
+  return mudSill === 'match' ? stud : mudSill;
+}
+
+// Mud sill, bottom plate, top plate, and cap plate.
+const plateStack = (config: ShedConfig) => (mudSillSize(config) ? PLY : 0) + PLY * (config.walls.capPlate ? 3 : 2);
+
+/** Stud length of each wall: the wall height less its plates. On a lean-to, the high wall is taller by the roof rise. */
 export function studLengths(config: ShedConfig): Record<Wall, number> {
-  const { studLength, stud } = config.walls;
+  const studLength = config.wallHeight - plateStack(config);
+  const { stud } = config.walls;
   const lengths = { front: studLength, back: studLength, left: studLength, right: studLength };
   if (config.roof.style === 'lean-to') {
     // Full-width seats: the rafter underside meets the low wall's inside top corner and the
@@ -70,7 +81,7 @@ export function studLengths(config: ShedConfig): Record<Wall, number> {
 /** Top of each wall's top plate, or cap plate: the rafter bearing height. */
 export function wallTops(config: ShedConfig): Record<Wall, number> {
   const lengths = studLengths(config);
-  const plates = PLY * (config.walls.capPlate ? 3 : 2);
+  const plates = plateStack(config);
   return {
     front: lengths.front + plates,
     back: lengths.back + plates,
@@ -85,6 +96,10 @@ export function frameWalls(config: ShedConfig): { members: Member[]; warnings: W
   const frame = frames(config.width, config.length);
   const placed = placements(config);
   const warnings: Warning[] = [];
+  const sillSize = mudSillSize(config);
+  if (sillSize && LUMBER[sillSize].width < LUMBER[config.walls.stud].width) {
+    warnings.push({ source: 'Walls', message: `The ${sillSize} mud sill is narrower than the ${config.walls.stud} walls.` });
+  }
   const members = WALLS.flatMap((wall) =>
     frameWall(config, wall, frame[wall], heights, placed.filter(({ row }) => row.wall === wall), warnings),
   );
@@ -153,6 +168,7 @@ interface WallContext {
   start: number;
   end: number;
   depth: number;
+  base: number; // top of the bottom plate
   plateUnder: number; // underside of the top plate
   wallTop: number;
 }
@@ -204,7 +220,7 @@ function fitOpening(
   let sillBottom: number | null = null;
   if (sill > 0) {
     sillBottom = sill - walls.sillPlies * PLY;
-    if (sillBottom < PLY) {
+    if (sillBottom < context.base) {
       warn('The rough sill is below the top of the bottom plate.');
       return null;
     }
@@ -236,7 +252,10 @@ function frameWall(
   const start = through ? 0 : depth;
   const end = span - start;
   const studLength = heights[wall];
-  const plateUnder = PLY + studLength;
+  const sillSize = mudSillSize(config);
+  const mudSillThick = sillSize ? PLY : 0;
+  const base = mudSillThick + PLY; // top of the bottom plate: the studs stand here
+  const plateUnder = base + studLength;
 
   const members: Member[] = [];
   const occupied: Span[] = []; // corners, kings, and jacks: layout studs skip these
@@ -259,7 +278,7 @@ function frameWall(
     members.push({ id, assembly, role, size, treated, length, origin, axes, ...(note && { note }) });
   }
 
-  function upright(role: VerticalRole, from: number, bottom = PLY, length = studLength) {
+  function upright(role: VerticalRole, from: number, bottom = base, length = studLength) {
     if (role === 'corner' || role === 'king' || role === 'jack') occupied.push([from, from + PLY]);
     if (role === 'corner' || role === 'king' || role === 'stud') centers.push(from + PLY / 2);
     add(VERTICAL_CODES[role], role, walls.stud, length, at(frame, from, 0, bottom), {
@@ -272,7 +291,7 @@ function frameWall(
   // California corner backing: turned flat on the inside edge of the end stud.
   function flat(from: number) {
     occupied.push([from, from + depth]);
-    add('C', 'corner', walls.stud, studLength, at(frame, from, depth - PLY, PLY), {
+    add('C', 'corner', walls.stud, studLength, at(frame, from, depth - PLY, base), {
       length: UP,
       width: frame.u,
       thick: frame.v,
@@ -280,9 +299,9 @@ function frameWall(
   }
 
   // A board laid flat across the wall depth: plates, rough sills, and flat headers.
-  function flatBoard(code: string, role: Role, [from, to]: Span, z: number, treated = false, note?: string) {
+  function flatBoard(code: string, role: Role, [from, to]: Span, z: number, treated = false, note?: string, size: LumberSize = walls.stud) {
     const axes = { length: frame.u, width: frame.v, thick: UP };
-    add(code, role, walls.stud, to - from, at(frame, from, 0, z), axes, treated, note);
+    add(code, role, size, to - from, at(frame, from, 0, z), axes, treated, note);
   }
 
   // Start positions of a piece `size` long, `inset` from each end of the wall.
@@ -309,6 +328,7 @@ function frameWall(
     start,
     end,
     depth,
+    base,
     plateUnder,
     wallTop: plateUnder + PLY * (walls.capPlate ? 2 : 1),
   };
@@ -325,8 +345,8 @@ function frameWall(
     upright('king', zone[0]);
     upright('king', zone[1] - PLY);
     for (let index = 1; index <= jacks; index++) {
-      upright('jack', offset - index * PLY, PLY, roTop - PLY);
-      upright('jack', roEnd + (index - 1) * PLY, PLY, roTop - PLY);
+      upright('jack', offset - index * PLY, base, roTop - base);
+      upright('jack', roEnd + (index - 1) * PLY, base, roTop - base);
     }
 
     // Header stack on the jacks, between the kings: plate below, header, plate above.
@@ -375,7 +395,7 @@ function frameWall(
     }
     const headerTop = fit.roTop + fit.header.depth;
     if (plateUnder - headerTop > 0) upright('cripple', from, headerTop, plateUnder - headerTop);
-    if (fit.sillBottom !== null && fit.sillBottom > PLY) upright('cripple', from, PLY, fit.sillBottom - PLY);
+    if (fit.sillBottom !== null && fit.sillBottom > base) upright('cripple', from, base, fit.sillBottom - base);
   }
 
   const maxStock = Math.max(...stockLengths(config.catalog.stock, walls.stud));
@@ -392,7 +412,12 @@ function frameWall(
           `to ${formatInches(offset + type.width - piece[0])}`,
       );
     const note = cuts.length ? `After anchoring, ${cuts.join('; ')} from the left end, viewed from outside.` : undefined;
-    flatBoard(onSlab ? 'SL' : 'BP', onSlab ? 'plate.sill' : 'plate.bottom', piece, 0, onSlab, note);
+    if (sillSize) {
+      flatBoard('SL', 'plate.sill', piece, 0, true, note, sillSize);
+      flatBoard('BP', 'plate.bottom', piece, mudSillThick, false, note);
+    } else {
+      flatBoard(onSlab ? 'SL' : 'BP', onSlab ? 'plate.sill' : 'plate.bottom', piece, 0, onSlab, note);
+    }
   }
   const topPieces = splitPlate([start, end], maxStock, centers);
   topPieces.forEach((piece) => flatBoard('TP', 'plate.top', piece, plateUnder));

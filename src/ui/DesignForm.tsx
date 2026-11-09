@@ -4,6 +4,7 @@ import {
   FASCIA,
   FOUNDATION_TYPES,
   LOFT_SUPPORTS,
+  MUD_SILLS,
   PIER_DIAMETERS,
   POST_SIZES,
   ROOF_STYLES,
@@ -28,6 +29,8 @@ import {
   setter,
   type SectionProps,
 } from './fields';
+import { studLengths } from '../core/gen/walls';
+import { formatInches } from '../core/units';
 import { OpeningRowsEditor, OpeningTypesEditor } from './OpeningsEditor';
 
 type Foundation = ShedConfig['foundation'];
@@ -36,6 +39,7 @@ type Walls = ShedConfig['walls'];
 type Roof = ShedConfig['roof'];
 type Catalog = ShedConfig['catalog'];
 
+const MUD_SILL_LABELS: Record<string, string> = { none: 'None: PT bottom plate', match: 'Same as wall stud' };
 const LOFT_SUPPORT_LABELS = { plates: 'On the wall plates', hung: 'Hung from ledgers' };
 
 const CORNER_LABELS = {
@@ -56,10 +60,14 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
         <TextField label="Name" value={value.name} onChange={set('name')} />
         <LengthField label="Width (front to back)" value={value.width} onChange={set('width')} />
         <LengthField label="Length (left to right)" value={value.length} onChange={set('length')} />
+        <LengthField label="Wall height" value={value.wallHeight} onChange={set('wallHeight')} />
+        <p className="muted hint">
+          Floor to the top of the top plates. Studs: {formatInches(studLengths(value).left)}.
+        </p>
       </Section>
       <FoundationSection value={value.foundation} onChange={set('foundation')} />
       {value.foundation.type !== 'slab' && <FloorSection value={value.floor} onChange={set('floor')} />}
-      <WallsSection value={value.walls} onChange={set('walls')} />
+      <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} />
       <Section title="Opening types">
         <OpeningTypesEditor value={value} onChange={onChange} />
       </Section>
@@ -134,13 +142,21 @@ function FloorSection({ value, onChange }: SectionProps<Floor>) {
   );
 }
 
-function WallsSection({ value, onChange }: SectionProps<Walls>) {
+function WallsSection({ value, onChange, onSlab }: SectionProps<Walls> & { onSlab: boolean }) {
   const set = setter(value, onChange);
   return (
     <Section title="Walls">
       <SelectField label="Stud" value={value.stud} options={WALL_STUDS} onChange={set('stud')} />
       <SelectField label="Stud o.c. (in)" value={value.oc} options={SPACINGS} onChange={set('oc')} />
-      <LengthField label="Stud length" value={value.studLength} onChange={set('studLength')} />
+      {onSlab && (
+        <SelectField
+          label="Mud sill"
+          value={value.mudSill}
+          options={MUD_SILLS}
+          describe={(size) => MUD_SILL_LABELS[size] ?? size}
+          onChange={set('mudSill')}
+        />
+      )}
       <CheckField label="Cap plate" value={value.capPlate} onChange={set('capPlate')} />
       <SelectField label="Corner" value={value.corner} options={CORNERS} describe={(corner) => CORNER_LABELS[corner]} onChange={set('corner')} />
       <SelectField label="Default header" value={value.header} options={TWO_BY} onChange={set('header')} />

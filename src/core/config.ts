@@ -17,6 +17,7 @@ export const HEADER_STYLES = ['single', 'double', 'triple', 'flat'] as const;
 export const ALONG = ['percent', 'left', 'right'] as const;
 export const ROOF_STYLES = ['gable', 'lean-to'] as const;
 export const LOFT_SUPPORTS = ['plates', 'hung'] as const;
+export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
 export const TAIL_CUTS = ['plumb', 'square'] as const;
 export const SHEATHING = ['none', ...SHEET_KEYS] as const;
 export const FASCIA = ['none', ...TWO_BY] as const;
@@ -75,8 +76,8 @@ const floor = z.strictObject({
 const walls = z.strictObject({
   stud: z.enum(WALL_STUDS).default('2x4'),
   oc: spacing.default(16),
-  studLength: len(48, 192).default(92.625),
   capPlate: z.boolean().default(true),
+  mudSill: z.enum(MUD_SILLS).default('match'), // on a slab: PT mud sill under the bottom plate. match: the stud size.
   corner: z.enum(CORNERS).default('four-stud'),
   header: twoBy.default('2x8'),
   doubleJackOver: len(24, 240).default(72), // RO width above which auto jacks become 2 per side
@@ -179,6 +180,7 @@ export const shedSchema = z.strictObject({
   name: z.string().trim().min(1, 'Required').default('Untitled shed'),
   width: len(48, 480).default(120), // front to back
   length: len(48, 480).default(144), // left to right
+  wallHeight: len(60, 200).default(97.125), // floor surface to the top of the top plates
   foundation: foundation.prefault({}),
   floor: floor.prefault({}),
   walls: walls.prefault({}),
