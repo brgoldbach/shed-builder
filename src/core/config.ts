@@ -16,6 +16,7 @@ export const OPENING_KINDS = ['door', 'window', 'overhead', 'custom'] as const;
 export const HEADER_STYLES = ['single', 'double', 'triple', 'flat'] as const;
 export const ALONG = ['percent', 'left', 'right'] as const;
 export const ROOF_STYLES = ['gable', 'lean-to'] as const;
+export const LOFT_SUPPORTS = ['plates', 'hung'] as const;
 export const TAIL_CUTS = ['plumb', 'square'] as const;
 export const SHEATHING = ['none', ...SHEET_KEYS] as const;
 export const FASCIA = ['none', ...TWO_BY] as const;
@@ -155,12 +156,14 @@ const roof = z.strictObject({
       joist: twoBy.default('2x6'),
       oc: spacing.default(16),
       deck: z.enum(SHEET_KEYS).default('tg-23/32'),
+      // plates: on the eave-wall plates. hung: in hangers between ledgers, tops flush with the walls.
+      support: z.enum(LOFT_SUPPORTS).default('plates'),
     })
     .prefault({}),
   kneeWalls: z
     .strictObject({
       enabled: z.boolean().default(false),
-      height: len(12, 72).default(36),
+      height: len(12, 72).default(36), // base of the bottom plate to the top of the top plates
       stud: z.enum(WALL_STUDS).default('2x4'),
     })
     .prefault({}),

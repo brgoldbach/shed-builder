@@ -3,6 +3,7 @@ import {
   CORNERS,
   FASCIA,
   FOUNDATION_TYPES,
+  LOFT_SUPPORTS,
   PIER_DIAMETERS,
   POST_SIZES,
   ROOF_STYLES,
@@ -34,6 +35,8 @@ type Floor = ShedConfig['floor'];
 type Walls = ShedConfig['walls'];
 type Roof = ShedConfig['roof'];
 type Catalog = ShedConfig['catalog'];
+
+const LOFT_SUPPORT_LABELS = { plates: 'On the wall plates', hung: 'Hung from ledgers' };
 
 const CORNER_LABELS = {
   'four-stud': '4-stud post',
@@ -183,6 +186,13 @@ function RoofSection({ value, onChange }: SectionProps<Roof>) {
             <>
               <SelectField label="Loft joist" value={value.loft.joist} options={TWO_BY} onChange={loft('joist')} />
               <SelectField label="Loft joist o.c. (in)" value={value.loft.oc} options={SPACINGS} onChange={loft('oc')} />
+              <SelectField
+                label="Joist support"
+                value={value.loft.support}
+                options={LOFT_SUPPORTS}
+                describe={(support) => LOFT_SUPPORT_LABELS[support]}
+                onChange={loft('support')}
+              />
               <SelectField label="Deck" value={value.loft.deck} options={SHEET_KEYS} describe={sheetLabel} onChange={loft('deck')} />
               <CheckField label="Knee walls" value={value.kneeWalls.enabled} onChange={knee('enabled')} />
               {value.kneeWalls.enabled && (

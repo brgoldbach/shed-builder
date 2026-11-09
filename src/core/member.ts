@@ -3,7 +3,7 @@ import type { LumberSize } from './catalog';
 export type Vec3 = readonly [number, number, number];
 export type Point = readonly [number, number];
 
-export const LAYERS = { walls: 'Walls', roof: 'Roof' } as const;
+export const LAYERS = { walls: 'Walls', roof: 'Roof', loft: 'Loft' } as const;
 export type Layer = keyof typeof LAYERS;
 
 // Key order is the cut-list order.
@@ -15,6 +15,9 @@ export const ASSEMBLIES = {
   'gable.left': { label: 'Left gable end', prefix: 'GL', layer: 'roof' },
   'gable.right': { label: 'Right gable end', prefix: 'GR', layer: 'roof' },
   roof: { label: 'Roof', prefix: 'RF', layer: 'roof' },
+  loft: { label: 'Loft', prefix: 'LF', layer: 'loft' },
+  'knee.front': { label: 'Front knee wall', prefix: 'KF', layer: 'loft' },
+  'knee.back': { label: 'Back knee wall', prefix: 'KB', layer: 'loft' },
 } as const satisfies Record<string, { label: string; prefix: string; layer: Layer }>;
 export type Assembly = keyof typeof ASSEMBLIES;
 
@@ -39,6 +42,11 @@ export const ROLES = {
   'rafter.fly': 'Fly rafter',
   lookout: 'Lookout',
   fascia: 'Fascia',
+  'tie.rafter': 'Rafter tie',
+  'tie.collar': 'Collar tie',
+  'joist.loft': 'Loft joist',
+  'rim.loft': 'Loft rim joist',
+  'ledger.loft': 'Loft ledger',
 } as const;
 export type Role = keyof typeof ROLES;
 

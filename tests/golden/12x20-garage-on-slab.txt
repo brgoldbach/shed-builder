@@ -50,3 +50,5 @@ RF-4      4  2x6        95-13/16"  Fly rafter. Plumb cut 26.6° at the ridge. No
 RF-5     20  2x4           6-1/2"  Lookout
 RF-6      2  2x6             232"  Fascia
 RF-7      2  2x6              24"  Fascia
+RF-8     14  2x4             144"  Rafter tie. Square ends.
+RF-9     14  2x4          54-7/8"  Collar tie. Ends cut 26.6° to the roof line.

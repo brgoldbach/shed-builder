@@ -1,8 +1,9 @@
-import { LUMBER, stockLengths, type LumberSize } from '../catalog';
+import { LUMBER, SHEETS, stockLengths, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
 import type { Member, Point, Vec3, Warning } from '../member';
 import { formatInches } from '../units';
-import { idMaker, planeMember, type Plane } from './section';
+import { frameAttic } from './attic';
+import { degrees, idMaker, planeMember, type Pitch, type Plane, type Slope } from './section';
 import { splitPlate, wallTops } from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
@@ -10,23 +11,6 @@ const MIN_STUD = 3; // a shorter gable stud is left out
 const X: Vec3 = [1, 0, 0];
 const UP: Vec3 = [0, 0, 1];
 const DOWN: Vec3 = [0, 0, -1];
-
-interface Pitch {
-  rise: number; // per 1 of run
-  cos: number;
-  sin: number;
-  degrees: number;
-}
-
-// The rafter in a section across the building, drawn for a side whose eave is at y = 0 and that
-// rises toward +y. The bottom edge passes through the inner end of the seat: (seat, plate).
-interface Slope {
-  pitch: Pitch;
-  depth: number;
-  seat: number;
-  bottom: (y: number) => number;
-  top: (y: number) => number;
-}
 
 // Puts the drawn section on one side of the building: real y = map(drawn y).
 interface Side {
@@ -39,7 +23,7 @@ interface Notch {
   heel: number; // y of the birdsmouth's plumb face
 }
 
-/** Rafters, ridge, rake ladders, fascia, and gable-end studs. */
+/** Rafters, ridge, rake ladders, fascia, gable-end framing, and for a gable roof the attic. */
 export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Warning[] } {
   const { roof, walls, width, length } = config;
   const members: Member[] = [];
@@ -51,10 +35,18 @@ export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Wa
   const angle = Math.atan(roof.pitch / 12);
   const pitch: Pitch = { rise: roof.pitch / 12, cos: Math.cos(angle), sin: Math.sin(angle), degrees: (angle * 180) / Math.PI };
   const depth = LUMBER[roof.rafter].width;
-  const seat = seatLength(depth, wallDepth, pitch, warn);
   const gable = roof.style === 'gable';
   const lowWall = gable || roof.highSide === 'back' ? 'front' : 'back';
-  const plate = tops[lowWall];
+  // Knee walls in a gable roof's loft raise the roof: the rafters bear on them. They stand on the
+  // deck over joists on the plates, or on the wall top when the joists hang between ledgers.
+  const raised = gable && roof.loft.enabled && roof.kneeWalls.enabled;
+  const kneeBase =
+    roof.loft.support === 'hung'
+      ? tops.front
+      : tops.front + LUMBER[roof.loft.joist].width + SHEETS[roof.loft.deck].thick;
+  const bearingDepth = raised ? LUMBER[roof.kneeWalls.stud].width : wallDepth;
+  const seat = seatLength(depth, bearingDepth, pitch, warn);
+  const plate = raised ? kneeBase + roof.kneeWalls.height : tops[lowWall];
   const plumb = depth / pitch.cos;
   const slope: Slope = {
     pitch,
@@ -119,6 +111,9 @@ export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Wa
         thick: [0, 1, 0],
       }));
     }
+    const attic = frameAttic(config, slope, rafters, ridgeTop - ridgeDepth, wallDepth, tops.front, raised ? kneeBase : null);
+    members.push(...attic.members);
+    warnings.push(...attic.warnings);
   }
 
   if (rake > 0) {
@@ -172,7 +167,7 @@ export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Wa
     }
   }
 
-  members.push(...frameGableEnds(config, slope, sides, gable, tops.left, wallDepth));
+  members.push(...frameGableEnds(config, slope, sides, gable, tops.left, wallDepth, bearingDepth));
   return { members, warnings };
 }
 
@@ -229,6 +224,7 @@ function frameGableEnds(
   gable: boolean,
   plateTop: number,
   wallDepth: number,
+  bearingDepth: number,
 ): Member[] {
   const { width, length, walls, roof } = config;
   const { pitch } = slope;
@@ -241,17 +237,21 @@ function frameGableEnds(
   const post: [number, number] | null =
     gable && ridgeBottom - plateTop >= MIN_STUD ? [width / 2 - PLY / 2, width / 2 + PLY / 2] : null;
 
-  // Top plate in the drawn section: its top against the end rafter's underside, a level cut where
-  // its underside meets the wall plate, and a plumb cut at the ridge post or the high wall.
-  const low = slope.seat + PLY / (pitch.cos * pitch.rise);
+  // Top plate in the drawn section: its top against the end rafter's underside, a plumb cut at the
+  // ridge post or the high wall, and a level cut where its underside meets the end-wall plate. On
+  // a roof raised by knee walls it stops short of that, with a plumb cut at the knee wall.
+  const meet = slope.seat + (plateTop + plateThick - slope.bottom(slope.seat)) / pitch.rise;
+  const low = Math.max(meet, bearingDepth);
   const high = gable ? (post ? post[0] : width / 2) : width - wallDepth;
-  const plateOutline: Point[] = [
-    [slope.seat, plateTop],
-    [low, plateTop],
-    [high, slope.bottom(high) - plateThick],
-    [high, slope.bottom(high)],
-  ];
-  const plateNote = `Level cut on the wall plate. Plumb cut ${degrees(pitch)} at the ${gable ? 'ridge post' : 'high wall'}.`;
+  const highEnd = `${degrees(pitch)} at the ${gable ? 'ridge post' : 'high wall'}`;
+  const plateOutline: Point[] =
+    meet >= bearingDepth
+      ? [[slope.seat, plateTop], [low, plateTop], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)]]
+      : [[low, slope.bottom(low) - plateThick], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)], [low, slope.bottom(low)]];
+  const plateNote =
+    meet >= bearingDepth
+      ? `Level cut on the wall plate. Plumb cut ${highEnd}.`
+      : `Plumb cuts ${degrees(pitch)} at the knee wall and ${highEnd}.`;
 
   // Each end wall's u runs along it from its left corner, viewed from outside. toY is its own inverse.
   const ends = [
@@ -266,9 +266,12 @@ function frameGableEnds(
 
     if (low < high) {
       for (const side of sides) {
-        const points = plateOutline.map(([y, z]): Point => [end.toY(side.map(y)), z]);
-        const dir: Point = [points[2][0] - points[1][0], points[2][1] - points[1][1]];
-        members.push(make('plate.gable', 'TP', points, dir, plateNote));
+        const toPlane = ([y, z]: Point): Point => [end.toY(side.map(y)), z];
+        // Length runs along the plate's underside, low end to high end.
+        const start = toPlane([low, slope.bottom(low) - plateThick]);
+        const finish = toPlane([high, slope.bottom(high) - plateThick]);
+        const dir: Point = [finish[0] - start[0], finish[1] - start[1]];
+        members.push(make('plate.gable', 'TP', plateOutline.map(toPlane), dir, plateNote));
       }
     }
     if (post) {
@@ -278,7 +281,8 @@ function frameGableEnds(
     for (let index = 1; index * walls.oc < width; index++) {
       const near = index * walls.oc - PLY / 2;
       const far = near + PLY;
-      if (near < wallDepth || far > width - wallDepth) continue;
+      const clear = Math.max(wallDepth, bearingDepth);
+      if (near < clear || far > width - clear) continue;
       if (post && near < post[1] && far > post[0]) continue;
       const nearTop = under(end.toY(near));
       const farTop = under(end.toY(far));
@@ -289,8 +293,6 @@ function frameGableEnds(
   }
   return members;
 }
-
-const degrees = (pitch: Pitch) => `${pitch.degrees.toFixed(1)}°`;
 
 function tailNote(cut: Cut, run: number): string {
   if (run === 0) return 'No tail.';

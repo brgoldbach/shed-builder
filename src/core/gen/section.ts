@@ -17,6 +17,27 @@ export interface MemberBase {
 
 const EPSILON = 1e-9;
 
+export interface Pitch {
+  rise: number; // per 1 of run
+  cos: number;
+  sin: number;
+  degrees: number;
+}
+
+export const degrees = (pitch: Pitch) => `${pitch.degrees.toFixed(1)}°`;
+
+/**
+ * The rafter in a section across the building, drawn for a side whose eave is at y = 0 and that
+ * rises toward +y. The bottom edge passes through the inner end of the seat, at the plate top.
+ */
+export interface Slope {
+  pitch: Pitch;
+  depth: number;
+  seat: number;
+  bottom: (y: number) => number;
+  top: (y: number) => number;
+}
+
 /**
  * A member from its outline in a vertical plane. `dir` is the length direction in plane
  * coordinates; the width axis is `dir` turned 90° toward +z, so the axes stay right-handed.
@@ -51,6 +72,23 @@ export function planeMember(
       depth,
     },
   };
+}
+
+/** The part of a convex polygon where k·(a, z) ≤ limit. */
+export function clipBelow(polygon: readonly Point[], k: Point, limit: number): Point[] {
+  const excess = ([a, z]: Point) => k[0] * a + k[1] * z - limit;
+  const result: Point[] = [];
+  polygon.forEach((current, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    const currentExcess = excess(current);
+    const nextExcess = excess(next);
+    if (currentExcess <= EPSILON) result.push(current);
+    if ((currentExcess > EPSILON) !== (nextExcess > EPSILON)) {
+      const fraction = currentExcess / (currentExcess - nextExcess);
+      result.push([current[0] + fraction * (next[0] - current[0]), current[1] + fraction * (next[1] - current[1])]);
+    }
+  });
+  return result;
 }
 
 /** Consecutive duplicate points removed, including a last point equal to the first. */
