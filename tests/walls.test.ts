@@ -139,10 +139,17 @@ describe('frameWalls options', () => {
   });
 
   it('splices a 24 ft plate on a stud, with the cap splice 24 in or more from the top splice', () => {
-    const front = wall(build({ length: 288 }), 'front');
+    const front = wall(build({ length: 288, catalog: { maxLength: 240 } }), 'front');
     expect(lengths(ofRole(front, 'plate.top'))).toEqual([240, 48]);
     // Cap runs 3-1/2 to 284-1/2. The 224 stud is 16 in from the top splice, so the splice drops to 208.
     expect(lengths(ofRole(front, 'plate.cap'))).toEqual([204.5, 76.5]);
+  });
+
+  it('splices at the longest stock, 16 ft by default', () => {
+    const front = wall(build({ length: 288 }), 'front');
+    expect(lengths(ofRole(front, 'plate.top'))).toEqual([192, 96]);
+    // Cap from 3-1/2: the 192 and 176 studs are within 24 in of the top splice, so it drops to 160.
+    expect(lengths(ofRole(front, 'plate.cap'))).toEqual([156.5, 124.5]);
   });
 });
 

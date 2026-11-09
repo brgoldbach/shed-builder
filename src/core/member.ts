@@ -1,4 +1,4 @@
-import { LUMBER, type LumberSize } from './catalog';
+import { LUMBER, type LumberSize, type SheetKey } from './catalog';
 
 export type Vec3 = readonly [number, number, number];
 export type Point = readonly [number, number];
@@ -91,6 +91,7 @@ export interface Solid {
   layer: Layer;
   material: 'concrete' | 'sheet' | 'steel';
   shape: { kind: 'box'; min: Vec3; max: Vec3 } | { kind: 'cylinder'; base: Vec3; radius: number; height: number } | Panel;
+  sheet?: SheetKey; // the stock sheet a panel is cut from
 }
 
 /** A design problem found while framing. `source` names the opening or part. */

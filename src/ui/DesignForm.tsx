@@ -294,6 +294,14 @@ function CatalogSection({ value, onChange }: SectionProps<Catalog>) {
   return (
     <Section title="Lumber catalog">
       <LengthField label="Saw kerf" value={value.kerf} onChange={set('kerf')} />
+      <LengthField label="Longest stock" value={value.maxLength} onChange={set('maxLength')} />
+      <p className="muted hint">
+        Plates, rims, ridges, fascia, and girders splice at this length. Other pieces come from boards no longer than this.
+      </p>
+      <LengthField label="Longest one-piece stock" value={value.maxOnePiece} onChange={set('maxOnePiece')} />
+      <p className="muted hint">
+        A longer piece that cannot splice, such as a rafter tie, rafter, or joist, gets one board up to this length.
+      </p>
       <p className="muted hint">Stock lengths per size. Clear a field to restore the default list.</p>
       {LUMBER_SIZES.map((size) => (
         <LengthListField

@@ -3,10 +3,13 @@ import { parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '.
 import { ASSEMBLIES, LAYERS, ROLES, type Layer } from '../core/member';
 import { buildModel } from '../core/model';
 import { naming } from '../core/naming';
+import { buildBom } from '../core/out/bom';
 import { buildCutList } from '../core/out/cutlist';
+import { bomCsv, cutListCsv } from '../core/out/csv';
 import { PRESETS } from '../core/presets';
 import { formatInches } from '../core/units';
 import { buildDrawings } from '../drawings/sheets';
+import { BomView } from './BomView';
 import { CutListTable, stockLabel } from './CutListTable';
 import { DesignForm } from './DesignForm';
 import { FramingView } from './FramingView';
@@ -16,7 +19,7 @@ const TABS = [
   { id: '3d', label: '3D' },
   { id: 'framing', label: 'Framing' },
   { id: 'cutlist', label: 'Cut list' },
-  { id: 'bom', label: 'BOM', milestone: 'M7' },
+  { id: 'bom', label: 'BOM' },
   { id: 'warnings', label: 'Warnings' },
 ] as const;
 
@@ -35,8 +38,8 @@ function restore(): ShedConfig {
   return PRESETS[0];
 }
 
-function download(filename: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+function download(filename: string, text: string, type = 'application/json') {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
@@ -44,8 +47,8 @@ function download(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url));
 }
 
-const fileName = (name: string) =>
-  `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'shed'}.shed.json`;
+const fileName = (name: string, suffix: string) =>
+  `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'shed'}.${suffix}`;
 
 export function App() {
   const [config, setConfig] = useState(restore);
@@ -57,7 +60,6 @@ export function App() {
   // Sheathing would hide the framing, so it starts hidden.
   const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(['sheathing']));
   const fileInput = useRef<HTMLInputElement>(null);
-  const active = TABS.find((entry) => entry.id === tab)!;
 
   const model = useMemo(() => buildModel(config), [config]);
   const names = useMemo(() => naming(config), [config]);
@@ -67,6 +69,8 @@ export function App() {
     [cutList],
   );
   const drawings = useMemo(() => buildDrawings(config, model, names, markOf), [config, model, names, markOf]);
+  const bom = useMemo(() => buildBom(config, model, markOf), [config, model, markOf]);
+  const warnings = [...model.warnings, ...bom.warnings];
   const shown = useMemo(
     () => model.members.filter((member) => !hidden.has(ASSEMBLIES[member.assembly].layer)),
     [model, hidden],
@@ -142,7 +146,7 @@ export function App() {
             ))}
           </select>
           <button onClick={() => fileInput.current?.click()}>Open…</button>
-          <button onClick={() => download(fileName(config.name), serializeConfig(config))}>Save</button>
+          <button onClick={() => download(fileName(config.name, 'shed.json'), serializeConfig(config))}>Save</button>
           <input
             ref={fileInput}
             type="file"
@@ -180,7 +184,7 @@ export function App() {
               onClick={() => setTab(entry.id)}
             >
               {entry.label}
-              {entry.id === 'warnings' && model.warnings.length > 0 && ` (${model.warnings.length})`}
+              {entry.id === 'warnings' && warnings.length > 0 && ` (${warnings.length})`}
             </button>
           ))}
         </nav>
@@ -220,14 +224,23 @@ export function App() {
           {pickInfo && <div className="pick-info sticky">{pickInfo}</div>}
         </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'cutlist'}>
+          <div className="panel-toolbar">
+            <button onClick={() => download(fileName(config.name, 'cutlist.csv'), cutListCsv(cutList, names), 'text/csv')}>
+              Download CSV
+            </button>
+            <button onClick={() => window.print()}>Print</button>
+          </div>
           <CutListTable lines={cutList} names={names} selected={selected} onSelect={toggle} />
         </section>
+        <section className="panel" role="tabpanel" hidden={tab !== 'bom'}>
+          <BomView bom={bom} marks={markOf} onCsv={() => download(fileName(config.name, 'bom.csv'), bomCsv(bom), 'text/csv')} />
+        </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'warnings'}>
-          {model.warnings.length === 0 ? (
+          {warnings.length === 0 ? (
             <p className="muted">No warnings.</p>
           ) : (
             <ul className="warnings">
-              {model.warnings.map((warning) => (
+              {warnings.map((warning) => (
                 <li key={`${warning.source}: ${warning.message}`}>
                   <strong>{warning.source}</strong> {warning.message}
                 </li>
@@ -235,13 +248,6 @@ export function App() {
             </ul>
           )}
         </section>
-        {'milestone' in active && (
-          <section className="panel" role="tabpanel">
-            <p className="muted">
-              {active.label} view arrives in {active.milestone}.
-            </p>
-          </section>
-        )}
       </main>
     </div>
   );

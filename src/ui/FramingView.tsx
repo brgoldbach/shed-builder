@@ -23,7 +23,7 @@ interface Props {
 export function FramingView({ drawings, selected, onPick }: Props) {
   return (
     <div className="drawings">
-      <div className="drawings-toolbar">
+      <div className="panel-toolbar">
         <button onClick={() => window.print()}>Print</button>
       </div>
       {drawings.map((drawing) => (

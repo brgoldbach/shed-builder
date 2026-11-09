@@ -1,6 +1,6 @@
 import type { ShedConfig } from './config';
 import { frameFloor } from './gen/floor';
-import { frameRoof } from './gen/roof';
+import { frameRoof, type RoofPlane } from './gen/roof';
 import { frameSheathing } from './gen/sheathing';
 import { frameWalls, type RoughOpening } from './gen/walls';
 import type { Member, Solid, Warning } from './member';
@@ -10,6 +10,7 @@ export interface Model {
   solids: Solid[];
   warnings: Warning[];
   openings: RoughOpening[];
+  planes: RoofPlane[];
 }
 
 /** Every framing member and non-lumber part of the design, and the problems found while framing it. */
@@ -24,5 +25,6 @@ export function buildModel(config: ShedConfig): Model {
     solids: [...floor.solids, ...walls.solids, ...frameSheathing(config, members, openings, roof.planes)],
     warnings: [...walls.warnings, ...roof.warnings],
     openings,
+    planes: roof.planes,
   };
 }

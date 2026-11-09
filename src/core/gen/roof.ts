@@ -1,4 +1,4 @@
-import { LUMBER, SHEETS, stockLengths, type LumberSize } from '../catalog';
+import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
 import type { Member, Point, Role, Vec3, Warning } from '../member';
 import { roOffset } from '../placement';
@@ -107,7 +107,7 @@ export function frameRoof(config: ShedConfig): {
   const ends: [number, number] = [-rake, length + rake];
   const rafters = rafterStarts(length, roof.oc);
   const centers = rafters.map((x) => x + PLY / 2);
-  const maxStock = (size: LumberSize) => Math.max(...stockLengths(config.catalog.stock, size));
+  const maxStock = (size: LumberSize) => Math.max(...stockFor(config.catalog, size));
   const nextId = idMaker('RF');
 
   // A section plane at x on a side. Its extrusion covers x to x + 1-1/2.

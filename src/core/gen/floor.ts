@@ -1,4 +1,4 @@
-import { LUMBER, SHEETS, stockLengths, type LumberSize } from '../catalog';
+import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
 import type { Assembly, Member, Role, Solid, Vec3 } from '../member';
 import { idMaker } from './section';
@@ -19,7 +19,7 @@ export function frameFloor(config: ShedConfig): { members: Member[]; solids: Sol
   const solids: Solid[] = [];
   const floorIds = idMaker('FL');
   const foundationIds = idMaker('FD');
-  const maxStock = (size: LumberSize) => Math.max(...stockLengths(catalog.stock, size));
+  const maxStock = (size: LumberSize) => Math.max(...stockFor(catalog, size));
   const box = (id: string, label: string, layer: Solid['layer'], material: Solid['material'], min: Vec3, max: Vec3): Solid => ({
     id,
     label,

@@ -1,4 +1,4 @@
-import { LUMBER, stockLengths, type LumberSize } from '../catalog';
+import { LUMBER, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
 import type { Assembly, Member, Point, Role, Vec3, Warning } from '../member';
 import { formatInches } from '../units';
@@ -239,7 +239,7 @@ function frameLoft(
       ? { code: 'R', role: 'rim.loft', y: 0, span: [0, length] }
       : null;
   if (edge) {
-    const maxStock = Math.max(...stockLengths(catalog.stock, loft.joist));
+    const maxStock = Math.max(...stockFor(catalog, loft.joist));
     for (const [y, inward] of [[edge.y, 1], [width - edge.y, -1]] as const) {
       for (const [from, to] of splitPlate(edge.span, maxStock, centers)) {
         members.push({
@@ -268,7 +268,7 @@ function frameKneeWalls(config: ShedConfig, base: number): Member[] {
   const knee = roof.kneeWalls;
   const plateCount = walls.capPlate ? 3 : 2;
   const studLength = knee.height - PLY * plateCount;
-  const maxStock = Math.max(...stockLengths(catalog.stock, knee.stud));
+  const maxStock = Math.max(...stockFor(catalog, knee.stud));
 
   const sides = [
     { assembly: 'knee.front', prefix: 'KF', y: 0, inward: 1, toX: (u: number) => u },

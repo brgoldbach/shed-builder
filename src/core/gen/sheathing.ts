@@ -1,4 +1,4 @@
-import { LUMBER, SHEETS } from '../catalog';
+import { LUMBER, SHEETS, type SheetKey } from '../catalog';
 import { WALLS, type ShedConfig } from '../config';
 import { ASSEMBLIES, corners, type Member, type Point, type Solid, type Vec3 } from '../member';
 import type { RoofPlane } from './roof';
@@ -57,13 +57,13 @@ export function frameSheathing(
     const frames = wallFrames(config.width, config.length);
     for (const wall of WALLS) {
       const face = wallFace(config, wall, frames[wall], members, openings, thick);
-      solids.push(...panels(face, thick, idMaker(ASSEMBLIES[`wall.${wall}`].prefix), 'SH', `Wall sheathing, ${label}`));
+      solids.push(...panels(face, walls.sheathing, idMaker(ASSEMBLIES[`wall.${wall}`].prefix), 'SH', `Wall sheathing, ${label}`));
     }
   }
   if (roof.sheathing !== 'none') {
-    const { label, thick } = SHEETS[roof.sheathing];
+    const { label } = SHEETS[roof.sheathing];
     const nextId = idMaker('RF');
-    for (const plane of planes) solids.push(...panels(roofFace(plane, members), thick, nextId, 'SH', `Roof sheathing, ${label}`));
+    for (const plane of planes) solids.push(...panels(roofFace(plane, members), roof.sheathing, nextId, 'SH', `Roof sheathing, ${label}`));
   }
   const joists = members.filter((member) => member.role === 'joist.floor' || member.role === 'joist.end');
   if (joists.length > 0) {
@@ -80,7 +80,7 @@ export function frameSheathing(
       stagger: true,
       minRow: 0,
     };
-    solids.push(...panels(face, thick, idMaker('FL'), 'SF', `Subfloor, ${label}`));
+    solids.push(...panels(face, floor.subfloor, idMaker('FL'), 'SF', `Subfloor, ${label}`));
   }
   return solids;
 }
@@ -162,7 +162,8 @@ function roofFace(plane: RoofPlane, members: readonly Member[]): Face {
   };
 }
 
-function panels(face: Face, thick: number, nextId: (code: string) => string, code: string, label: string): Solid[] {
+function panels(face: Face, sheet: SheetKey, nextId: (code: string) => string, code: string, label: string): Solid[] {
+  const { thick } = SHEETS[sheet];
   const us = face.region.map(([u]) => u);
   const vs = face.region.map(([, v]) => v);
   const [left, right, bottom, top] = [Math.min(...us), Math.max(...us), Math.min(...vs), Math.max(...vs)];
@@ -183,6 +184,7 @@ function panels(face: Face, thick: number, nextId: (code: string) => string, cod
           label,
           layer: 'sheathing',
           material: 'sheet',
+          sheet,
           shape: {
             kind: 'panel',
             origin: face.origin,

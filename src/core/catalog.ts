@@ -38,6 +38,17 @@ export function stockLengths(
   return overrides[size] ?? DEFAULT_STOCK[size];
 }
 
+/** Stock lengths to buy: those no longer than `max` (default `maxLength`), or the shortest when none is. */
+export function stockFor(
+  catalog: { stock: Partial<Record<LumberSize, number[]>>; maxLength: number },
+  size: LumberSize,
+  max = catalog.maxLength,
+): readonly number[] {
+  const lengths = stockLengths(catalog.stock, size);
+  const buyable = lengths.filter((length) => length <= max);
+  return buyable.length > 0 ? buyable : [Math.min(...lengths)];
+}
+
 export const SHEET_KEYS = ['osb-7/16', 'ply-15/32', 'ply-19/32', 'tg-23/32'] as const;
 export type SheetKey = (typeof SHEET_KEYS)[number];
 

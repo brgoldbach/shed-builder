@@ -49,3 +49,17 @@ RF-7      4  2x4          37-1/2"  Collar tie. Ends cut 26.6° to the roof line.
 SOLID Roof sheathing, 7/16" OSB x10
 SOLID Subfloor, 23/32" T&G (3/4") x4
 SOLID Wall sheathing, 7/16" OSB x14
+STOCK 2x6 PT 10' 0" x2
+STOCK 2x6 PT 8' 0" x9
+STOCK 4x6 PT 10' 0" x2
+STOCK 2x4 16' 0" x14
+STOCK 2x4 10' 0" x4
+STOCK 2x4 8' 0" x6
+STOCK 2x4 7' 8-5/8" x37
+STOCK 2x8 8' 0" x2
+STOCK 2x6 12' 0" x3
+SHEETS 7/16" OSB, 4×8 x17
+SHEETS 23/32" T&G (3/4"), 4×8 x3
+ITEM Hurricane tie, rafter to plate: 12 ea
+ITEM Roof area: 129.9 sq ft
+ITEM Drip edge: 45.6 ft

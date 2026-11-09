@@ -1,0 +1,124 @@
+import { describe, expect, it } from 'vitest';
+import { shedSchema } from '../src/core/config';
+import { buildModel } from '../src/core/model';
+import { buildBom, packLumber, packSheets, type Bom } from '../src/core/out/bom';
+import { buildCutList } from '../src/core/out/cutlist';
+import { bomCsv, cutListCsv } from '../src/core/out/csv';
+import { naming } from '../src/core/naming';
+import { PRESETS } from '../src/core/presets';
+
+const [gableSkid, leanToPier, garageSlab] = PRESETS;
+const bomOf = (config = gableSkid) => {
+  const model = buildModel(config);
+  const marks = new Map(buildCutList(model.members, naming(config)).flatMap((line) => line.ids.map((id) => [id, line.mark] as const)));
+  return buildBom(config, model, marks);
+};
+const item = (lines: Bom['hardware'], name: string) => lines.find((line) => line.item === name);
+
+describe('lumber packing', () => {
+  it('keeps a stock-length piece whole and packs the rest into the least length', () => {
+    const pieces = [92.625, 50, 40, 30, 20].map((length, index) => ({ id: `P${index}`, length }));
+    const boards = packLumber(pieces, [92.625, 96, 120, 144], 0.125);
+    // 50 + 40 + 30 + 20 and three 1/8 in kerfs = 140-3/8: one 12 ft board beats two precuts.
+    expect(boards.map(({ stock, pieces }) => [stock, pieces.map(({ length }) => length)])).toEqual([
+      [144, [50, 40, 30, 20]],
+      [92.625, [92.625]],
+    ]);
+  });
+
+  it('cuts from boards no longer than the longest stock, as long as pieces allow', () => {
+    // Uncapped, 100 and 90 share a 16 ft board. Capped at 10 ft: 100 on a 10 ft board, 90 and 80 on 8 ft.
+    const pieces = [100, 90, 80].map((length, index) => ({ id: `P${index}`, length }));
+    const stocks = [96, 120, 144, 192, 240];
+    const stockOf = (boards: { stock: number }[]) => boards.map(({ stock }) => stock);
+    expect(stockOf(packLumber(pieces, stocks, 0.125))).toEqual([192, 96]);
+    expect(stockOf(packLumber(pieces, [96, 120], 0.125, stocks))).toEqual([120, 96, 96]);
+    // A 17 ft piece takes one 18 ft board; the short pieces stay on short boards.
+    expect(stockOf(packLumber([...pieces, { id: 'L', length: 204 }], [96, 120], 0.125, [...stocks, 216]))).toEqual([216, 120, 96, 96]);
+  });
+
+  it('flags a piece longer than any stock', () => {
+    // 10x12 lean-to rafters are 150-1/4 in: too long for 12 ft 2x8s.
+    const config = shedSchema.parse({ ...leanToPier, catalog: { stock: { '2x8': [96, 144] } } });
+    const bom = bomOf(config);
+    // 10 rafters and 2 fly rafters; the PT 2x8 girders split over the piers.
+    expect(bom.lumber.find(({ size, treated }) => size === '2x8' && !treated)!.tooLong).toHaveLength(12);
+    expect(bom.warnings[0]).toEqual({
+      source: 'RF-1',
+      message: 'The 2x8 at 150-1/4" is longer than the longest stock, 144". Splice it or order it long.',
+    });
+  });
+});
+
+describe('sheet packing', () => {
+  it('fills a sheet along its length, turning a small piece to fit', () => {
+    // 8x10 subfloor: 96, 24, 48, and 72 in by 48. The 24 x 48 turns in beside the 48 x 48.
+    const pieces = [{ long: 96, short: 48 }, { long: 48, short: 24 }, { long: 48, short: 48 }, { long: 72, short: 48 }];
+    expect(packSheets(pieces, 0.125)).toBe(3);
+  });
+
+  it('stacks ripped strips across one sheet', () => {
+    expect(packSheets([{ long: 72, short: 20 }, { long: 72, short: 20 }], 0.125)).toBe(1);
+  });
+});
+
+describe('counted items', () => {
+  it('ties each rafter at its seat, and takes off the roof area and drip edge', () => {
+    const bom = bomOf();
+    // 6 rafter pairs: 12 seats.
+    expect(item(bom.hardware, 'Hurricane tie, rafter to plate')?.quantity).toBe(12);
+    // Two 136 x 68.76 in planes: (12 + 48 + 1-1/2 fascia) run at 6/12.
+    expect(item(bom.roofing, 'Roof area')?.quantity).toBe(129.9);
+    // Eaves 2 x 136 in, rakes 4 x 68.76 in.
+    expect(item(bom.roofing, 'Drip edge')).toMatchObject({ quantity: 45.6, note: 'Eaves 22.7 ft, rakes 22.9 ft.' });
+    expect(bom.sheets.map(({ sheet, count }) => [sheet, count])).toContainEqual(['tg-23/32', 3]);
+  });
+
+  it('pours the piers and counts form tubes', () => {
+    const bom = bomOf(leanToPier);
+    // 9 piers, 10 in by 44 in: 31,103 cu in = 18.0 cu ft.
+    expect(bom.concrete).toEqual([
+      { item: 'Concrete, 9 piers', quantity: 0.67, unit: 'cu yd', note: '18 cu ft net, or 30 bags of 80 lb mix at 0.60 cu ft each.' },
+      { item: 'Form tube, 10"', quantity: 9, unit: 'ea', note: '44" each.' },
+    ]);
+    // Lean-to rafters bear on both walls.
+    expect(item(bom.hardware, 'Hurricane tie, rafter to plate')?.quantity).toBe(20);
+  });
+
+  it('pours the slab with its thickened edge, and counts anchor bolts', () => {
+    const bom = bomOf(garageSlab);
+    // 240 x 144 x 4 slab plus a 12 in wide ring 8 in under it: 207,360 cu in = 120 cu ft.
+    expect(bom.concrete[0]).toMatchObject({ item: 'Concrete, slab', quantity: 4.44 });
+    // 16 ft sills: the front splices at the door's left king (177-3/4), the back at the 192 stud.
+    // Each part clear of a doorway takes its own end bolts: front 4 + 1 + 1, back 4 + 2, right 3, left 1 + 1.
+    expect(item(bom.hardware, 'Anchor bolt, 1/2", with nut and washer')?.quantity).toBe(17);
+  });
+
+  it('counts post bases and caps under posts', () => {
+    const config = shedSchema.parse({ ...leanToPier, foundation: { ...leanToPier.foundation, pier: { ...leanToPier.foundation.pier, post: '4x4' } } });
+    const { hardware } = bomOf(config);
+    expect(item(hardware, 'Post base, 4x4')?.quantity).toBe(9);
+    expect(item(hardware, 'Post cap, 4x4 to girder')?.quantity).toBe(9);
+  });
+
+  it('hangs each loft joist between the ledgers', () => {
+    // 8x10 hung loft: end joists at 3-1/2 and 115, layout joists at 16 in: 9 joists, 2 hangers each.
+    const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, loft: { enabled: true, support: 'hung' } } });
+    expect(item(bomOf(config).hardware, 'Joist hanger, 2x6')?.quantity).toBe(18);
+  });
+});
+
+describe('CSV', () => {
+  it('quotes fields with commas or quotes', () => {
+    const lines = buildCutList(buildModel(gableSkid).members, naming(gableSkid));
+    const [header, first] = cutListCsv(lines, naming(gableSkid)).split('\n');
+    expect(header).toBe('Mark,Assembly,Part,Stock,Qty,Length (in),Length,Notes');
+    expect(first).toBe('FD-1,Foundation,Skid,4x6 PT,2,120,"120""",');
+  });
+
+  it('lists lumber by stock length, then sheets and counted items', () => {
+    const rows = bomCsv(bomOf()).split('\n');
+    expect(rows[0]).toBe('Section,Item,Length,Qty,Unit,Notes');
+    expect(rows).toContain('Hardware,"Hurricane tie, rafter to plate",,12,ea,One at each rafter seat: 1 per rafter.');
+  });
+});

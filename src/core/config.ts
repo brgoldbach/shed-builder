@@ -191,6 +191,8 @@ const roof = z.strictObject({
 
 const catalog = z.strictObject({
   kerf: len(0, 0.25).default(0.125),
+  maxLength: len(96, 480).default(192), // longest board to buy: longer runs splice on framing
+  maxOnePiece: len(96, 480).default(240), // longest board for a longer piece that cannot splice: a rafter, tie, or joist
   stock: z.partialRecord(z.enum(LUMBER_SIZES), z.array(len(12, 480)).min(1)).default({}),
 });
 

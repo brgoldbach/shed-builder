@@ -372,11 +372,59 @@ button {
   display: inline-block;
 }
 
-.drawings-toolbar {
+.panel-toolbar {
   display: flex;
+  gap: 8px;
   justify-content: flex-end;
   max-width: 960px;
   margin-bottom: 8px;
+}
+
+.bom h3 {
+  margin: 20px 0 8px;
+  font-size: 1rem;
+}
+
+.bom .cutlist tbody tr {
+  cursor: default;
+}
+
+.bom .cutlist td.unit {
+  white-space: nowrap;
+}
+
+.bom .cutlist td.note {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.cut-plan {
+  max-width: 960px;
+  margin-top: 12px;
+}
+
+.cut-plan summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cut-plan h4 {
+  margin: 12px 0 4px;
+  font-size: 0.95rem;
+}
+
+.cut-plan ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
+.bom-notes {
+  max-width: 960px;
+  margin: 16px 0 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  color: var(--muted);
 }
 
 .drawing {
@@ -551,7 +599,7 @@ button {
   .topbar,
   .sidebar,
   .tabs,
-  .drawings-toolbar,
+  .panel-toolbar,
   .pick-info {
     display: none !important;
   }

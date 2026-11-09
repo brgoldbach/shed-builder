@@ -1,4 +1,4 @@
-import { LUMBER, stockLengths, type LumberSize, type TwoBy } from '../catalog';
+import { LUMBER, stockFor, type LumberSize, type TwoBy } from '../catalog';
 import { WALLS, type Opening, type OpeningType, type ShedConfig } from '../config';
 import { ASSEMBLIES, type Member, type Role, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
@@ -409,7 +409,7 @@ function frameWall(
     if (fit.sillBottom !== null && fit.sillBottom > base) upright('cripple', from, base, fit.sillBottom - base);
   }
 
-  const maxStock = Math.max(...stockLengths(config.catalog.stock, walls.stud));
+  const maxStock = Math.max(...stockFor(config.catalog, walls.stud));
   const onSlab = config.foundation.type === 'slab';
   // The bottom plate runs through doorways so the wall goes up in one piece. The doorway part is
   // cut out after the wall is anchored.
