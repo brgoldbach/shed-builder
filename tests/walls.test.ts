@@ -101,11 +101,23 @@ describe('frameWalls options', () => {
     const plates = ofRole(members, 'plate.bottom');
     expect(plates).toHaveLength(4);
     expect(plates.every((plate) => !plate.treated && plate.origin[2] === 1.5)).toBe(true);
-    // Studs stand on the bottom plate at 3 in. The 97-1/8 wall height holds, so the studs are
-    // 97-1/8 - 3 x 1-1/2 - 1-1/2 = 91-1/8.
+    // Studs stand on the bottom plate at 3 in and stay 92-5/8 precuts, so the wall grows by the
+    // sill: 92-5/8 + 4 x 1-1/2 = 98-5/8.
     const studs = ofRole(members, 'stud');
-    expect(studs.every((stud) => stud.origin[2] === 3 && stud.length === 91.125)).toBe(true);
-    expect(wallTops(shedSchema.parse({ ...base, foundation: { type: 'slab' } })).front).toBe(97.125);
+    expect(studs.every((stud) => stud.origin[2] === 3 && stud.length === 92.625)).toBe(true);
+    expect(wallTops(shedSchema.parse({ ...base, foundation: { type: 'slab' } })).front).toBe(98.625);
+  });
+
+  it('holds a custom wall height over a mud sill', () => {
+    // 97-1/8 - 3 x 1-1/2 plates - 1-1/2 sill = 91-1/8.
+    const custom = { foundation: { type: 'slab' }, studHeight: 'custom', wallHeight: 97.125 };
+    expect(ofRole(build(custom), 'stud').every((stud) => stud.length === 91.125)).toBe(true);
+    expect(wallTops(shedSchema.parse({ ...base, ...custom })).front).toBe(97.125);
+  });
+
+  it('stands 9 and 10 ft walls on their precuts', () => {
+    expect(studLengths(shedSchema.parse({ ...base, studHeight: 104.625 })).front).toBe(104.625);
+    expect(wallTops(shedSchema.parse({ ...base, studHeight: 116.625 })).front).toBe(121.125); // + 3 plates
   });
 
   it('uses the treated mud sill as the bottom plate when the mud sill option is off', () => {
@@ -124,7 +136,7 @@ describe('frameWalls options', () => {
     const sills = ofRole(members, 'plate.sill');
     expect(sills.every((sill) => sill.size === '2x6')).toBe(true);
     // Same 1-1/2 in thickness, so the studs do not change.
-    expect(ofRole(members, 'stud').every((stud) => stud.length === 91.125)).toBe(true);
+    expect(ofRole(members, 'stud').every((stud) => stud.length === 92.625)).toBe(true);
   });
 
   it('warns when the mud sill is narrower than the walls', () => {

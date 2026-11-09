@@ -13,6 +13,13 @@ describe('parseConfig', () => {
     expect(result.config.openings).toEqual([]);
   });
 
+  it('keeps the wall height of a file saved without a stud height', () => {
+    const result = parseConfig({ schemaVersion: 1, wallHeight: 109.125 });
+    expect(result.ok && [result.config.studHeight, result.config.wallHeight]).toEqual(['custom', 109.125]);
+    const fresh = parseConfig({ schemaVersion: 1 });
+    expect(fresh.ok && fresh.config.studHeight).toBe(92.625);
+  });
+
   it('rejects an unknown key and names its path', () => {
     const result = parseConfig({ schemaVersion: 1, walls: { studlength: 90 } });
     expect(result).toEqual({ ok: false, errors: ['walls: Unrecognized key: "studlength"'] });

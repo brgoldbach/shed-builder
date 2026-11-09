@@ -73,9 +73,12 @@ export function mudSillSize(config: ShedConfig): TwoBy | null {
 // Mud sill, bottom plate, top plate, and cap plate.
 const plateStack = (config: ShedConfig) => (mudSillSize(config) ? PLY : 0) + PLY * (config.walls.capPlate ? 3 : 2);
 
-/** Stud length of each wall: the wall height less its plates. On a lean-to, the high wall is taller by the roof rise. */
+/**
+ * Stud length of each wall: the precut length, or a custom wall height less its plates. On a
+ * lean-to, the high wall is taller by the roof rise.
+ */
 export function studLengths(config: ShedConfig): Record<Wall, number> {
-  const studLength = config.wallHeight - plateStack(config);
+  const studLength = config.studHeight === 'custom' ? config.wallHeight - plateStack(config) : config.studHeight;
   const { stud } = config.walls;
   const lengths = { front: studLength, back: studLength, left: studLength, right: studLength };
   if (config.roof.style === 'lean-to') {

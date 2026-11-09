@@ -3,7 +3,7 @@
   "name": "12x20 garage on slab",
   "width": 144,
   "length": 240,
-  "wallHeight": 110.625,
+  "studHeight": 104.625,
   "foundation": { "type": "slab" },
   "openingTypes": [
     { "name": "door garage 9x7", "kind": "overhead", "width": 108, "height": 84, "header": "2x12" },

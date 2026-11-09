@@ -13,6 +13,7 @@ import {
   SHEATHING,
   SKID_SIZES,
   SPACINGS,
+  STUD_HEIGHTS,
   TAIL_CUTS,
   WALL_STUDS,
   type ShedConfig,
@@ -32,9 +33,9 @@ import {
   type Edit,
   type SectionProps,
 } from './fields';
-import { studLengths } from '../core/gen/walls';
+import { studLengths, wallTops } from '../core/gen/walls';
 import { naming, type Naming } from '../core/naming';
-import { formatInches } from '../core/units';
+import { formatInches, formatLength } from '../core/units';
 import { OpeningRowsEditor, OpeningTypesEditor } from './OpeningsEditor';
 
 type Foundation = ShedConfig['foundation'];
@@ -54,6 +55,13 @@ const CORNER_LABELS = {
 };
 
 const FRONT_LABELS = { eave: 'Eave wall', gable: 'Gable end' };
+// Precut studs by the wall they make.
+const STUD_HEIGHT_LABELS: Record<(typeof STUD_HEIGHTS)[number], string> = {
+  92.625: '8 ft (92-5/8")',
+  104.625: '9 ft (104-5/8")',
+  116.625: '10 ft (116-5/8")',
+  custom: 'Custom',
+};
 
 const sheetLabel = (key: (typeof SHEATHING)[number]) => (key === 'none' ? 'None' : SHEETS[key].label);
 const noneLabel = (option: string) => (option === 'none' ? 'None' : option);
@@ -84,9 +92,23 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
           value={value.length}
           onChange={set('length')}
         />
-        <LengthField label="Wall height" value={value.wallHeight} onChange={set('wallHeight')} />
+        <SelectField
+          label="Wall height"
+          value={value.studHeight}
+          options={STUD_HEIGHTS}
+          describe={(height) => STUD_HEIGHT_LABELS[height]}
+          // A switch to custom starts from the current height, so the walls do not move.
+          onChange={(studHeight) =>
+            onChange({ ...value, studHeight, ...(studHeight === 'custom' && { wallHeight: wallTops(value).left }) })
+          }
+        />
+        {value.studHeight === 'custom' && (
+          <LengthField label="Floor to top of plates" value={value.wallHeight} onChange={set('wallHeight')} />
+        )}
         <p className="muted hint">
-          Floor to the top of the top plates. Studs: {formatInches(studLengths(value).left)}.
+          Floor to the top of the top plates: {formatLength(wallTops(value).left)}. Studs:{' '}
+          {formatInches(studLengths(value).left)}
+          {value.studHeight === 'custom' ? ', cut to length.' : ' precuts.'}
         </p>
       </Section>
       <FoundationSection value={value.foundation} onChange={set('foundation')} />

@@ -17,7 +17,8 @@ export const LUMBER: Record<LumberSize, { thick: number; width: number }> = {
 };
 
 const EVEN_FEET = [96, 120, 144, 168, 192, 216, 240];
-const PRECUT_STUDS = [92.625, 104.625, 116.625];
+/** Precut studs for 8, 9, and 10 ft walls with a bottom plate and a double top plate. */
+export const PRECUT_STUDS = [92.625, 104.625, 116.625] as const;
 
 /** Stock lengths in inches, used when the config does not override a size. */
 export const DEFAULT_STOCK: Record<LumberSize, readonly number[]> = {

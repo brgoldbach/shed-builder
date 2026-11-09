@@ -1,10 +1,11 @@
 import { z } from 'zod';
-import { LUMBER_SIZES, SHEET_KEYS, TWO_BY } from './catalog';
+import { LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, TWO_BY } from './catalog';
 import { formatLength } from './units';
 
 // All lengths are inches.
 
 export const SPACINGS = [12, 16, 19.2, 24] as const;
+export const STUD_HEIGHTS = [...PRECUT_STUDS, 'custom'] as const;
 export const FOUNDATION_TYPES = ['skid', 'pier', 'slab'] as const;
 export const SKID_SIZES = ['4x4', '4x6', '6x6'] as const;
 export const PIER_DIAMETERS = [8, 10, 12] as const;
@@ -201,7 +202,9 @@ export const shedSchema = z.strictObject({
   name: z.string().trim().min(1, 'Required').default('Untitled shed'),
   width: len(48, 480).default(120), // front to back
   length: len(48, 480).default(144), // left to right
-  wallHeight: len(60, 200).default(97.125), // floor surface to the top of the top plates
+  // A precut stud length, which sets the wall height with the plates; or custom: `wallHeight`.
+  studHeight: z.union([z.literal(PRECUT_STUDS), z.literal('custom')]).default(92.625),
+  wallHeight: len(60, 200).default(97.125), // custom only: floor surface to the top of the top plates
   // The side the user calls the front. Only names change: the model's front stays an eave wall.
   front: z.enum(FRONTS).default('eave'),
   foundation: foundation.prefault({}),
@@ -231,8 +234,12 @@ export type Opening = ShedConfig['openings'][number];
 
 export type ParseResult = { ok: true; config: ShedConfig } | { ok: false; errors: string[] };
 
+// A file saved before stud heights existed keeps its wall height as a custom height.
+const keepWallHeight = (raw: unknown) =>
+  raw !== null && typeof raw === 'object' && 'wallHeight' in raw && !('studHeight' in raw) ? { ...raw, studHeight: 'custom' } : raw;
+
 export function parseConfig(raw: unknown): ParseResult {
-  const result = shedSchema.safeParse(raw);
+  const result = shedSchema.safeParse(keepWallHeight(raw));
   if (result.success) return { ok: true, config: result.data };
   const errors = result.error.issues.map(
     (issue) => `${issue.path.join('.') || 'file'}: ${issue.message}`,
