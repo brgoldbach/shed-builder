@@ -46,7 +46,7 @@ export interface Drawing {
   title: string;
   shapes: Shape[]; // back to front
   dims: Dimension[];
-  labels: { at: Point; text: string }[];
+  labels: { at: Point; text: string; room: number }[]; // room: inches of width the label may take
   outlines: Point[][]; // dashed references, such as the footprint
   notes: string[];
   wireframe?: boolean; // outlines only, so lower parts show through

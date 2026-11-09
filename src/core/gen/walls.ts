@@ -14,6 +14,7 @@ const CAP_SPLICE_OFFSET = 24; // min distance from a cap-plate splice to a top-p
 const MIN_PLATE_PIECE = 24; // no short offcut pieces at a plate end
 const MIN_CRIPPLE = 3; // a smaller gap above a header closes: the header goes tight to the plate
 const BOLT_EMBED = 7; // shown embedment of the anchor bolts in the slab
+const NEAR = 0.01;
 const UP: Vec3 = [0, 0, 1];
 
 type VerticalRole = Extract<Role, 'corner' | 'stud' | 'king' | 'jack' | 'cripple'>;
@@ -48,6 +49,9 @@ export const ADJACENT: Record<Wall, readonly [Wall, Wall]> = {
 
 // The eave walls run through and carry the rafters.
 const isThrough = (wall: Wall) => wall === 'front' || wall === 'back';
+
+/** An end-wall row with its sill at or above the wall top: framed in the gable, not the wall. */
+export const inGable = (config: ShedConfig, row: Opening) => !isThrough(row.wall) && row.sill >= wallTops(config)[row.wall] - NEAR;
 
 const overlaps = ([low, high]: Span, [otherLow, otherHigh]: Span) => low < otherHigh && high > otherLow;
 
@@ -121,21 +125,22 @@ export function frameWalls(config: ShedConfig): {
   }
   const solids: Solid[] = [];
   const openings: RoughOpening[] = [];
-  const members = WALLS.flatMap((wall) =>
-    frameWall(config, wall, frame[wall], heights, placed.filter(({ row }) => row.wall === wall), warnings, solids, openings),
-  );
+  const members = WALLS.flatMap((wall) => {
+    const own = placed.filter(({ row }) => row.wall === wall && !inGable(config, row));
+    return frameWall(config, wall, frame[wall], heights, own, warnings, solids, openings);
+  });
   return { members, warnings, solids, openings };
 }
 
-// One opening at one position. The label names it in warnings and notes: "window 24x36 (front 50%)".
-interface Placed {
+/** One opening at one position. The label names it in warnings and notes: "window 24x36 (front 50%)". */
+export interface Placed {
   label: string;
   type: OpeningType;
   row: Opening;
   position: number;
 }
 
-function placements(config: ShedConfig): Placed[] {
+export function placements(config: ShedConfig): Placed[] {
   const types = new Map(config.openingTypes.map((type) => [type.name, type]));
   const { side } = naming(config);
   return config.openings
@@ -152,7 +157,7 @@ function placements(config: ShedConfig): Placed[] {
 
 const HEADER_PLIES: Record<OpeningType['girder'], number> = { single: 1, double: 2, triple: 3, flat: 1 };
 
-interface Header {
+export interface Header {
   style: OpeningType['girder'];
   size: LumberSize;
   plies: number;
@@ -161,7 +166,7 @@ interface Header {
   depth: number; // the whole stack, plates included
 }
 
-function resolveHeader(type: OpeningType, walls: ShedConfig['walls']): Header {
+export function resolveHeader(type: OpeningType, walls: ShedConfig['walls']): Header {
   const { girder: style, plateBelow, plateAbove } = type;
   const size = style === 'flat' ? walls.stud : (type.header ?? walls.header);
   const { thick, width } = LUMBER[size];
@@ -170,8 +175,8 @@ function resolveHeader(type: OpeningType, walls: ShedConfig['walls']): Header {
   return { style, size, plies: HEADER_PLIES[style], plateBelow, plateAbove, depth };
 }
 
-// A placed opening that fits its wall, with the framing positions resolved.
-interface FittedOpening {
+/** A placed opening that fits its wall or gable, with the framing positions resolved. */
+export interface FittedOpening {
   label: string;
   type: OpeningType;
   offset: number; // wall's left corner to RO left edge
@@ -195,6 +200,13 @@ interface WallContext {
   wallTop: number;
 }
 
+/** Jacks per side, the king and jacks on each side, and the zone from king to king. */
+export function openingZone(type: OpeningType, offset: number, walls: ShedConfig['walls']): { jacks: number; side: number; zone: Span } {
+  const jacks = type.jacks === 'auto' ? (type.width > walls.doubleJackOver ? 2 : 1) : type.jacks;
+  const side = (jacks + 1) * PLY;
+  return { jacks, side, zone: [offset - side, offset + type.width + side] };
+}
+
 function fitOpening(
   { label, type, row, position }: Placed,
   context: WallContext,
@@ -205,9 +217,7 @@ function fitOpening(
   const offset = roOffset(row.along, position, context.span, type.width);
   const { sill } = row;
 
-  const jacks = type.jacks === 'auto' ? (type.width > walls.doubleJackOver ? 2 : 1) : type.jacks;
-  const side = (jacks + 1) * PLY;
-  const zone: Span = [offset - side, offset + type.width + side];
+  const { jacks, side, zone } = openingZone(type, offset, walls);
   if (zone[0] < context.start || zone[1] > context.end) {
     warn(`The framing runs past the wall end. The king and jacks need ${formatInches(side)} on each side of the RO.`);
     return null;
@@ -377,35 +387,8 @@ function frameWall(
       upright('jack', roEnd + (index - 1) * PLY, base, roTop - base);
     }
 
-    // Header stack on the jacks, between the kings: plate below, header, plate above.
-    const headerSpan: Span = [zone[0] + PLY, zone[1] - PLY];
-    let level = roTop;
-    if (header.plateBelow) {
-      flatBoard('HP', 'header.plate', headerSpan, level);
-      level += PLY;
-    }
-    if (header.style === 'flat') {
-      flatBoard('H', 'header', headerSpan, level);
-      level += PLY;
-    } else {
-      // Plies start at the outside face. The last of 2 or more sits at the inside face, behind the spacer.
-      const { thick, width } = LUMBER[header.size];
-      for (let index = 0; index < header.plies; index++) {
-        const v = index > 0 && index === header.plies - 1 ? depth - thick : index * thick;
-        add('H', 'header', header.size, headerSpan[1] - headerSpan[0], at(frame, headerSpan[0], v, level), {
-          length: frame.u,
-          width: UP,
-          thick: frame.v,
-        });
-      }
-      level += width;
-    }
-    if (header.plateAbove) flatBoard('HP', 'header.plate', headerSpan, level);
-
-    if (sillBottom !== null) {
-      for (let index = 0; index < walls.sillPlies; index++) {
-        flatBoard('RS', 'sill', [offset, roEnd], sillBottom + index * PLY);
-      }
+    for (const board of openingBoards(frame, walls, { type, offset, zone, roTop, header, sillBottom })) {
+      add(board.code, board.role, board.size, board.length, board.origin, board.axes);
     }
   }
 
@@ -484,6 +467,61 @@ function frameWall(
   }
 
   return members;
+}
+
+/** A square-cut board in a wall frame, before it takes an id. */
+export interface Board {
+  code: string;
+  role: Role;
+  size: LumberSize;
+  length: number;
+  origin: Vec3;
+  axes: Axes;
+}
+
+/** The header stack on the jacks between the kings, and the rough sill between the jacks. */
+export function openingBoards(
+  frame: Frame,
+  walls: ShedConfig['walls'],
+  { type, offset, zone, roTop, header, sillBottom }: Pick<FittedOpening, 'type' | 'offset' | 'zone' | 'roTop' | 'header' | 'sillBottom'>,
+): Board[] {
+  const depth = LUMBER[walls.stud].width;
+  const boards: Board[] = [];
+  const flat = (code: string, role: Role, [from, to]: Span, z: number) =>
+    boards.push({ code, role, size: walls.stud, length: to - from, origin: at(frame, from, 0, z), axes: { length: frame.u, width: frame.v, thick: UP } });
+
+  // Plate below, header, plate above.
+  const headerSpan: Span = [zone[0] + PLY, zone[1] - PLY];
+  let level = roTop;
+  if (header.plateBelow) {
+    flat('HP', 'header.plate', headerSpan, level);
+    level += PLY;
+  }
+  if (header.style === 'flat') {
+    flat('H', 'header', headerSpan, level);
+    level += PLY;
+  } else {
+    // Plies start at the outside face. The last of 2 or more sits at the inside face, behind the spacer.
+    const { thick, width } = LUMBER[header.size];
+    for (let index = 0; index < header.plies; index++) {
+      const v = index > 0 && index === header.plies - 1 ? depth - thick : index * thick;
+      boards.push({
+        code: 'H',
+        role: 'header',
+        size: header.size,
+        length: headerSpan[1] - headerSpan[0],
+        origin: at(frame, headerSpan[0], v, level),
+        axes: { length: frame.u, width: UP, thick: frame.v },
+      });
+    }
+    level += width;
+  }
+  if (header.plateAbove) flat('HP', 'header.plate', headerSpan, level);
+
+  if (sillBottom !== null) {
+    for (let index = 0; index < walls.sillPlies; index++) flat('RS', 'sill', [offset, offset + type.width], sillBottom + index * PLY);
+  }
+  return boards;
 }
 
 /** The parts of `span` outside the holes. */

@@ -95,7 +95,9 @@ function DrawingSvg({ drawing, selected, onPick }: { drawing: Drawing; selected:
       {drawing.outlines.map((outline, index) => (
         <polygon key={index} className="outline" points={outline.map((point) => px(point).join(',')).join(' ')} />
       ))}
-      {drawing.labels.map(({ at, text }) => {
+      {drawing.labels.map(({ at, text, room }) => {
+        // Clear of the RO height dimension inside the opening's left edge.
+        if (textWidth(text) + 2 * (GAP + FONT) > room * scale) return null;
         const [x, y] = px(at);
         return (
           <text key={`${text}-${x}-${y}`} className="label halo" x={x} y={y} textAnchor="middle" dominantBaseline="central">

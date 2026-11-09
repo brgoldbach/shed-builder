@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
 import { frameWalls } from '../src/core/gen/walls';
+import { buildModel } from '../src/core/model';
 import type { Member, Role } from '../src/core/member';
 import { evenPercents } from '../src/core/placement';
 
@@ -194,5 +195,64 @@ describe('opening rules', () => {
     const openingTypes = [{ name: 'garage', kind: 'overhead', width: 64, height: 84, girder: 'flat', headroom: 16 }];
     const { warnings } = frame([{ ...doorRow, type: 'garage' }], { openingTypes });
     expect(warnings[0].message).toContain('headroom above the RO is 13-1/8"');
+  });
+});
+
+describe('gable openings', () => {
+  // 10 ft wide gable, 2x4 rafters at 6/12 on 8 ft walls (top 97-1/8): a 12 x 12 vent centered, sill 102,
+  // flat header.
+  const SLOPE = Math.hypot(1, 0.5);
+  const vent = { name: 'vent', kind: 'window', width: 12, height: 12, girder: 'flat' };
+  const config = (row: object) =>
+    shedSchema.parse({
+      schemaVersion: 1,
+      width: 120,
+      length: 144,
+      openingTypes: [vent],
+      openings: [{ type: 'vent', wall: 'right', sill: 102, at: [50], ...row }],
+      roof: { rafter: '2x4', ridge: '2x6' },
+    });
+  const model = buildModel(config({}));
+  const gable = model.members.filter((member) => member.assembly === 'gable.right');
+  // Underside of the gable top plates at u: rafter underside (seat 2-9/16) less the plate's plumb depth.
+  const under = (u: number) => 97.125 + (Math.min(u, 120 - u) - 2.5625) / 2 - 1.5 * SLOPE;
+
+  it('frames the RO in the gable, not the end wall', () => {
+    expect(model.openings).toEqual([{ wall: 'right', name: 'vent', left: 54, right: 66, bottom: 102, top: 114 }]);
+    expect(wall(model.members, 'right').filter((member) => ['king', 'jack', 'header'].includes(member.role))).toEqual([]);
+    expect(model.warnings).toEqual([]);
+  });
+
+  it('stands kings and jacks on the end-wall plate, kings cut to the gable top plate', () => {
+    // Kings at 51 and 67-1/2; the long point is over the header end at 52-1/2 (and 67-1/2).
+    for (const king of ofRole(gable, 'king')) expect(king.length).toBeCloseTo(under(52.5) - 97.125, 9);
+    expect(lengths(ofRole(gable, 'jack'))).toEqual([16.875, 16.875]); // 114 - 97-1/8
+    expect(ofRole(gable, 'header').map((header) => [header.size, header.length])).toEqual([['2x4', 15]]);
+    expect(ofRole(gable, 'sill').map((sill) => [sill.length, sill.origin[2]])).toEqual([[12, 100.5]]);
+  });
+
+  it('turns the layout stud and the ridge post inside the RO into cripples', () => {
+    // Cripples below the sill at the post (59-1/4) and the 64 in layout stud: 100-1/2 - 97-1/8.
+    const cripples = ofRole(gable, 'cripple');
+    expect(cripples.filter((cripple) => cripple.length === 3.375)).toHaveLength(2);
+    // Above the header (115-1/2) at the 64 in layout stud, long point at 63-1/4.
+    expect(cripples.find((cripple) => cripple.length !== 3.375)!.length).toBeCloseTo(under(63.25) - 115.5, 9);
+    // The ridge post runs from the header to the ridge board bottom: rafter top at the ridge face less 5-1/2.
+    const [post] = ofRole(gable, 'post.ridge');
+    expect(post.length).toBeCloseTo(97.125 + (59.25 - 2.5625) / 2 + 3.5 * SLOPE - 5.5 - 115.5, 9);
+  });
+
+  it('leaves out an opening whose header meets the gable top plates', () => {
+    // 121-1/2 to the header top; the plates are at 120-7/16 over the header ends.
+    const { warnings, openings } = buildModel(config({ sill: 108 }));
+    expect(openings).toEqual([]);
+    expect(warnings.map((warning) => warning.message)).toEqual([
+      'The header does not fit. RO top 120" plus 1-1/2" of header is above the gable top plate at 120-7/16".',
+    ]);
+  });
+
+  it('leaves out an opening whose king lands on the ridge post', () => {
+    const { warnings } = buildModel(config({ along: 'left', at: [61] }));
+    expect(warnings.map((warning) => warning.message)).toEqual(['The kings or jacks land on the ridge post. Move the opening.']);
   });
 });

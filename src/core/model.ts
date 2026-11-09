@@ -18,10 +18,11 @@ export function buildModel(config: ShedConfig): Model {
   const walls = frameWalls(config);
   const roof = frameRoof(config);
   const members = [...floor.members, ...walls.members, ...roof.members];
+  const openings = [...walls.openings, ...roof.openings];
   return {
     members,
-    solids: [...floor.solids, ...walls.solids, ...frameSheathing(config, members, walls.openings, roof.planes)],
+    solids: [...floor.solids, ...walls.solids, ...frameSheathing(config, members, openings, roof.planes)],
     warnings: [...walls.warnings, ...roof.warnings],
-    openings: walls.openings,
+    openings,
   };
 }

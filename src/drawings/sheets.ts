@@ -223,7 +223,7 @@ function wallElevation({ config, model, names, marks }: Context, wall: Wall): Dr
   return makeDrawing(`wall-${wall}`, `${names.assembly(`wall.${wall}`).label}, from outside`, {
     shapes: shapesOf(view, own, [], marks, { context }),
     dims,
-    labels: openings.map(({ name, left, right, bottom, top }) => ({ at: [(left + right) / 2, (bottom + top) / 2], text: name })),
+    labels: openings.map(({ name, left, right, bottom, top }) => ({ at: [(left + right) / 2, (bottom + top) / 2], text: name, room: right - left })),
     notes,
   });
 }

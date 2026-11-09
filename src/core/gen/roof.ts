@@ -1,13 +1,27 @@
 import { LUMBER, SHEETS, stockLengths, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
-import type { Member, Point, Vec3, Warning } from '../member';
+import type { Member, Point, Role, Vec3, Warning } from '../member';
+import { roOffset } from '../placement';
 import { formatInches } from '../units';
 import { frameAttic } from './attic';
 import { degrees, idMaker, planeMember, type Pitch, type Plane, type Slope } from './section';
-import { splitPlate, wallTops } from './walls';
+import {
+  inGable,
+  openingBoards,
+  openingZone,
+  placements,
+  resolveHeader,
+  splitPlate,
+  wallFrames,
+  wallTops,
+  type FittedOpening,
+  type Placed,
+  type RoughOpening,
+} from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
-const MIN_STUD = 3; // a shorter gable stud is left out
+const MIN_STUD = 3; // a shorter gable stud or cripple is left out
+const NEAR = 0.01;
 const X: Vec3 = [1, 0, 0];
 const UP: Vec3 = [0, 0, 1];
 const DOWN: Vec3 = [0, 0, -1];
@@ -36,7 +50,12 @@ export interface RoofPlane {
 }
 
 /** Rafters, ridge, rake ladders, fascia, gable-end framing, and for a gable roof the attic. */
-export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Warning[]; planes: RoofPlane[] } {
+export function frameRoof(config: ShedConfig): {
+  members: Member[];
+  warnings: Warning[];
+  planes: RoofPlane[];
+  openings: RoughOpening[];
+} {
   const { roof, walls, width, length } = config;
   const members: Member[] = [];
   const warnings: Warning[] = [];
@@ -179,7 +198,8 @@ export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Wa
     }
   }
 
-  members.push(...frameGableEnds(config, slope, sides, gable, tops.left, wallDepth, bearingDepth));
+  const gableEnds = frameGableEnds(config, slope, sides, gable, tops.left, wallDepth, bearingDepth, warnings);
+  members.push(...gableEnds.members);
 
   // The fascia thickness, measured along the slope.
   const fasciaRun = roof.fascia === 'none' ? 0 : LUMBER[roof.fascia].thick / (tailCut === 'plumb' ? pitch.cos : 1);
@@ -194,7 +214,7 @@ export function frameRoof(config: ShedConfig): { members: Member[]; warnings: Wa
       width: slopeLength,
     }),
   );
-  return { members, warnings, planes };
+  return { members, warnings, planes, openings: gableEnds.openings };
 }
 
 // Seat the full wall depth, shortened so the notch is no deeper than 1/3 of the rafter depth,
@@ -239,9 +259,70 @@ function rafterStarts(length: number, oc: number): number[] {
   return starts.sort((first, second) => first - second);
 }
 
+type Span = readonly [number, number];
+
+// Where gable openings may go on one end wall, in its frame.
+interface GableRoom {
+  plateTop: number; // the gable framing stands on the end-wall plate here
+  clear: number; // from each eave to the first place a gable stud may stand
+  span: number;
+  top: (u: number) => number; // underside of the gable top plates
+  post: Span | null;
+}
+
+function fitGableOpening(
+  { label, type, row, position }: Placed,
+  walls: ShedConfig['walls'],
+  room: GableRoom,
+  others: readonly FittedOpening[],
+  warn: (message: string) => void,
+): FittedOpening | null {
+  const offset = roOffset(row.along, position, room.span, type.width);
+  const { jacks, side, zone } = openingZone(type, offset, walls);
+  const overlaps = ([low, high]: Span) => low < zone[1] && high > zone[0];
+  if (zone[0] < room.clear || zone[1] > room.span - room.clear) {
+    warn(`The framing runs past the gable. The king and jacks need ${formatInches(side)} on each side of the RO.`);
+    return null;
+  }
+  if (others.some((other) => overlaps(other.zone))) {
+    warn('The framing overlaps another opening.');
+    return null;
+  }
+  const { post } = room;
+  if (post && overlaps(post) && (post[0] < offset || post[1] > offset + type.width)) {
+    warn('The kings or jacks land on the ridge post. Move the opening.');
+    return null;
+  }
+  const header = resolveHeader(type, walls);
+  if (header.style !== 'flat' && header.plies * LUMBER[header.size].thick > LUMBER[walls.stud].width) {
+    warn(`${header.plies} plies of ${header.size} are thicker than the wall.`);
+    return null;
+  }
+  const roTop = row.sill + type.height;
+  // The gable top plates are lowest over the header's outer ends.
+  const clearance = Math.min(room.top(zone[0] + PLY), room.top(zone[1] - PLY));
+  if (roTop + header.depth > clearance) {
+    warn(
+      `The header does not fit. RO top ${formatInches(roTop)} plus ${formatInches(header.depth)} of header ` +
+        `is above the gable top plate at ${formatInches(clearance)}.`,
+    );
+    return null;
+  }
+  let sillBottom: number | null = null;
+  if (row.sill > room.plateTop + NEAR) {
+    sillBottom = row.sill - walls.sillPlies * PLY;
+    if (sillBottom < room.plateTop - NEAR) {
+      warn('The rough sill is below the top of the end-wall plate.');
+      return null;
+    }
+  }
+  return { label, type, offset, sill: row.sill, jacks, zone, roTop, header, sillBottom };
+}
+
 /**
  * Gable-end framing on each end wall's plate: a top plate under each end rafter, studs on layout
- * cut to it, and for a gable roof a ridge post under the ridge board.
+ * cut to it, and for a gable roof a ridge post under the ridge board. Openings with their sill at
+ * or above the end-wall top frame here, as in a wall.
  */
 function frameGableEnds(
   config: ShedConfig,
@@ -251,17 +332,22 @@ function frameGableEnds(
   plateTop: number,
   wallDepth: number,
   bearingDepth: number,
-): Member[] {
+  warnings: Warning[],
+): { members: Member[]; openings: RoughOpening[] } {
   const { width, length, walls, roof } = config;
   const { pitch } = slope;
   const members: Member[] = [];
+  const openings: RoughOpening[] = [];
+  const placed = placements(config).filter(({ row }) => inGable(config, row));
+  const frames = wallFrames(width, length);
+  const clear = Math.max(wallDepth, bearingDepth);
+  const topCut = `Top cut ${degrees(pitch)}.`;
   const plateThick = PLY / pitch.cos; // plumb thickness of the gable top plate
 
   // Underside of the gable top plates at real y. A side's map is its own inverse.
   const under = (y: number) => Math.min(...sides.map((side) => slope.bottom(side.map(y)))) - plateThick;
   const ridgeBottom = gable ? slope.top(width / 2 - PLY / 2) - LUMBER[roof.ridge].width : 0;
-  const post: [number, number] | null =
-    gable && ridgeBottom - plateTop >= MIN_STUD ? [width / 2 - PLY / 2, width / 2 + PLY / 2] : null;
+  const post: Span | null = gable && ridgeBottom - plateTop >= MIN_STUD ? [width / 2 - PLY / 2, width / 2 + PLY / 2] : null;
 
   // Top plate in the drawn section: its top against the end rafter's underside, a plumb cut at the
   // ridge post or the high wall, and a level cut where its underside meets the end-wall plate. On
@@ -281,14 +367,57 @@ function frameGableEnds(
 
   // Each end wall's u runs along it from its left corner, viewed from outside. toY is its own inverse.
   const ends = [
-    { assembly: 'gable.left', prefix: 'GL', plane: { origin: [wallDepth, width, 0], h: [0, -1, 0] }, toY: (u: number) => width - u },
-    { assembly: 'gable.right', prefix: 'GR', plane: { origin: [length - wallDepth, 0, 0], h: [0, 1, 0] }, toY: (u: number) => u },
+    { wall: 'left', assembly: 'gable.left', prefix: 'GL', plane: { origin: [wallDepth, width, 0], h: [0, -1, 0] }, toY: (u: number) => width - u },
+    { wall: 'right', assembly: 'gable.right', prefix: 'GR', plane: { origin: [length - wallDepth, 0, 0], h: [0, 1, 0] }, toY: (u: number) => u },
   ] as const;
 
   for (const end of ends) {
     const nextId = idMaker(end.prefix);
-    const make = (role: 'plate.gable' | 'post.ridge' | 'stud.gable', code: string, outline: Point[], dir: Point, note: string) =>
+    const make = (role: Role, code: string, outline: Point[], dir: Point, note: string) =>
       planeMember({ id: nextId(code), assembly: end.assembly, role, size: walls.stud, note }, end.plane, outline, dir, wallDepth);
+    const top = (u: number) => under(end.toY(u));
+    // A 1-1/2 in column from `bottom` up to the gable top plates, or up to `to` with a square cut.
+    const column = (from: number, bottom: number, to?: number): Point[] =>
+      to === undefined
+        ? [[from, bottom], [from + PLY, bottom], [from + PLY, top(from + PLY)], [from, top(from)]]
+        : [[from, bottom], [from + PLY, bottom], [from + PLY, to], [from, to]];
+
+    const room: GableRoom = { plateTop, clear, span: width, top, post };
+    const fitted: FittedOpening[] = [];
+    for (const candidate of placed.filter(({ row }) => row.wall === end.wall)) {
+      const fit = fitGableOpening(candidate, walls, room, fitted, (message) => warnings.push({ source: candidate.label, message }));
+      if (fit) fitted.push(fit);
+    }
+    for (const fit of fitted) {
+      const { type, offset, sill, jacks, zone, roTop } = fit;
+      openings.push({ wall: end.wall, name: type.name, left: offset, right: offset + type.width, bottom: sill, top: roTop });
+      for (const from of [zone[0], zone[1] - PLY]) members.push(make('king', 'K', column(from, plateTop), [0, 1], topCut));
+      for (let index = 1; index <= jacks; index++) {
+        for (const from of [offset - index * PLY, offset + type.width + (index - 1) * PLY]) {
+          members.push(make('jack', 'J', column(from, plateTop, roTop), [0, 1], 'Square cut.'));
+        }
+      }
+      for (const board of openingBoards(frames[end.wall], walls, fit)) {
+        const { code, ...rest } = board;
+        members.push({ id: nextId(code), assembly: end.assembly, treated: false, ...rest });
+      }
+    }
+    // Inside an opening, a layout position takes cripples above the header and below the rough
+    // sill. Above the header, the ridge post keeps its square cut under the ridge board.
+    const cripples = (fit: FittedOpening, from: number, ridge: boolean) => {
+      const headerTop = fit.roTop + fit.header.depth;
+      if (ridge && ridgeBottom - headerTop >= MIN_STUD) {
+        members.push(make('post.ridge', 'P', column(from, headerTop, ridgeBottom), [0, 1], 'Square cut.'));
+      }
+      if (!ridge && Math.min(top(from), top(from + PLY)) - headerTop >= MIN_STUD) {
+        members.push(make('cripple', 'CR', column(from, headerTop), [0, 1], topCut));
+      }
+      if (fit.sillBottom !== null && fit.sillBottom - plateTop >= MIN_STUD) {
+        members.push(make('cripple', 'CR', column(from, plateTop, fit.sillBottom), [0, 1], 'Square cut.'));
+      }
+    };
+    const inside = (from: number) => fitted.find(({ offset, type }) => from >= offset - NEAR && from + PLY <= offset + type.width + NEAR);
+    const blocked = (from: number) => fitted.some(({ zone }) => from < zone[1] && from + PLY > zone[0]);
 
     if (low < high) {
       for (const side of sides) {
@@ -301,23 +430,23 @@ function frameGableEnds(
       }
     }
     if (post) {
-      const outline: Point[] = [[post[0], plateTop], [post[1], plateTop], [post[1], ridgeBottom], [post[0], ridgeBottom]];
-      members.push(make('post.ridge', 'P', outline, [0, 1], 'Square cut.'));
+      const fit = inside(post[0]);
+      if (fit) cripples(fit, post[0], true);
+      else members.push(make('post.ridge', 'P', column(post[0], plateTop, ridgeBottom), [0, 1], 'Square cut.'));
     }
     for (let index = 1; index * walls.oc < width; index++) {
       const near = index * walls.oc - PLY / 2;
       const far = near + PLY;
-      const clear = Math.max(wallDepth, bearingDepth);
       if (near < clear || far > width - clear) continue;
       if (post && near < post[1] && far > post[0]) continue;
-      const nearTop = under(end.toY(near));
-      const farTop = under(end.toY(far));
-      if (Math.min(nearTop, farTop) - plateTop < MIN_STUD) continue;
-      const outline: Point[] = [[near, plateTop], [far, plateTop], [far, farTop], [near, nearTop]];
-      members.push(make('stud.gable', 'S', outline, [0, 1], `Top cut ${degrees(pitch)}.`));
+      const fit = inside(near);
+      if (fit) cripples(fit, near, false);
+      if (blocked(near)) continue;
+      if (Math.min(top(near), top(far)) - plateTop < MIN_STUD) continue;
+      members.push(make('stud.gable', 'S', column(near, plateTop), [0, 1], topCut));
     }
   }
-  return members;
+  return { members, openings };
 }
 
 function tailNote(cut: Cut, run: number): string {

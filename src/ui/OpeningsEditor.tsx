@@ -7,6 +7,7 @@ import {
   type OpeningType,
   type ShedConfig,
 } from '../core/config';
+import { wallTops } from '../core/gen/walls';
 import { naming } from '../core/naming';
 import { evenPercents, positionFor, roOffset, wallSpan } from '../core/placement';
 import { formatInches, parseLength } from '../core/units';
@@ -255,6 +256,9 @@ export function OpeningRowsEditor({ value, onChange }: SectionProps<ShedConfig>)
   return (
     <>
       <p className="muted hint">Several positions per row: type 25% 75%, or 24", 96", or use the count.</p>
+      <p className="muted hint">
+        On a gable end, a sill at or above the wall top ({formatInches(wallTops(value).left)}) frames the opening in the gable.
+      </p>
       {value.openings.map((row, index) => (
         <OpeningRow
           key={index}

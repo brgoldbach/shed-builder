@@ -71,7 +71,7 @@ describe('wall elevation', () => {
 
   it('sizes the RO inside the opening: width, sill height, height', () => {
     expect(ofKind(front, 'aligned').map(length)).toEqual([24, 46.25, 36]);
-    expect(front.labels).toEqual([{ at: [60, 64.25], text: 'window 24x36' }]);
+    expect(front.labels).toEqual([{ at: [60, 64.25], text: 'window 24x36', room: 24 }]);
   });
 });
 

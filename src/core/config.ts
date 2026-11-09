@@ -105,7 +105,7 @@ const opening = z
     enabled: z.boolean().default(true),
     type: z.string(),
     wall: z.enum(WALLS),
-    sill: len(0, 120).default(0), // floor to RO bottom
+    sill: len(0, 240).default(0), // floor to RO bottom. On an end wall, at or above the wall top: in the gable.
     // percent: RO center at a percent of the wall length. left, right: the wall's outside corner,
     // viewed from outside, to the near RO edge.
     along: z.enum(ALONG).default('percent'),
