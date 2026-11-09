@@ -311,8 +311,11 @@ function buildingSection({ config, model, names, marks }: Context): Drawing {
 
 // One common rafter, low end on the left, with its cuts dimensioned along the top edge.
 function rafterDetail({ config, model, marks }: Context): Drawing | null {
-  const rafter = model.members.find((member) => member.role === 'rafter');
-  if (!rafter) return null;
+  const rafters = model.members.filter((member) => member.role === 'rafter' && member.assembly === 'roof');
+  if (!rafters.length) return null;
+  // The one nearest the middle: on a raised roof the gable-end rafters have no birdsmouth.
+  const offMiddle = (member: Member) => Math.abs(corners(member)[0][0] - config.length / 2);
+  const rafter = rafters.reduce((best, member) => (offMiddle(member) < offMiddle(best) ? member : best));
   // right = forward × up
   const facing = (forward: Vec3): View => ({ origin: [0, 0, 0], right: [forward[1], -forward[0], 0], up: UP, forward });
   let view = facing([-1, 0, 0]);

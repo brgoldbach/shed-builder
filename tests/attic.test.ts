@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
 import { frameRoof } from '../src/core/gen/roof';
-import type { Member, Role } from '../src/core/member';
+import { corners, type Member, type Role } from '../src/core/member';
 
 // 8 x 10 ft, 2x4 walls with 92-5/8 in studs and a cap plate: plate tops at 97-1/8 in.
 // Gable 6/12, 2x6 rafters at 24 in (seat 3-1/2, plumb 6.149), 2x8 ridge. The rafter top edge is at
@@ -80,14 +80,15 @@ describe('knee walls raise the roof', () => {
   const { members, warnings } = roofOf({ loft, kneeWalls: { enabled: true, height: 36 } });
   const front = members.filter((member) => member.assembly === 'knee.front');
 
-  it('stands a full-length knee wall on the deck at each eave, flush with the wall below', () => {
+  it('stands a knee wall on the deck at each eave, between the gable-end walls', () => {
     expect(warnings).toEqual([]);
-    expect(ofRole(front, 'plate.bottom')[0].origin).toEqual([0, 0, 103.34375]);
-    expect(ofRole(front, 'plate.bottom')[0].length).toBe(120);
+    // From the gable walls' inside faces: 120 - 2 x 3-1/2 = 113.
+    expect(ofRole(front, 'plate.bottom')[0].origin).toEqual([3.5, 0, 103.34375]);
+    expect(ofRole(front, 'plate.bottom')[0].length).toBe(113);
     // Plates at 103-11/32, 136-11/32 and 137-27/32: studs 36 - 3 x 1-1/2 = 31-1/2 on the wall layout.
     expect(ofRole(front, 'plate.cap')[0].origin[2]).toBe(137.84375);
     const studs = ofRole(front, 'stud');
-    expect(xs(studs)).toEqual([0, 15.25, 31.25, 47.25, 63.25, 79.25, 95.25, 111.25, 118.5]);
+    expect(xs(studs)).toEqual([3.5, 15.25, 31.25, 47.25, 63.25, 79.25, 95.25, 111.25, 115]);
     for (const stud of studs) expect(stud.length).toBe(31.5);
     expect(members.filter((member) => member.assembly === 'knee.back')).toHaveLength(12);
   });
@@ -99,7 +100,7 @@ describe('knee walls raise the roof', () => {
 
   it('frames the loft floor with rim joists under the knee walls and joists between', () => {
     const rims = ofRole(members, 'rim.loft');
-    expect(rims.map((rim) => [rim.length, rim.origin[2]])).toEqual([[120, 97.125], [120, 97.125]]);
+    expect(rims.map((rim) => [rim.length, rim.origin[0], rim.origin[2]])).toEqual([[113, 3.5, 97.125], [113, 3.5, 97.125]]);
     const joists = ofRole(members, 'joist.loft');
     // The rafters are far above, so no joist moves.
     expect(xs(joists)).toEqual([3.5, 15.25, 31.25, 47.25, 63.25, 79.25, 95.25, 111.25, 115]);
@@ -107,16 +108,33 @@ describe('knee walls raise the roof', () => {
     expect(joists[0].note).toBe('Square ends.');
   });
 
-  it('runs the gable studs past the loft to the gable top plate, which stops at the knee wall', () => {
+  it('runs the gable end through to the corners, sloped down to the outside face', () => {
     const left = members.filter((member) => member.assembly === 'gable.left');
-    const [plate] = ofRole(left, 'plate.gable');
-    expect(plate.note).toBe('Plumb cuts 26.6° at the knee wall and 26.6° at the ridge post.');
-    // From the knee wall's inside face (3-1/2) to the post face (47-1/4): 43-3/4 x cos plus
-    // (21-7/8 + 1.677) x sin = 49.66.
-    expect(plate.length).toBeCloseTo(49.664, 3);
+    const plates = ofRole(left, 'plate.gable');
+    expect(plates.map(({ note }) => note)).toEqual([
+      'Plumb cuts 26.6° at the outside face and 26.6° at the ridge post.',
+      'Plumb cuts 26.6° at the outside face and 26.6° at the ridge post.',
+    ]);
+    // Outside face to the post face (47-1/4) along the 6/12 slope, plus the plumb cut's long point,
+    // 1-1/2 × 6/12.
+    expect(plates[0].length).toBeCloseTo(47.25 * Math.hypot(1, 0.5) + 0.75, 9);
+    // End stud at each corner, from the end-wall plate at 97-1/8 to the plate underside 1-1/2 in
+    // from the corner: 139-11/32 - 6/12 × 2 - 1.677.
+    const studs = ofRole(left, 'stud.gable');
+    const ys = (stud: Member) => corners(stud).map(([, y]) => y);
+    const ends = studs.filter((stud) => Math.min(...ys(stud)) < 1e-9 || Math.max(...ys(stud)) > 96 - 1e-9);
+    expect(ends.map(({ length }) => length)).toEqual([expect.closeTo(39.5417, 4), expect.closeTo(39.5417, 4)]);
     // Layout 16 and 80: rafter underside 145.969, less 1.677, less the end-wall plate at 97-1/8.
-    const studs = ofRole(left, 'stud.gable').map((stud) => stud.length).sort((first, second) => first - second);
-    expect(studs[0]).toBeCloseTo(47.1667, 3);
+    const lengths = studs.map((stud) => stud.length).sort((first, second) => first - second);
+    expect(lengths[2]).toBeCloseTo(47.1667, 3);
+  });
+
+  it('sets the gable-end rafters on the gable top plates, with no birdsmouth', () => {
+    const rafters = ofRole(members, 'rafter');
+    const ends = rafters.filter(({ note }) => note?.includes('No birdsmouth'));
+    // Front slope at x 0 and 118-1/2; the back slope's planes start 1-1/2 further along x.
+    expect(ends.map(({ origin }) => origin[0])).toEqual([0, 118.5, 1.5, 120]);
+    expect(rafters.filter(({ note }) => note?.includes('Birdsmouth:'))).toHaveLength(rafters.length - 4);
   });
 
   it('keeps collar ties at the same place relative to the raised rafters', () => {

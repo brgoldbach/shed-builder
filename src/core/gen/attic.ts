@@ -236,7 +236,7 @@ function frameLoft(
   const edge: { code: string; role: Role; y: number; span: Span } | null = hung
     ? { code: 'L', role: 'ledger.loft', y: wallDepth, span: floor }
     : raised
-      ? { code: 'R', role: 'rim.loft', y: 0, span: [0, length] }
+      ? { code: 'R', role: 'rim.loft', y: 0, span: [wallDepth, length - wallDepth] }
       : null;
   if (edge) {
     const maxStock = Math.max(...stockFor(catalog, loft.joist));
@@ -259,9 +259,9 @@ function frameLoft(
 }
 
 /**
- * A knee wall at each eave, standing at `base`, outside face flush with the wall below, full
- * length. Its height runs from its base to the top of its plates, where the rafters bear. Studs
- * follow the wall layout from each wall's left corner, viewed from outside.
+ * A knee wall at each eave, standing at `base`, outside face flush with the wall below, between
+ * the gable-end walls. Its height runs from its base to the top of its plates, where the rafters
+ * bear. Studs follow the wall layout from each wall's left corner, viewed from outside.
  */
 function frameKneeWalls(config: ShedConfig, base: number): Member[] {
   const { width, length, walls, roof, catalog } = config;
@@ -269,6 +269,9 @@ function frameKneeWalls(config: ShedConfig, base: number): Member[] {
   const plateCount = walls.capPlate ? 3 : 2;
   const studLength = knee.height - PLY * plateCount;
   const maxStock = Math.max(...stockFor(catalog, knee.stud));
+  // Between the gable-end walls, which run through to the corners.
+  const wallDepth = LUMBER[walls.stud].width;
+  const [start, end] = [wallDepth, length - wallDepth];
 
   const sides = [
     { assembly: 'knee.front', prefix: 'KF', y: 0, inward: 1, toX: (u: number) => u },
@@ -290,10 +293,10 @@ function frameKneeWalls(config: ShedConfig, base: number): Member[] {
     });
 
     // Layout positions (u) from the wall's left corner: an end stud at each end, the rest on o.c.
-    const layout = [0, length - PLY];
+    const layout = [start, end - PLY];
     for (let index = 1; index * walls.oc < length; index++) {
       const from = index * walls.oc - PLY / 2;
-      if (from >= PLY && from + PLY <= length - PLY) layout.push(from);
+      if (from >= start + PLY && from + PLY <= end - PLY) layout.push(from);
     }
     const studs = layout.map(side.toX).sort((first, second) => first - second);
     for (const x of studs) {
@@ -302,14 +305,14 @@ function frameKneeWalls(config: ShedConfig, base: number): Member[] {
 
     const centers = studs.map((x) => x + PLY / 2);
     const plateAxes = { length: X, width: [0, side.inward, 0] as Vec3, thick: UP };
-    const topPieces = splitPlate([0, length], maxStock, centers);
+    const topPieces = splitPlate([start, end], maxStock, centers);
     const levels: [string, Role, ReturnType<typeof splitPlate>, number][] = [
-      ['BP', 'plate.bottom', splitPlate([0, length], maxStock, centers), base],
+      ['BP', 'plate.bottom', splitPlate([start, end], maxStock, centers), base],
       ['TP', 'plate.top', topPieces, base + PLY + studLength],
     ];
     if (walls.capPlate) {
       const avoid = topPieces.slice(1).map(([from]) => from);
-      const capPieces = splitPlate([0, length], maxStock, centers, avoid);
+      const capPieces = splitPlate([start, end], maxStock, centers, avoid);
       levels.push(['CP', 'plate.cap', capPieces, base + 2 * PLY + studLength]);
     }
     for (const [code, role, pieces, z] of levels) {
