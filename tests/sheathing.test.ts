@@ -103,3 +103,39 @@ describe('8x10 sheathing', () => {
     expect(bare.solids.filter((solid) => solid.label.startsWith('Wall sheathing'))).toEqual([]);
   });
 });
+
+describe('loft deck', () => {
+  // 8x10 with 2x6 loft joists on the plates: joist tops at 97-1/8 + 5-1/2 = 102-5/8.
+  const loft = { enabled: true, joist: '2x6', oc: 16 };
+  const withLoft = (roof: object) => buildModel(shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, ...roof } }));
+  const deckOf = (model: ReturnType<typeof buildModel>) => model.solids.filter((solid) => solid.label.startsWith('Loft deck'));
+
+  it('lays the deck on the joists and stands the knee walls on it, with the loft and floor layers', () => {
+    const model = withLoft({ loft: { ...loft, open: { end: 'left', length: 24 } }, kneeWalls: { enabled: true, height: 36 } });
+    const deck = deckOf(model);
+    expect(deck.every((solid) => solid.layer === 'loft' && (solid.shape as Panel).origin[2] === 102.625)).toBe(true);
+    const [knee] = model.members.filter((member) => member.assembly === 'knee.front' && member.role === 'plate.bottom');
+    expect(knee.origin[2]).toBe(102.625 + 0.71875);
+    expect(model.solids.filter((solid) => solid.label.startsWith('Subfloor')).every((solid) => solid.layer === 'floor')).toBe(true);
+    // Between the gable walls, over the rims to both outside faces. The 24 in open end leaves a
+    // 3-1/2 in strip under each knee wall, so the sheets at that end are L-shaped.
+    expect(deck.map((solid) => extent(solid.shape as Panel))).toEqual([
+      [3.5, 96, 0, 48],
+      [96, 116.5, 0, 48],
+      [3.5, 48, 48, 96],
+      [48, 116.5, 48, 96],
+    ]);
+    expect((deck[0].shape as Panel).outline).toEqual([[96, 0], [96, 48], [24, 48], [24, 3.5], [3.5, 3.5], [3.5, 0]]);
+  });
+
+  it('stops the deck where the rafter undersides meet its top, without knee walls', () => {
+    // 2-9/16 seat + (102-5/8 + 23/32 - 97-1/8) / (6/12) = 15 in from each wall face. The joists
+    // lap the rafters, so the joints land on 49-1/2 and 97-1/2.
+    expect(deckOf(withLoft({ loft })).map((solid) => extent(solid.shape as Panel))).toEqual([
+      [3.5, 97.5, 15, 63],
+      [97.5, 116.5, 15, 63],
+      [3.5, 49.5, 63, 81],
+      [49.5, 116.5, 63, 81],
+    ]);
+  });
+});

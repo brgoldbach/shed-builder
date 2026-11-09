@@ -1,4 +1,4 @@
-import { LUMBER, stockFor, type LumberSize } from '../catalog';
+import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
 import type { Assembly, Member, Point, Role, Vec3, Warning } from '../member';
 import { formatInches } from '../units';
@@ -8,12 +8,22 @@ import { splitPlate } from './walls';
 const PLY = 1.5; // thickness of 2x lumber
 const MIN_TAIL = 3; // shortest tail joist between a hatch header and the eave
 const LONG_HEADER = 48; // a longer hatch header gets a warning to check its size
+const NEAR = 0.01;
 const X: Vec3 = [1, 0, 0];
 const UP: Vec3 = [0, 0, 1];
 
 type Span = readonly [number, number];
 type Base = { id: string; assembly: Assembly; role: Role; size: LumberSize };
 type Warn = (source: string, message: string) => void;
+type Rect = { min: Point; max: Point };
+
+/** The loft deck in plan: `min` to `max` less the holes, laid on the joists at `bottom`. */
+export interface Deck {
+  bottom: number;
+  min: Point;
+  max: Point;
+  holes: Rect[];
+}
 
 // Level pieces that run front to back between the slopes: ties and loft joists.
 interface Level {
@@ -36,7 +46,7 @@ export function frameAttic(
   wallDepth: number,
   wallTop: number,
   kneeBase: number | null,
-): { members: Member[]; warnings: Warning[] } {
+): { members: Member[]; warnings: Warning[]; deck: Deck | null } {
   const { width, roof } = config;
   const { pitch } = slope;
   const members: Member[] = [];
@@ -100,14 +110,17 @@ export function frameAttic(
     }
   }
 
+  let deck: Deck | null = null;
   if (roof.loft.enabled) {
-    members.push(...frameLoft(config, slope, rafters, wallDepth, wallTop, kneeBase !== null, level, warn));
+    const loft = frameLoft(config, slope, rafters, wallDepth, wallTop, kneeBase !== null, level, warn);
+    members.push(...loft.members);
+    deck = loft.deck;
   }
   if (kneeBase !== null) members.push(...frameKneeWalls(config, kneeBase));
-  return { members, warnings };
+  return { members, warnings, deck };
 }
 
-/** Loft floor joists, open end, and hatches, with the ledgers or rim joists along the eaves. */
+/** Loft floor joists, open end, and hatches, with the ledgers or rim joists along the eaves, and the deck. */
 function frameLoft(
   config: ShedConfig,
   slope: Slope,
@@ -117,7 +130,7 @@ function frameLoft(
   raised: boolean,
   level: Level,
   warn: Warn,
-): Member[] {
+): { members: Member[]; deck: Deck | null } {
   const { width, length, roof, catalog } = config;
   const { loft } = roof;
   const { pitch } = slope;
@@ -155,7 +168,7 @@ function frameLoft(
   const inner: Span = [leftEdge === null ? wallDepth + PLY : leftEdge + 2 * PLY, rightEdge ?? length - wallDepth - PLY];
   if (inner[1] - inner[0] < PLY) {
     warn('Loft', 'The open end leaves no loft floor.');
-    return members;
+    return { members, deck: null };
   }
   const fixed: Span[] = [];
   const place = (code: string, role: Role, x: number) => {
@@ -255,7 +268,45 @@ function frameLoft(
       }
     }
   }
-  return members;
+  // Across an open end no joists carry the knee walls' inside edge: more rim plies, face-nailed
+  // inside the rim, fill the knee wall's depth to within 1-1/2 in.
+  if (raised && !hung) {
+    const plies = Math.floor(LUMBER[roof.kneeWalls.stud].width / PLY);
+    const open: Span[] = [];
+    if (leftEdge !== null) open.push([wallDepth, leftEdge]);
+    if (rightEdge !== null) open.push([rightEdge + 2 * PLY, length - wallDepth]);
+    for (const [from, to] of open) {
+      for (let ply = 1; ply < plies; ply++) {
+        for (const [y, inward] of [[ply * PLY, 1], [width - ply * PLY, -1]] as const) {
+          members.push({
+            id: ids('R'),
+            assembly: 'loft',
+            role: 'rim.loft',
+            size: loft.joist,
+            treated: false,
+            length: to - from,
+            origin: [from, y, bottom],
+            axes: { length: X, width: UP, thick: [0, inward, 0] },
+            note: 'Under the knee wall across the open end. Face-nail to the rim.',
+          });
+        }
+      }
+    }
+  }
+
+  // The deck runs over the rims to the outside faces under knee walls, to the walls' inside faces
+  // over ledgers, and otherwise stops where the rafter undersides meet its top. An open end keeps
+  // a strip under each knee wall.
+  const deckBottom = bottom + joistDepth;
+  const strips = raised && !hung;
+  const kneeDepth = strips ? LUMBER[roof.kneeWalls.stud].width : 0;
+  const reach = hung ? wallDepth : raised ? 0 : Math.max(0, slope.seat + (deckBottom + SHEETS[loft.deck].thick - slope.bottom(slope.seat)) / pitch.rise);
+  const [from, to] = strips ? [wallDepth, length - wallDepth] : floor;
+  const holes: Rect[] = hatches.map(({ left, right, front, back }) => ({ min: [left + 2 * PLY, front + 2 * PLY], max: [right, back - 2 * PLY] }));
+  if (strips && leftEdge !== null) holes.push({ min: [from, kneeDepth], max: [leftEdge, width - kneeDepth] });
+  if (strips && rightEdge !== null) holes.push({ min: [rightEdge + 2 * PLY, kneeDepth], max: [to, width - kneeDepth] });
+  const deck: Deck | null = reach < width / 2 - NEAR ? { bottom: deckBottom, min: [from, reach], max: [to, width - reach], holes } : null;
+  return { members, deck };
 }
 
 /**

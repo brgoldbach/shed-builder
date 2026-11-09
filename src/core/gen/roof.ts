@@ -3,7 +3,7 @@ import { extensionSides, type ShedConfig } from '../config';
 import type { Assembly, Member, Point, Role, Vec3, Warning } from '../member';
 import { roOffset } from '../placement';
 import { formatInches } from '../units';
-import { frameAttic } from './attic';
+import { frameAttic, type Deck } from './attic';
 import { degrees, idMaker, planeMember, type Pitch, type Plane, type Slope } from './section';
 import {
   headerOf,
@@ -69,6 +69,7 @@ export function frameRoof(config: ShedConfig): {
   planes: RoofPlane[];
   openings: RoughOpening[];
   rafterSpan: number; // horizontal clear span between bearings, or from the bearing to the ridge board
+  deck: Deck | null; // the loft deck
   soffit: Soffit;
   // At a downhill eave's wall: the rafter top over the outside face, the bearing plate's top, and
   // the bearing depth. Roof extensions start here.
@@ -163,6 +164,7 @@ export function frameRoof(config: ShedConfig): {
     }
   }
 
+  let deck: Deck | null = null;
   if (gable) {
     const ridgeTop = slope.top(to);
     const ridgeDepth = LUMBER[roof.ridge].width;
@@ -177,6 +179,7 @@ export function frameRoof(config: ShedConfig): {
       }));
     }
     const attic = frameAttic(config, slope, rafters, ridgeTop - ridgeDepth, wallDepth, tops.front, raised ? kneeBase : null);
+    deck = attic.deck;
     members.push(...attic.members);
     warnings.push(...attic.warnings);
   }
@@ -277,7 +280,7 @@ export function frameRoof(config: ShedConfig): {
     },
     breaks: (wall) => (wall === 'left' || wall === 'right' ? [0, rake] : [0, eave, eave + fasciaThick]),
   };
-  return { members, warnings, planes, openings: gableEnds.openings, rafterSpan, soffit, eave: { top: slope.top(0), plate, bearing: bearingDepth } };
+  return { members, warnings, planes, openings: gableEnds.openings, rafterSpan, deck, soffit, eave: { top: slope.top(0), plate, bearing: bearingDepth } };
 }
 
 // Seat the full wall depth, shortened so the notch is no deeper than 1/3 of the rafter depth,

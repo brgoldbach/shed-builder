@@ -137,6 +137,20 @@ describe('knee walls raise the roof', () => {
     expect(rafters.filter(({ note }) => note?.includes('Birdsmouth:'))).toHaveLength(rafters.length - 4);
   });
 
+  it('adds rim plies under the knee walls across an open end', () => {
+    const plies = (stud: string) =>
+      ofRole(roofOf({ loft: { ...loft, open: { end: 'left', length: 24 } }, kneeWalls: { enabled: true, height: 36, stud } }).members, 'rim.loft').filter(
+        ({ note }) => note === 'Under the knee wall across the open end. Face-nail to the rim.',
+      );
+    // From the gable wall's inside face to the doubled edge joist at 24: 20-1/2 in, inside each rim.
+    expect(plies('2x4').map(({ length, origin }) => [length, origin[0], origin[1]])).toEqual([
+      [20.5, 3.5, 1.5],
+      [20.5, 3.5, 94.5],
+    ]);
+    // A 2x6 knee wall takes two more plies a side: 4-1/2 of its 5-1/2 in.
+    expect(plies('2x6')).toHaveLength(4);
+  });
+
   it('keeps collar ties at the same place relative to the raised rafters', () => {
     expect(ofRole(members, 'tie.collar')[0].length).toBeCloseTo(44.5, 9);
     expect(ofRole(members, 'tie.rafter')).toHaveLength(0);

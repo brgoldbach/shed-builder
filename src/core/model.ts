@@ -28,7 +28,7 @@ export function buildModel(config: ShedConfig): Model {
   const planes = [...roof.planes, ...additions.planes];
   return {
     members,
-    solids: [...floor.solids, ...walls.solids, ...additions.solids, ...frameSheathing(config, members, openings, planes)],
+    solids: [...floor.solids, ...walls.solids, ...additions.solids, ...frameSheathing(config, members, openings, planes, roof.deck)],
     warnings: [...walls.warnings, ...roof.warnings, ...additions.warnings],
     openings,
     planes,

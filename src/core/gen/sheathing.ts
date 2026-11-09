@@ -1,6 +1,7 @@
 import { LUMBER, SHEETS, type SheetKey } from '../catalog';
 import { WALLS, type ShedConfig } from '../config';
-import { ASSEMBLIES, corners, type Member, type Point, type Solid, type Vec3 } from '../member';
+import { ASSEMBLIES, corners, type Layer, type Member, type Point, type Solid, type Vec3 } from '../member';
+import type { Deck } from './attic';
 import type { RoofPlane } from './roof';
 import { clipBelow, hull, idMaker } from './section';
 import { ADJACENT, wallFrames, type Frame, type RoughOpening, type Wall } from './walls';
@@ -41,14 +42,15 @@ const distinct = (values: number[]) =>
   [...values].sort((first, second) => first - second).filter((value, index, sorted) => index === 0 || value - sorted[index - 1] > NEAR);
 
 /**
- * Wall, gable, roof, and subfloor sheets. Each panel is one 4×8 sheet, cut to fit, with its
- * joints on framing.
+ * Wall, gable, roof, subfloor, and loft deck sheets. Each panel is one 4×8 sheet, cut to fit, with
+ * its joints on framing. The subfloor and deck show with the floor and loft framing they cover.
  */
 export function frameSheathing(
   config: ShedConfig,
   members: readonly Member[],
   openings: readonly RoughOpening[],
   planes: readonly RoofPlane[],
+  deck: Deck | null,
 ): Solid[] {
   const { walls, roof, floor } = config;
   const solids: Solid[] = [];
@@ -82,7 +84,25 @@ export function frameSheathing(
       stagger: true,
       minRow: 0,
     };
-    solids.push(...panels(face, floor.subfloor, idMaker('FL'), 'SF', `Subfloor, ${label}`));
+    solids.push(...panels(face, floor.subfloor, idMaker('FL'), 'SF', `Subfloor, ${label}`, 'floor'));
+  }
+  if (deck) {
+    // Long edges across the loft joists, which run front to back.
+    const { label } = SHEETS[roof.loft.deck];
+    const joists = members.filter((member) => member.assembly === 'loft' && Math.abs(member.axes.length[1]) > 1 - NEAR);
+    const face: Face = {
+      origin: [0, 0, deck.bottom],
+      u: X,
+      v: Y,
+      region: [deck.min, [deck.max[0], deck.min[1]], deck.max, [deck.min[0], deck.max[1]]],
+      supports: centers(joists, (point) => point[0]),
+      holes: deck.holes,
+      along: SHEET_LENGTH,
+      across: SHEET_WIDTH,
+      stagger: true,
+      minRow: 0,
+    };
+    solids.push(...panels(face, roof.loft.deck, idMaker('LF'), 'DK', `Loft deck, ${label}`, 'loft'));
   }
   return solids;
 }
@@ -164,7 +184,7 @@ function roofFace(plane: RoofPlane, members: readonly Member[]): Face {
   };
 }
 
-function panels(face: Face, sheet: SheetKey, nextId: (code: string) => string, code: string, label: string): Solid[] {
+function panels(face: Face, sheet: SheetKey, nextId: (code: string) => string, code: string, label: string, layer: Layer = 'sheathing'): Solid[] {
   const { thick } = SHEETS[sheet];
   const us = face.region.map(([u]) => u);
   const vs = face.region.map(([, v]) => v);
@@ -173,7 +193,15 @@ function panels(face: Face, sheet: SheetKey, nextId: (code: string) => string, c
   for (let row = 0, low = bottom; low < top - NEAR; row++, low += face.across) {
     const high = Math.min(low + face.across, top);
     const first = face.stagger && row % 2 === 1 ? face.along / 2 : face.along;
-    for (const [from, to] of sheetJoints(left, right, first, face.along, face.supports)) {
+    // A hole across the whole row at either end moves the row's sheets in to its edge.
+    let [start, end] = [left, right];
+    for (const { min, max } of face.holes) {
+      if (min[1] > low + NEAR || max[1] < high - NEAR) continue;
+      if (min[0] <= start + NEAR && max[0] > start) start = max[0];
+      if (max[0] >= end - NEAR && min[0] < end) end = min[0];
+    }
+    if (end - start < NEAR) continue;
+    for (const [from, to] of sheetJoints(start, end, first, face.along, face.supports)) {
       const loops = subtract({ min: [from, low], max: [to, high] }, face.holes)
         .map((loop) => clip(loop, face.region))
         .filter((loop) => loop.length >= 3);
@@ -184,7 +212,7 @@ function panels(face: Face, sheet: SheetKey, nextId: (code: string) => string, c
         solids.push({
           id: nextId(code),
           label,
-          layer: 'sheathing',
+          layer,
           material: 'sheet',
           sheet,
           shape: {
