@@ -365,6 +365,130 @@ button {
   border-radius: 6px;
 }
 
+.pick-info.sticky {
+  position: sticky;
+  bottom: 0;
+  left: auto;
+  display: inline-block;
+}
+
+.drawings-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 960px;
+  margin-bottom: 8px;
+}
+
+.drawing {
+  max-width: 960px;
+  margin: 0 0 16px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.drawing figcaption {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.drawing svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.drawing ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.drawing .shape {
+  fill: var(--surface);
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.drawing .shape.member {
+  cursor: pointer;
+}
+
+.drawing .shape.header {
+  fill: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
+.drawing .shape.treated {
+  fill: color-mix(in srgb, #3f8f4f 18%, var(--surface));
+}
+
+.drawing .shape.concrete {
+  fill: color-mix(in srgb, var(--muted) 18%, var(--surface));
+}
+
+.drawing .shape.sheet {
+  fill: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.drawing .shape.steel {
+  fill: var(--text);
+}
+
+.drawing .wireframe .shape {
+  fill: transparent;
+}
+
+.drawing .shape.context {
+  fill: none;
+  stroke: var(--muted);
+  stroke-dasharray: 4 3;
+}
+
+.drawing .shape.selected {
+  fill: color-mix(in srgb, var(--accent) 55%, var(--surface));
+}
+
+.drawing .cut-mark {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 0.75;
+  pointer-events: none;
+}
+
+.drawing .outline {
+  fill: none;
+  stroke: var(--muted);
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+
+.drawing .dim line {
+  stroke: var(--muted);
+  stroke-width: 0.75;
+}
+
+.drawing text {
+  fill: var(--text);
+}
+
+.drawing .halo {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.drawing .mark {
+  font-size: 9px;
+  fill: var(--muted);
+  pointer-events: none;
+}
+
 .cutlist {
   width: 100%;
   max-width: 960px;
@@ -412,4 +536,44 @@ button {
 
 .warnings li {
   margin: 6px 0;
+}
+
+@media print {
+  :root {
+    --bg: #fff;
+    --surface: #fff;
+    --border: #999;
+    --text: #000;
+    --muted: #444;
+    color-scheme: light;
+  }
+
+  .topbar,
+  .sidebar,
+  .tabs,
+  .drawings-toolbar,
+  .pick-info {
+    display: none !important;
+  }
+
+  .app {
+    display: block;
+    height: auto;
+  }
+
+  .panel {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .drawing {
+    max-width: none;
+    border: none;
+    break-inside: avoid;
+    break-after: page;
+  }
+
+  .drawing svg {
+    max-width: none !important;
+  }
 }

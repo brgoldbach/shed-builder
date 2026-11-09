@@ -6,13 +6,15 @@ import { naming } from '../core/naming';
 import { buildCutList } from '../core/out/cutlist';
 import { PRESETS } from '../core/presets';
 import { formatInches } from '../core/units';
+import { buildDrawings } from '../drawings/sheets';
 import { CutListTable, stockLabel } from './CutListTable';
 import { DesignForm } from './DesignForm';
+import { FramingView } from './FramingView';
 import { View3D } from './View3D';
 
 const TABS = [
   { id: '3d', label: '3D' },
-  { id: 'framing', label: 'Framing', milestone: 'M6' },
+  { id: 'framing', label: 'Framing' },
   { id: 'cutlist', label: 'Cut list' },
   { id: 'bom', label: 'BOM', milestone: 'M7' },
   { id: 'warnings', label: 'Warnings' },
@@ -64,6 +66,7 @@ export function App() {
     () => new Map(cutList.flatMap((line) => line.ids.map((id) => [id, line.mark] as const))),
     [cutList],
   );
+  const drawings = useMemo(() => buildDrawings(config, model, names, markOf), [config, model, names, markOf]);
   const shown = useMemo(
     () => model.members.filter((member) => !hidden.has(ASSEMBLIES[member.assembly].layer)),
     [model, hidden],
@@ -72,6 +75,13 @@ export function App() {
   const selectedLine = cutList.find((line) => line.mark === selected);
   const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
   const toggle = (mark: string | null) => setSelected((current) => (current === mark ? null : mark));
+  const pickInfo = selectedLine && (
+    <>
+      <strong>{selectedLine.mark}</strong> {names.assembly(selectedLine.assembly).label},{' '}
+      {ROLES[selectedLine.role].toLowerCase()}: {selectedLine.ids.length} × {stockLabel(selectedLine)} at{' '}
+      {formatInches(selectedLine.length)}
+    </>
+  );
 
   useEffect(() => {
     try {
@@ -202,14 +212,12 @@ export function App() {
             selected={selectedIds}
             onPick={(id) => toggle(id && (markOf.get(id) ?? null))}
           >
-            {selectedLine && (
-              <div className="pick-info">
-                <strong>{selectedLine.mark}</strong> {names.assembly(selectedLine.assembly).label},{' '}
-                {ROLES[selectedLine.role].toLowerCase()}: {selectedLine.ids.length} × {stockLabel(selectedLine)} at{' '}
-                {formatInches(selectedLine.length)}
-              </div>
-            )}
+            {pickInfo && <div className="pick-info">{pickInfo}</div>}
           </View3D>
+        </section>
+        <section className="panel framing" role="tabpanel" hidden={tab !== 'framing'}>
+          <FramingView drawings={drawings} selected={selectedIds} onPick={(id) => toggle(markOf.get(id) ?? null)} />
+          {pickInfo && <div className="pick-info sticky">{pickInfo}</div>}
         </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'cutlist'}>
           <CutListTable lines={cutList} names={names} selected={selected} onSelect={toggle} />

@@ -19,15 +19,17 @@ const UP: Vec3 = [0, 0, 1];
 type VerticalRole = Extract<Role, 'corner' | 'stud' | 'king' | 'jack' | 'cripple'>;
 const VERTICAL_CODES: Record<VerticalRole, string> = { corner: 'C', stud: 'S', king: 'K', jack: 'J', cripple: 'CR' };
 
-// Wall frame: origin at the building corner on the wall's left end, viewed from outside.
-// u runs along the wall to the right, v runs inward, z is up.
-interface Frame {
+/**
+ * Wall frame: origin at the building corner on the wall's left end, viewed from outside.
+ * u runs along the wall to the right, v runs inward, z is up.
+ */
+export interface Frame {
   origin: Vec3;
   u: Vec3;
   v: Vec3;
 }
 
-function frames(width: number, length: number): Record<Wall, Frame> {
+export function wallFrames(width: number, length: number): Record<Wall, Frame> {
   return {
     front: { origin: [0, 0, 0], u: [1, 0, 0], v: [0, 1, 0] },
     back: { origin: [length, width, 0], u: [-1, 0, 0], v: [0, -1, 0] },
@@ -80,6 +82,16 @@ export function studLengths(config: ShedConfig): Record<Wall, number> {
   return lengths;
 }
 
+/** A fitted opening's RO: u along its wall's frame, heights from the floor surface. */
+export interface RoughOpening {
+  wall: Wall;
+  name: string;
+  left: number;
+  right: number;
+  bottom: number;
+  top: number;
+}
+
 /** Top of each wall's top plate, or cap plate: the rafter bearing height. */
 export function wallTops(config: ShedConfig): Record<Wall, number> {
   const lengths = studLengths(config);
@@ -93,9 +105,14 @@ export function wallTops(config: ShedConfig): Record<Wall, number> {
 }
 
 /** Plates, corners, layout studs, and opening framing of the four walls. */
-export function frameWalls(config: ShedConfig): { members: Member[]; warnings: Warning[]; solids: Solid[] } {
+export function frameWalls(config: ShedConfig): {
+  members: Member[];
+  warnings: Warning[];
+  solids: Solid[];
+  openings: RoughOpening[];
+} {
   const heights = studLengths(config);
-  const frame = frames(config.width, config.length);
+  const frame = wallFrames(config.width, config.length);
   const placed = placements(config);
   const warnings: Warning[] = [];
   const sillSize = mudSillSize(config);
@@ -103,10 +120,11 @@ export function frameWalls(config: ShedConfig): { members: Member[]; warnings: W
     warnings.push({ source: 'Walls', message: `The ${sillSize} mud sill is narrower than the ${config.walls.stud} walls.` });
   }
   const solids: Solid[] = [];
+  const openings: RoughOpening[] = [];
   const members = WALLS.flatMap((wall) =>
-    frameWall(config, wall, frame[wall], heights, placed.filter(({ row }) => row.wall === wall), warnings, solids),
+    frameWall(config, wall, frame[wall], heights, placed.filter(({ row }) => row.wall === wall), warnings, solids, openings),
   );
-  return { members, warnings, solids };
+  return { members, warnings, solids, openings };
 }
 
 // One opening at one position. The label names it in warnings and notes: "window 24x36 (front 50%)".
@@ -247,6 +265,7 @@ function frameWall(
   placed: readonly Placed[],
   warnings: Warning[],
   solids: Solid[],
+  openings: RoughOpening[],
 ): Member[] {
   const { walls } = config;
   const assembly = `wall.${wall}` as const;
@@ -348,8 +367,9 @@ function frameWall(
     if (fit) fitted.push(fit);
   }
 
-  for (const { type, offset, jacks, zone, roTop, header, sillBottom } of fitted) {
+  for (const { type, offset, sill, jacks, zone, roTop, header, sillBottom } of fitted) {
     const roEnd = offset + type.width;
+    openings.push({ wall, name: type.name, left: offset, right: roEnd, bottom: sill, top: roTop });
     upright('king', zone[0]);
     upright('king', zone[1] - PLY);
     for (let index = 1; index <= jacks; index++) {
