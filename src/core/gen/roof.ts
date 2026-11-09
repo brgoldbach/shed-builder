@@ -6,6 +6,7 @@ import { formatInches } from '../units';
 import { frameAttic } from './attic';
 import { degrees, idMaker, planeMember, type Pitch, type Plane, type Slope } from './section';
 import {
+  headerOf,
   inGable,
   openingBoards,
   openingZone,
@@ -55,6 +56,7 @@ export function frameRoof(config: ShedConfig): {
   warnings: Warning[];
   planes: RoofPlane[];
   openings: RoughOpening[];
+  rafterSpan: number; // horizontal clear span between bearings, or from the bearing to the ridge board
 } {
   const { roof, walls, width, length } = config;
   const members: Member[] = [];
@@ -214,7 +216,8 @@ export function frameRoof(config: ShedConfig): {
       width: slopeLength,
     }),
   );
-  return { members, warnings, planes, openings: gableEnds.openings };
+  const rafterSpan = (gable ? to : width - wallDepth) - seat;
+  return { members, warnings, planes, openings: gableEnds.openings, rafterSpan };
 }
 
 // Seat the full wall depth, shortened so the notch is no deeper than 1/3 of the rafter depth,
@@ -389,8 +392,8 @@ function frameGableEnds(
       if (fit) fitted.push(fit);
     }
     for (const fit of fitted) {
-      const { type, offset, sill, jacks, zone, roTop } = fit;
-      openings.push({ wall: end.wall, name: type.name, left: offset, right: offset + type.width, bottom: sill, top: roTop });
+      const { type, offset, sill, jacks, zone, roTop, header } = fit;
+      openings.push({ wall: end.wall, name: type.name, left: offset, right: offset + type.width, bottom: sill, top: roTop, header: headerOf(header) });
       for (const from of [zone[0], zone[1] - PLY]) members.push(make('king', 'K', column(from, plateTop), [0, 1], topCut));
       for (let index = 1; index <= jacks; index++) {
         for (const from of [offset - index * PLY, offset + type.width + (index - 1) * PLY]) {

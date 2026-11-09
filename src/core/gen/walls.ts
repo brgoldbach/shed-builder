@@ -97,7 +97,11 @@ export interface RoughOpening {
   right: number;
   bottom: number;
   top: number;
+  header: { size: LumberSize; plies: number; flat: boolean };
 }
+
+/** The header facts the span checks need. */
+export const headerOf = ({ size, plies, style }: Header): RoughOpening['header'] => ({ size, plies, flat: style === 'flat' });
 
 /** Top of each wall's top plate, or cap plate: the rafter bearing height. */
 export function wallTops(config: ShedConfig): Record<Wall, number> {
@@ -382,7 +386,7 @@ function frameWall(
 
   for (const { type, offset, sill, jacks, zone, roTop, header, sillBottom } of fitted) {
     const roEnd = offset + type.width;
-    openings.push({ wall, name: type.name, left: offset, right: roEnd, bottom: sill, top: roTop });
+    openings.push({ wall, name: type.name, left: offset, right: roEnd, bottom: sill, top: roTop, header: headerOf(header) });
     upright('king', zone[0]);
     upright('king', zone[1] - PLY);
     for (let index = 1; index <= jacks; index++) {

@@ -11,6 +11,7 @@ export interface Model {
   warnings: Warning[];
   openings: RoughOpening[];
   planes: RoofPlane[];
+  rafterSpan: number;
 }
 
 /** Every framing member and non-lumber part of the design, and the problems found while framing it. */
@@ -26,5 +27,6 @@ export function buildModel(config: ShedConfig): Model {
     warnings: [...walls.warnings, ...roof.warnings],
     openings,
     planes: roof.planes,
+    rafterSpan: roof.rafterSpan,
   };
 }

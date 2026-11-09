@@ -218,7 +218,9 @@ describe('gable openings', () => {
   const under = (u: number) => 97.125 + (Math.min(u, 120 - u) - 2.5625) / 2 - 1.5 * SLOPE;
 
   it('frames the RO in the gable, not the end wall', () => {
-    expect(model.openings).toEqual([{ wall: 'right', name: 'vent', left: 54, right: 66, bottom: 102, top: 114 }]);
+    expect(model.openings).toEqual([
+      { wall: 'right', name: 'vent', left: 54, right: 66, bottom: 102, top: 114, header: { size: '2x4', plies: 1, flat: true } },
+    ]);
     expect(wall(model.members, 'right').filter((member) => ['king', 'jack', 'header'].includes(member.role))).toEqual([]);
     expect(model.warnings).toEqual([]);
   });

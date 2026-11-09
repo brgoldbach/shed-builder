@@ -60,3 +60,32 @@ export const SHEETS: Record<SheetKey, { label: string; thick: number }> = {
   'ply-19/32': { label: '19/32" plywood (5/8")', thick: 19 / 32 },
   'tg-23/32': { label: '23/32" T&G (3/4")', thick: 23 / 32 },
 };
+
+export const SPECIES_KEYS = ['spf', 'dfl', 'hf', 'sp'] as const;
+export type Species = (typeof SPECIES_KEYS)[number];
+
+/**
+ * No. 2 grade reference design values, psi, for normal load duration and dry service: NDS 2018
+ * Supplement Table 4A (Douglas Fir-Larch, Hem-Fir, Spruce-Pine-Fir "No. 1/No. 2") and Table 4B
+ * (Southern Pine, by nominal width, size factor included).
+ */
+export const SPECIES: Record<Species, { label: string; fb: number | Record<number, number>; fv: number; e: number }> = {
+  spf: { label: 'Spruce-Pine-Fir No. 2', fb: 875, fv: 135, e: 1_400_000 },
+  dfl: { label: 'Douglas Fir-Larch No. 2', fb: 900, fv: 180, e: 1_600_000 },
+  hf: { label: 'Hem-Fir No. 2', fb: 850, fv: 150, e: 1_300_000 },
+  sp: { label: 'Southern Pine No. 2', fb: { 4: 1100, 6: 1000, 8: 925, 10: 800, 12: 750 }, fv: 175, e: 1_400_000 },
+};
+
+// NDS 2018 Supplement, Table 4A Adjustment Factors, size factor CF for Fb, No. 2 grade, by nominal
+// width; 4" thick lumber has its own column.
+const SIZE_FACTOR: Record<number, number> = { 4: 1.5, 6: 1.3, 8: 1.2, 10: 1.1, 12: 1.0 };
+const SIZE_FACTOR_4IN: Record<number, number> = { 4: 1.5, 6: 1.3, 8: 1.3, 10: 1.2, 12: 1.1 };
+
+/** Fb with its size factor, psi; null for sizes without dimension lumber values (6x6 is a timber). */
+export function bendingValue(species: Species, size: LumberSize): number | null {
+  const [thick, width] = size.split('x').map(Number);
+  if (thick > 4) return null;
+  const { fb } = SPECIES[species];
+  if (typeof fb !== 'number') return fb[width];
+  return fb * (thick === 4 ? SIZE_FACTOR_4IN : SIZE_FACTOR)[width];
+}

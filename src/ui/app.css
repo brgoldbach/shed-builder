@@ -582,6 +582,19 @@ button {
   padding-left: 18px;
 }
 
+.span-title {
+  margin: 24px 0 8px;
+  font-size: 1rem;
+}
+
+.cutlist.spans tbody tr {
+  cursor: default;
+}
+
+.cutlist.spans tr.over td {
+  color: var(--error);
+}
+
 .warnings li {
   margin: 6px 0;
 }

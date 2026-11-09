@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, TWO_BY } from './catalog';
+import { LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
 import { formatLength } from './units';
 
 // All lengths are inches.
@@ -24,6 +24,10 @@ export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
 export const TAIL_CUTS = ['plumb', 'square'] as const;
 export const SHEATHING = ['none', ...SHEET_KEYS] as const;
 export const FASCIA = ['none', ...TWO_BY] as const;
+// psf. 20 is the roof live load with no snow; the rest are design roof snow loads.
+export const ROOF_LOADS = [20, 30, 40, 50, 60, 70] as const;
+export const ROOF_DEAD_LOADS = [10, 15, 20] as const;
+export const LOFT_USES = ['storage', 'sleeping'] as const;
 
 const len = (min: number, max: number) =>
   z.number().min(min, `Min ${formatLength(min)}`).max(max, `Max ${formatLength(max)}`);
@@ -190,7 +194,15 @@ const roof = z.strictObject({
     .prefault({}),
 });
 
+// Loads for the span checks, psf.
+const loads = z.strictObject({
+  roof: z.literal(ROOF_LOADS).default(20),
+  roofDead: z.literal(ROOF_DEAD_LOADS).default(10),
+  loft: z.enum(LOFT_USES).default('storage'),
+});
+
 const catalog = z.strictObject({
+  species: z.enum(SPECIES_KEYS).default('spf'), // No. 2 grade, for the span checks
   kerf: len(0, 0.25).default(0.125),
   maxLength: len(96, 480).default(192), // longest board to buy: longer runs splice on framing
   maxOnePiece: len(96, 480).default(240), // longest board for a longer piece that cannot splice: a rafter, tie, or joist
@@ -213,6 +225,7 @@ export const shedSchema = z.strictObject({
   openingTypes: z.array(openingType).default([]),
   openings: z.array(opening).default([]),
   roof: roof.prefault({}),
+  loads: loads.prefault({}),
   catalog: catalog.prefault({}),
 }).superRefine((config, context) => {
   const names = config.openingTypes.map((type) => type.name);

@@ -6,11 +6,13 @@ import { naming } from '../core/naming';
 import { buildBom } from '../core/out/bom';
 import { buildCutList } from '../core/out/cutlist';
 import { bomCsv, cutListCsv } from '../core/out/csv';
+import { checkSpans, spanWarnings } from '../core/out/spans';
 import { PRESETS } from '../core/presets';
 import { formatInches } from '../core/units';
 import { buildDrawings } from '../drawings/sheets';
 import { BomView } from './BomView';
 import { CutListTable, stockLabel } from './CutListTable';
+import { SpanTable } from './SpanTable';
 import { DesignForm } from './DesignForm';
 import { FramingView } from './FramingView';
 import { View3D } from './View3D';
@@ -70,7 +72,8 @@ export function App() {
   );
   const drawings = useMemo(() => buildDrawings(config, model, names, markOf), [config, model, names, markOf]);
   const bom = useMemo(() => buildBom(config, model, markOf), [config, model, markOf]);
-  const warnings = [...model.warnings, ...bom.warnings];
+  const spans = useMemo(() => checkSpans(config, model, names), [config, model, names]);
+  const warnings = [...model.warnings, ...bom.warnings, ...spanWarnings(spans, config)];
   const shown = useMemo(
     () => model.members.filter((member) => !hidden.has(ASSEMBLIES[member.assembly].layer)),
     [model, hidden],
@@ -247,6 +250,7 @@ export function App() {
               ))}
             </ul>
           )}
+          <SpanTable checks={spans} species={config.catalog.species} />
         </section>
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { LUMBER_SIZES, SHEETS, SHEET_KEYS, TWO_BY, stockLengths } from '../core/catalog';
+import { LUMBER_SIZES, SHEETS, SHEET_KEYS, SPECIES, SPECIES_KEYS, TWO_BY, stockLengths } from '../core/catalog';
 import {
   CORNERS,
   FASCIA,
@@ -6,8 +6,11 @@ import {
   FRONTS,
   LOFT_OPEN_ENDS,
   LOFT_SUPPORTS,
+  LOFT_USES,
   MUD_SILLS,
   PIER_DIAMETERS,
+  ROOF_DEAD_LOADS,
+  ROOF_LOADS,
   POST_SIZES,
   ROOF_STYLES,
   SHEATHING,
@@ -43,6 +46,9 @@ type Floor = ShedConfig['floor'];
 type Walls = ShedConfig['walls'];
 type Roof = ShedConfig['roof'];
 type Catalog = ShedConfig['catalog'];
+
+const ROOF_DEAD_LABELS = { 10: '10 psf: asphalt shingles', 15: '15 psf: slate to 1/4"', 20: '20 psf: clay tile' };
+const LOFT_USE_LABELS = { storage: 'Storage (20 psf)', sleeping: 'Sleeping (30 psf)' };
 
 const MUD_SILL_LABELS: Record<string, string> = { none: 'None: PT bottom plate', match: 'Same as wall stud' };
 const LOFT_SUPPORT_LABELS = { plates: 'On the wall plates', hung: 'Hung from ledgers' };
@@ -121,6 +127,7 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
         <OpeningRowsEditor value={value} onChange={onChange} />
       </Section>
       <RoofSection value={value.roof} onChange={set('roof')} names={names} />
+      <LoadsSection value={value} onChange={onChange} />
       <CatalogSection value={value.catalog} onChange={set('catalog')} />
     </>
   );
@@ -307,6 +314,50 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
           )}
         </>
       )}
+    </Section>
+  );
+}
+
+// Species lives in the catalog but shows here, with the loads it is checked under.
+function LoadsSection({ value, onChange }: SectionProps<ShedConfig>) {
+  const loads = setter(value.loads, setter(value, onChange)('loads'));
+  const catalog = setter(value.catalog, setter(value, onChange)('catalog'));
+  return (
+    <Section title="Loads and species">
+      <SelectField
+        label="Lumber"
+        value={value.catalog.species}
+        options={SPECIES_KEYS}
+        describe={(species) => SPECIES[species].label}
+        onChange={catalog('species')}
+      />
+      <SelectField
+        label="Roof load"
+        value={value.loads.roof}
+        options={ROOF_LOADS}
+        describe={(load) => (load === 20 ? '20 psf roof live, no snow' : `${load} psf roof snow`)}
+        onChange={loads('roof')}
+      />
+      <p className="muted hint">Use the design roof snow load from your building department, not the ground snow load.</p>
+      <SelectField
+        label="Roof dead load"
+        value={value.loads.roofDead}
+        options={ROOF_DEAD_LOADS}
+        describe={(load) => ROOF_DEAD_LABELS[load]}
+        onChange={loads('roofDead')}
+      />
+      {value.roof.loft.enabled && (
+        <SelectField
+          label="Loft use"
+          value={value.loads.loft}
+          options={LOFT_USES}
+          describe={(use) => LOFT_USE_LABELS[use]}
+          onChange={loads('loft')}
+        />
+      )}
+      <p className="muted hint">
+        Span checks use the AWC span table method with NDS 2018 design values. They are a check, not an engineered design.
+      </p>
     </Section>
   );
 }

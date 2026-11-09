@@ -72,3 +72,10 @@ ITEM Form tube, 10": 9 ea
 ITEM Hurricane tie, rafter to plate: 20 ea
 ITEM Roof area: 168.4 sq ft
 ITEM Drip edge: 51.9 ft
+SPAN Rafters: 2x8 at 16" o.c. 113" of 218-3/16" (bending)
+SPAN Floor joists: 2x6 at 16" o.c. 52" of 111-13/16" (deflection)
+SPAN door 36 header (front wall): 2-ply 2x8 38" of 125-3/8" (bending)
+SPAN window 24x36 header (left wall): 2-ply 2x8 24" of 217-11/16" (bending)
+SPAN Front girder: 2-ply 2x8 67" of 79-3/8" (bending)
+SPAN Inner girder: 2-ply 2x8 67" of 107-1/2" (bending)
+SPAN Back girder: 2-ply 2x8 67" of 81-3/4" (bending)

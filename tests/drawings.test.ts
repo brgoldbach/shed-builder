@@ -44,9 +44,9 @@ describe('projection', () => {
 describe('model openings', () => {
   it('records each fitted RO in its wall frame', () => {
     expect(buildModel(gableSkid).openings).toEqual([
-      { wall: 'front', name: 'window 24x36', left: 48, right: 72, bottom: 46.25, top: 82.25 },
+      { wall: 'front', name: 'window 24x36', left: 48, right: 72, bottom: 46.25, top: 82.25, header: { size: '2x8', plies: 2, flat: false } },
       // 50% of the 96 in end wall, 64 in wide.
-      { wall: 'left', name: 'shed door 64x76', left: 16, right: 80, bottom: 0, top: 76 },
+      { wall: 'left', name: 'shed door 64x76', left: 16, right: 80, bottom: 0, top: 76, header: { size: '2x8', plies: 2, flat: false } },
     ]);
   });
 });
