@@ -21,7 +21,9 @@ import { FramingView } from './FramingView';
 import { PieceInfo } from './PieceInfo';
 import { View3D } from './View3D';
 
+// On a phone the form is a tab of its own; on a wider screen it stays beside the workspace.
 const TABS = [
+  { id: 'design', label: 'Design' },
   { id: '3d', label: '3D' },
   { id: 'framing', label: 'Framing' },
   { id: 'cutlist', label: 'Cut list' },
@@ -32,6 +34,18 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id'];
 
 const STORAGE_KEY = 'shed-builder.config';
+const PHONE = '(max-width: 760px)'; // the phone layout's breakpoint in app.css
+
+function usePhone(): boolean {
+  const [phone, setPhone] = useState(() => window.matchMedia(PHONE).matches);
+  useEffect(() => {
+    const query = window.matchMedia(PHONE);
+    const update = () => setPhone(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return phone;
+}
 // The framing view hides the finishes; the finished view hides only the sheathing under them.
 const VIEWS = {
   Framing: ['sheathing', 'siding', 'roofing', 'openings'],
@@ -71,6 +85,10 @@ export function App() {
   const [revision, setRevision] = useState(0);
   const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
   const [tab, setTab] = useState<TabId>('3d');
+  const phone = usePhone();
+  // The Design tab exists only on a phone: elsewhere the form is always in view.
+  const view: TabId = !phone && tab === 'design' ? '3d' : tab;
+  const [layersOpen, setLayersOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(VIEWS.Framing));
   // A shared link replaces a design only after asking, unless this browser had none.
@@ -102,7 +120,7 @@ export function App() {
   const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
   const toggle = (mark: string | null) => setSelected((current) => (current === mark ? null : mark));
   const selectedMember = selectedLine && model.members.find((member) => member.id === selectedLine.ids[0]);
-  const pickInfo = selectedLine && selectedMember && <PieceInfo line={selectedLine} member={selectedMember} names={names} />;
+  const pickInfo = selectedLine && selectedMember && <PieceInfo line={selectedLine} member={selectedMember} names={names} onClose={() => setSelected(null)} />;
 
   useEffect(() => {
     try {
@@ -178,6 +196,7 @@ export function App() {
   return (
     <div
       className="app"
+      data-view={view}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault();
@@ -243,22 +262,23 @@ export function App() {
         <DesignForm key={revision} value={config} onChange={edit} />
         <p className="notice">{DISCLAIMER}</p>
       </aside>
+      <nav className="tabs" role="tablist">
+        {TABS.map((entry) => (
+          <button
+            key={entry.id}
+            role="tab"
+            className={entry.id === 'design' ? 'phone-only' : undefined}
+            aria-selected={entry.id === view}
+            onClick={() => setTab(entry.id)}
+          >
+            {entry.label}
+            {entry.id === 'warnings' && warnings.length > 0 && ` (${warnings.length})`}
+          </button>
+        ))}
+      </nav>
       <main className="workspace">
-        <nav className="tabs" role="tablist">
-          {TABS.map((entry) => (
-            <button
-              key={entry.id}
-              role="tab"
-              aria-selected={entry.id === tab}
-              onClick={() => setTab(entry.id)}
-            >
-              {entry.label}
-              {entry.id === 'warnings' && warnings.length > 0 && ` (${warnings.length})`}
-            </button>
-          ))}
-        </nav>
         <p className="notice print-only">{DISCLAIMER}</p>
-        <section className="panel viewport" role="tabpanel" hidden={tab !== '3d'}>
+        <section className="panel viewport" role="tabpanel" hidden={view !== '3d'}>
           <View3D
             members={shown}
             solids={shownSolids}
@@ -266,7 +286,7 @@ export function App() {
             trimColor={hidden.has('siding') ? null : config.finishes.trimColor}
             front={config.front}
             toolbar={
-              <div className="layer-toggles">
+              <div className={layersOpen ? 'layer-toggles open' : 'layer-toggles'}>
                 {(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((name) => (
                   <button
                     key={name}
@@ -276,6 +296,10 @@ export function App() {
                     {name}
                   </button>
                 ))}
+                {/* On a phone the layer list folds behind this button. */}
+                <button className="layers-button" aria-expanded={layersOpen} onClick={() => setLayersOpen((open) => !open)}>
+                  Layers
+                </button>
                 {(Object.keys(LAYERS) as Layer[]).map((layer) => (
                   <label key={layer}>
                     <input
@@ -300,7 +324,7 @@ export function App() {
             {pickInfo && <div className="pick-info">{pickInfo}</div>}
           </View3D>
         </section>
-        <section className="panel framing" role="tabpanel" hidden={tab !== 'framing'}>
+        <section className="panel framing" role="tabpanel" hidden={view !== 'framing'}>
           <FramingView
             drawings={drawings}
             selected={selectedIds}
@@ -311,7 +335,7 @@ export function App() {
           />
           {pickInfo && <div className="pick-info sticky">{pickInfo}</div>}
         </section>
-        <section className="panel" role="tabpanel" hidden={tab !== 'cutlist'}>
+        <section className="panel" role="tabpanel" hidden={view !== 'cutlist'}>
           <div className="panel-toolbar">
             <button onClick={() => download(fileName(config.name, 'cutlist.csv'), cutListCsv(cutList, names), 'text/csv')}>
               Download CSV
@@ -325,10 +349,10 @@ export function App() {
           <CutListTable lines={cutList} names={names} selected={selected} onSelect={toggle} />
           {pickInfo && <div className="pick-info sticky">{pickInfo}</div>}
         </section>
-        <section className="panel" role="tabpanel" hidden={tab !== 'bom'}>
+        <section className="panel" role="tabpanel" hidden={view !== 'bom'}>
           <BomView bom={bom} marks={markOf} onCsv={() => download(fileName(config.name, 'bom.csv'), bomCsv(bom), 'text/csv')} />
         </section>
-        <section className="panel" role="tabpanel" hidden={tab !== 'warnings'}>
+        <section className="panel" role="tabpanel" hidden={view !== 'warnings'}>
           {warnings.length === 0 ? (
             <p className="muted">No warnings.</p>
           ) : (

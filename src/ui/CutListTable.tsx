@@ -17,7 +17,7 @@ export function CutListTable({ lines, names, selected, onSelect }: Props) {
   const pieces = lines.reduce((sum, line) => sum + line.ids.length, 0);
 
   return (
-    <table className="cutlist">
+    <table className="cutlist parts">
       <thead>
         <tr>
           <th>Mark</th>
@@ -25,7 +25,7 @@ export function CutListTable({ lines, names, selected, onSelect }: Props) {
           <th>Stock</th>
           <th className="number">Length</th>
           <th>Part</th>
-          <th>Notes</th>
+          <th className="note">Notes</th>
         </tr>
       </thead>
       {[...groups].map(([assembly, rows]) => (

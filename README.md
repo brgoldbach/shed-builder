@@ -83,6 +83,10 @@ A failed build leaves the last good deployment live. To push without a deploymen
 | BOM | Lumber by stock length with a cutting plan, sheets, concrete, hardware, and roofing, each with a cost from the unit prices under Lumber catalog in the form, and a total. Print or CSV. |
 | Warnings | Framing problems, and span checks from the AWC span equations with NDS 2018 values for No. 2 lumber |
 
+On a phone the form is the Design tab, beside the others, and each tab takes the whole screen. The
+3D layer list folds behind a Layers button, and the cut list shows a line's notes with its piece
+drawing when you tap it.
+
 ## Design files
 
 Save writes the design as a JSON file, and Open loads one. The app also keeps the last design in

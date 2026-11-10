@@ -5,6 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Phone layout:** on a screen up to 760 px wide the form moves to a Design tab and each tab takes
+  the whole screen. The header wraps, the 3D layer list folds behind a Layers button, the cut list
+  drops its notes column (a tap on a line shows them with the piece), and inputs use 16 px text so
+  a phone does not zoom in on a tap. The piece drawing has a close button.
+
 ### Fixed
 
 - **3D view on a tall screen:** the first view framed the shed as if the view were square, so on a

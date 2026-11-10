@@ -10,8 +10,8 @@ import { DrawingSvg, fitScale, layoutOf } from './DrawingSvg';
 const NONE = new Set<string>();
 const ROOM = { width: 420, height: 160 }; // px for the piece drawing
 
-/** The selected cut-list line, with one of its pieces laid flat and dimensioned. */
-export function PieceInfo({ line, member, names }: { line: CutLine; member: Member; names: Naming }) {
+/** The selected cut-list line, with one of its pieces laid flat and dimensioned. Close clears the selection. */
+export function PieceInfo({ line, member, names, onClose }: { line: CutLine; member: Member; names: Naming; onClose: () => void }) {
   const { drawing, scale, width } = useMemo(() => {
     const drawing = pieceDrawing(member, line.mark);
     const scale = fitScale(drawing, ROOM.width, ROOM.height);
@@ -19,6 +19,9 @@ export function PieceInfo({ line, member, names }: { line: CutLine; member: Memb
   }, [member, line.mark]);
   return (
     <>
+      <button className="close" aria-label="Close the piece drawing" onClick={onClose}>
+        ×
+      </button>
       <div>
         <strong>{line.mark}</strong> {names.assembly(line.assembly).label}, {ROLES[line.role].toLowerCase()}: {line.ids.length} ×{' '}
         {stockLabel(line)} at {formatInches(line.length)}

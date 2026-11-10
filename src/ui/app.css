@@ -68,8 +68,9 @@ button {
 
 .app {
   display: grid;
-  grid-template: 'top top' 44px 'side main' minmax(0, 1fr) / 340px minmax(0, 1fr);
+  grid-template: 'top top' 44px 'side tabs' auto 'side main' minmax(0, 1fr) / 340px minmax(0, 1fr);
   height: 100vh;
+  height: 100dvh;
 }
 
 .topbar {
@@ -404,6 +405,7 @@ button {
 }
 
 .tabs {
+  grid-area: tabs;
   display: flex;
   gap: 4px;
   padding: 8px 16px 0;
@@ -499,6 +501,11 @@ button {
   align-items: center;
 }
 
+.phone-only,
+.layers-button {
+  display: none;
+}
+
 .layer-toggles button[aria-pressed='true'] {
   color: var(--accent);
   border-color: var(--accent);
@@ -520,6 +527,17 @@ button {
   bottom: 0;
   left: auto;
   display: inline-block;
+}
+
+.pick-info .close {
+  float: right;
+  margin: -4px -6px 0 8px;
+  padding: 0 6px;
+  font-size: 1.2rem;
+  line-height: 1.4;
+  color: var(--muted);
+  background: none;
+  border: none;
 }
 
 .drawing.piece {
@@ -831,6 +849,104 @@ button {
 
 .warnings li {
   margin: 6px 0;
+}
+
+/* Phones: one column. The form is the Design tab, the header wraps, the 3D layer list folds, and
+   inputs use 16 px text so a phone does not zoom in on a tap. */
+@media (max-width: 760px) {
+  .app {
+    grid-template: 'top' auto 'tabs' auto 'main' minmax(0, 1fr) / minmax(0, 1fr);
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding: 6px 12px;
+  }
+
+  .topbar .title {
+    flex: 1;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .actions select {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .tabs {
+    padding: 4px 8px 0;
+  }
+
+  .tabs button {
+    padding: 8px 10px;
+  }
+
+  .tabs .phone-only {
+    display: inline-block;
+  }
+
+  .sidebar {
+    grid-area: main;
+    padding: 4px 16px 16px;
+    border-right: none;
+  }
+
+  .app:not([data-view='design']) .sidebar,
+  .app[data-view='design'] .workspace {
+    display: none;
+  }
+
+  input,
+  select {
+    font-size: 16px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .view-toolbar {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+  }
+
+  .layer-toggles .layers-button {
+    display: inline-block;
+  }
+
+  .layer-toggles label {
+    display: none;
+  }
+
+  .layer-toggles.open label {
+    display: flex;
+  }
+
+  .panel-toolbar {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .drawing {
+    padding: 8px;
+  }
+
+  .cutlist {
+    font-size: 13px;
+  }
+
+  /* A tap on a line shows its notes with the piece drawing. */
+  .parts .note {
+    display: none;
+  }
 }
 
 @media print {
