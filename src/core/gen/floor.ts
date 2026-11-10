@@ -1,7 +1,8 @@
 import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
-import type { Assembly, Member, Role, Solid, Vec3 } from '../member';
-import { idMaker } from './section';
+import type { Assembly, Member, Point, Role, Solid, Vec3 } from '../member';
+import { formatInches } from '../units';
+import { idMaker, planeMember } from './section';
 import { splitPlate } from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
@@ -105,13 +106,25 @@ export function frameFloor(config: ShedConfig): { members: Member[]; solids: Sol
     const { size, count } = foundation.skid;
     // On edge: the wider face stands.
     const { width: height, thick: across } = LUMBER[size];
+    // Each end of a skid run is cut 45° across its bottom third, as on a sled runner, so the shed
+    // rides up over the ground when it is dragged. A splice in a long run stays square.
+    const cut = Math.round((height / 3) * 8) / 8;
+    const [bottom, top] = [joistBottom - height, joistBottom];
     for (const y of lines(count, across)) {
       for (const [from, to] of splitPlate([0, length], maxStock(size), centers)) {
-        members.push(board('foundation', foundationIds('SK'), 'skid', size, true, to - from, [from, y - across / 2, joistBottom - height], {
-          length: X,
-          width: UP,
-          thick: Y,
-        }));
+        const [start, end] = [from === 0, to === length];
+        const point = (along: number, z: number): Point => [along, z];
+        const outline = [
+          ...(start ? [point(from, bottom + cut), point(from + cut, bottom)] : [point(from, bottom)]),
+          ...(end ? [point(to - cut, bottom), point(to, bottom + cut)] : [point(to, bottom)]),
+          point(to, top),
+          point(from, top),
+        ];
+        const ends = start && end ? 'Both ends' : start || end ? 'The outer end' : null;
+        const note = ends && `${ends} cut 45° across the bottom, ${formatInches(cut)} up and in, so the shed drags without digging in.`;
+        // The plane's run is along x, so the skid extrudes along x × up, toward -y, from its far face.
+        const base = { id: foundationIds('SK'), assembly: 'foundation', role: 'skid', size, ...(note && { note }) } as const;
+        members.push({ ...planeMember(base, { origin: [0, y + across / 2, 0], h: X }, outline, [1, 0], across), treated: true });
       }
     }
     return { members, solids };

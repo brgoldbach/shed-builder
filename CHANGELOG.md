@@ -21,6 +21,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   settings the design does not use, such as a slab's skid, pier, and floor settings or a loft's
   details when there is no loft, and every value at its default. The B and B shed's file drops from
   5,754 to 2,110 bytes, and its link from 1,000 to 745 characters. Older files and links still load.
+- **Skid ends:** each end of a skid run is cut 45° across its bottom third, as on a sled runner, so
+  the shed drags without digging in. The cut list says so; a splice in a long run stays square.
+- **8x10 preset:** a third skid in the center.
 
 ### Removed
 

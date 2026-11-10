@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
 import { frameFloor } from '../src/core/gen/floor';
 import { frameWalls } from '../src/core/gen/walls';
-import type { Member, Role, Solid } from '../src/core/member';
+import { corners, type Member, type Role, type Solid } from '../src/core/member';
 
 // 8 x 10 ft. Floor: 2x6 joists at 16 in under a 23/32 subfloor, so joist bottoms are at
 // -(23/32 + 5-1/2) = -6-7/32.
@@ -38,9 +38,30 @@ describe('skid foundation', () => {
 
   it('sets the skids on edge under the joists, outer skids flush with the edges', () => {
     const skids = ofRole(members, 'skid');
-    expect(sorted(skids.map((skid) => skid.origin[1]))).toEqual([0, 46.25, 92.5]);
-    // 4x6 on edge: 5-1/2 tall, below the joists at -6-7/32.
-    for (const skid of skids) expect(skid).toMatchObject({ length: 120, treated: true, origin: [0, skid.origin[1], -11.71875] });
+    const range = (skid: Member, axis: number) => {
+      const values = corners(skid).map((point) => point[axis]);
+      return [Math.min(...values), Math.max(...values)];
+    };
+    expect(sorted(skids.map((skid) => range(skid, 1)[0]))).toEqual([0, 46.25, 92.5]);
+    // 4x6 on edge: 3-1/2 wide, 5-1/2 tall, below the joists at -6-7/32.
+    for (const skid of skids) {
+      expect(skid).toMatchObject({ length: 120, treated: true });
+      expect(range(skid, 1)[1] - range(skid, 1)[0]).toBe(3.5);
+      expect(range(skid, 2)).toEqual([-11.71875, -6.21875]);
+    }
+  });
+
+  it('cuts the bottom of each skid end at 45°, a third of its depth', () => {
+    const [skid] = ofRole(members, 'skid');
+    // 5-1/2 / 3 = 1-7/8 to the 1/8: up the end, then along the bottom.
+    expect(skid.profile?.points).toEqual([[0, 1.875], [1.875, 0], [118.125, 0], [120, 1.875], [120, 5.5], [0, 5.5]]);
+    expect(skid.note).toBe('Both ends cut 45° across the bottom, 1-7/8" up and in, so the shed drags without digging in.');
+  });
+
+  it('leaves a splice in a long skid run square', () => {
+    // 20 ft on 16 ft stock: two pieces a skid, each cut only at the run's outer end.
+    const long = ofRole(floorOf({ length: 240, foundation: { type: 'skid', skid: { count: 2 } } }).members, 'skid');
+    expect(long.map(({ note }) => note?.startsWith('The outer end'))).toEqual([true, true, true, true]);
   });
 });
 

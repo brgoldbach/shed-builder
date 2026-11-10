@@ -3,7 +3,7 @@
   "name": "8x10 gable on skids",
   "width": 96,
   "length": 120,
-  "foundation": { "type": "skid", "skid": { "size": "4x6", "count": 2 } },
+  "foundation": { "type": "skid", "skid": { "size": "4x6", "count": 3 } },
   "openingTypes": [
     { "name": "shed door 64x76", "kind": "door", "width": 64, "height": 76 },
     { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 }

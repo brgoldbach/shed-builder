@@ -120,9 +120,9 @@ describe('prices', () => {
   it('prices lumber by the foot of stock, with the treated markup', () => {
     const { lumber } = bomOf();
     const skids = lumber.find(({ size, treated }) => size === '4x6' && treated)!;
-    // 4x6 at $2.10/ft untreated, +50%: $3.15/ft. Two 10 ft skids: 20 ft.
+    // 4x6 at $2.10/ft untreated, +50%: $3.15/ft. Three 10 ft skids: 30 ft.
     expect(skids.cost.basis).toBe('$3.15/ft, untreated +50%');
-    expect(skids.cost.total).toBeCloseTo(63, 9);
+    expect(skids.cost.total).toBeCloseTo(94.5, 9);
   });
 
   it('totals each section and the whole', () => {
@@ -150,7 +150,7 @@ describe('CSV', () => {
     // How lengths are measured, then the caution, close the file.
     const rows = cutListCsv(lines, naming(gableSkid)).split('\n');
     expect(rows.slice(-3, -1)).toEqual([`"${LENGTH_RULE}"`, `"${DISCLAIMER}"`]);
-    expect(first).toBe('FD-1,Foundation,Skid,4x6 PT,2,120,"120""",');
+    expect(first).toBe('FD-1,Foundation,Skid,4x6 PT,3,120,"120""","Both ends cut 45° across the bottom, 1-7/8"" up and in, so the shed drags without digging in."');
   });
 
   it('lists lumber by stock length, then sheets and counted items', () => {
