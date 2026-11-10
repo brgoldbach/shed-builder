@@ -73,7 +73,7 @@ RF-2      1  2x6              32"  Ridge board
 RF-3      4  2x6       122-11/16"  Rafter. Plumb cut 26.6° at the ridge. No birdsmouth: it bears on the gable top plate. Tail 13-7/16" past the heel line on the top edge, plumb cut.
 RF-4     14  2x6       122-11/16"  Rafter. Plumb cut 26.6° at the ridge. Birdsmouth: heel line 106-1/2" from the ridge long point on the top edge; seat 3-1/2", heel 1-3/4". Tail 13-7/16" past the heel line on the top edge, plumb cut.
 RF-5      4  2x6       122-11/16"  Fly rafter. Plumb cut 26.6° at the ridge. No birdsmouth. Tail 13-7/16" past the heel line on the top edge, plumb cut.
-RF-6     36  2x4           6-1/2"  Lookout
+RF-6     32  2x4           6-1/2"  Lookout
 RF-7      2  2x6             176"  Fascia
 RF-8      2  2x6              32"  Fascia
 RF-9      7  2x4          70-7/8"  Collar tie. Ends cut 26.6° to the roof line.
@@ -110,7 +110,7 @@ SOLID Slab x1
 SOLID Thickened edge x4
 SOLID Wall sheathing, 7/16" OSB x36
 STOCK 2x4 16' 0" x46
-STOCK 2x4 12' 0" x1
+STOCK 2x4 9' 8-5/8" x1
 STOCK 2x4 7' 8-5/8" x50
 STOCK 2x6 PT 16' 0" x4
 STOCK 2x6 16' 0" x7

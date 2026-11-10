@@ -3,6 +3,14 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Rake ladders:** on a gable roof the ridge board, which runs out to the fly rafters, is the top
+  rung. No lookout goes against the ridge, so each ladder has one lookout fewer, and the top
+  lookout sits one space down the slope.
+
 ## [0.1.0] - 2026-11-09
 
 First release.

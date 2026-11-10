@@ -42,7 +42,7 @@ GR-4      1  2x4          20-3/4"  Ridge post. Square cut.
 RF-1      1  2x6             136"  Ridge board
 RF-2     12  2x4              68"  Rafter. Plumb cut 26.6° at the ridge. Birdsmouth: heel line 52-13/16" from the ridge long point on the top edge; seat 2-9/16", heel 1-5/16". Tail 13-7/16" past the heel line on the top edge, plumb cut.
 RF-3      4  2x4              68"  Fly rafter. Plumb cut 26.6° at the ridge. No birdsmouth. Tail 13-7/16" past the heel line on the top edge, plumb cut.
-RF-4     16  2x4           6-1/2"  Lookout
+RF-4     12  2x4           6-1/2"  Lookout
 RF-5      2  2x6             136"  Fascia
 RF-6      4  2x4              96"  Rafter tie. Ends cut 26.6° to the roof line.
 RF-7      4  2x4          37-1/2"  Collar tie. Ends cut 26.6° to the roof line.

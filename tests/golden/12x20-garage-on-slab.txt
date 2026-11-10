@@ -59,7 +59,7 @@ RF-1      1  2x8             184"  Ridge board
 RF-2      1  2x8              72"  Ridge board
 RF-3     32  2x6        95-13/16"  Rafter. Plumb cut 26.6° at the ridge. Birdsmouth: heel line 79-11/16" from the ridge long point on the top edge; seat 3-1/2", heel 1-3/4". Tail 13-7/16" past the heel line on the top edge, plumb cut.
 RF-4      4  2x6        95-13/16"  Fly rafter. Plumb cut 26.6° at the ridge. No birdsmouth. Tail 13-7/16" past the heel line on the top edge, plumb cut.
-RF-5     20  2x4           6-1/2"  Lookout
+RF-5     16  2x4           6-1/2"  Lookout
 RF-6      2  2x6             184"  Fascia
 RF-7      2  2x6              72"  Fascia
 RF-8     14  2x4             144"  Rafter tie. Square ends.

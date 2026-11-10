@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
 import { frameRoof } from '../src/core/gen/roof';
-import type { Member, Role } from '../src/core/member';
+import { corners, type Member, type Role } from '../src/core/member';
 
 // 8 x 10 ft, 2x4 walls with 92-5/8 in studs and a cap plate: plate tops at 97-1/8 in.
 // Gable 6/12, 2x6 rafters at 24 in, 2x8 ridge, 12 in eaves, 8 in rakes, 2x6 fascia.
@@ -59,10 +59,16 @@ describe('gable roof', () => {
     expect(ridge.origin[2]).toBeCloseTo(117.899, 3);
   });
 
-  it('builds a rake ladder: fly rafters and 6-1/2 in lookouts', () => {
+  it('builds a rake ladder: fly rafters and 6-1/2 in lookouts, with the ridge as the top rung', () => {
     expect(ofRole(members, 'rafter.fly')).toHaveLength(4);
-    // Reach 59-1/4 / cos - 1-1/2 - 3-1/2 x 1/2 = 62.99: 4 lookouts per ladder, 4 ladders.
-    expect(lengths(ofRole(members, 'lookout'))).toEqual(new Array(16).fill(6.5));
+    // Reach 59-1/4 / cos - 1-1/2 - 3-1/2 x 1/2 = 62.99: 3 gaps of 21.0 in, at most 24 in. The ridge
+    // board takes the top rung, so 3 lookouts per ladder, 4 ladders.
+    const lookouts = ofRole(members, 'lookout');
+    expect(lengths(lookouts)).toEqual(new Array(12).fill(6.5));
+    // On the front slope the highest lookout stops one gap short of the ridge face at 47-1/4.
+    const cos = 2 / Math.sqrt(5);
+    const highest = Math.max(...lookouts.flatMap((lookout) => corners(lookout).map(([, y]) => y)).filter((y) => y < 48));
+    expect(highest).toBeCloseTo(47.25 - ((59.25 / cos - 3.25) / 3) * cos, 9);
   });
 
   it('hangs fascia on both eaves, plumb, the full ridge length', () => {

@@ -198,13 +198,14 @@ export function frameRoof(config: ShedConfig): {
         members.push(planeMember(base, planeAt(x, side), flyOutline, [pitch.cos, pitch.sin]));
       }
       if (lookoutLength < PLY) continue;
-      // Lookouts on edge, flush with the rafter tops, evenly spaced from tail to high end. The
-      // last stops where its lower corner meets the high end's plumb line.
+      // Lookouts on edge, flush with the rafter tops, evenly spaced from the tail up to where a
+      // lookout's lower corner meets the high end's plumb line. On a gable roof the ridge board,
+      // which runs out to the fly rafters, is the top rung, so no lookout goes there.
       const lookoutDepth = LUMBER[roof.rakeLadder.size].width;
       const reach = (to - start) / pitch.cos - PLY - lookoutDepth * pitch.rise;
-      const count = Math.max(2, Math.ceil(reach / roof.rakeLadder.spacing) + 1);
-      for (let index = 0; index < count; index++) {
-        const along = (index * reach) / (count - 1);
+      const gaps = Math.max(1, Math.ceil(reach / roof.rakeLadder.spacing));
+      for (let index = 0; index < (gable ? gaps : gaps + 1); index++) {
+        const along = (index * reach) / gaps;
         const drawn: Point = [start + along * pitch.cos, slope.top(start) + along * pitch.sin];
         for (const x of [-rake + PLY, length]) {
           members.push(box(nextId('LO'), 'lookout', roof.rakeLadder.size, lookoutLength, [x, side.map(drawn[0]), drawn[1]], {
