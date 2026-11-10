@@ -35,6 +35,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Headers:** framing drawings and PDF plans draw headers like any other member, without a tint.
 - **Form layout:** each section folds closed to a one-line summary, and the Roof section splits
   into groups that fold: Overhangs, Rake ladder, Roofing, Rafter ties, and Collar ties. The loft
   has its own section after Roof. Loft, Knee walls, Rafter ties, and Collar ties have a switch in

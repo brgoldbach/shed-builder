@@ -20,7 +20,6 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 // stroke is left off. Text is smaller than on screen, so it crowds less at small scales.
 const STYLE = `
 .shape { fill: #ffffff; stroke: #000000; stroke-width: 1; }
-.shape.header { fill: #f6dcc6; }
 .shape.treated { fill: #dcebdc; }
 .shape.concrete { fill: #e6e6e6; }
 .shape.sheet { fill: #f7efe5; }

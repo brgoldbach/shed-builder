@@ -1,4 +1,4 @@
-import type { Point, Role } from '../core/member';
+import type { Point } from '../core/member';
 import { formatInches, formatLength } from '../core/units';
 import { bounds, type Dimension, type Drawing, type Shape, type Side } from '../drawings/drawing';
 
@@ -12,7 +12,6 @@ const GAP = 14; // drawing to its first dimension tier
 const CHAIN = 24; // height of a chain tier
 const MARGIN = 16;
 const TICK = 3;
-const HEADERS = new Set<Role>(['header', 'header.plate', 'header.loft']);
 
 const textWidth = (text: string, size = FONT) => text.length * size * CHAR;
 const runningLabels = (dim: Extract<Dimension, { kind: 'running' }>) => dim.at.map((value) => formatInches(value - dim.origin));
@@ -123,7 +122,6 @@ interface ShapeProps {
 
 function ShapeView({ shape, px, scale, selected, onPick }: ShapeProps) {
   const classes = ['shape', shape.kind];
-  if (shape.role && HEADERS.has(shape.role)) classes.push('header');
   if (shape.treated) classes.push('treated');
   if (selected) classes.push('selected');
   const { id } = shape;

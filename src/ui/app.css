@@ -615,10 +615,6 @@ button {
   cursor: pointer;
 }
 
-.drawing .shape.header {
-  fill: color-mix(in srgb, var(--accent) 18%, var(--surface));
-}
-
 .drawing .shape.treated {
   fill: color-mix(in srgb, #3f8f4f 18%, var(--surface));
 }
