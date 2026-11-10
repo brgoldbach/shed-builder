@@ -1,6 +1,6 @@
 import { LUMBER, SHEETS } from '../core/catalog';
 import type { ShedConfig } from '../core/config';
-import { wallFrames, type Wall } from '../core/gen/walls';
+import { wallFrames, type RoughOpening, type Wall } from '../core/gen/walls';
 import { corners, panelCorners, type Assembly, type Member, type Point, type Role, type Solid, type Vec3 } from '../core/member';
 import type { Model } from '../core/model';
 import type { Naming } from '../core/naming';
@@ -19,14 +19,9 @@ interface Context {
   marks: ReadonlyMap<string, string>;
 }
 
-// The assemblies seen in each wall's elevation.
-const ELEVATION: Record<Wall, Assembly[]> = {
-  front: ['wall.front', 'knee.front'],
-  back: ['wall.back', 'knee.back'],
-  left: ['wall.left', 'gable.left'],
-  right: ['wall.right', 'gable.right'],
-};
-const LAYOUT = new Set<Role>(['stud', 'king', 'cripple']);
+// The panel above each wall: a gable end over an end wall, a knee wall over an eave wall.
+const UPPER: Record<Wall, Assembly> = { front: 'knee.front', back: 'knee.back', left: 'gable.left', right: 'gable.right' };
+const LAYOUT = new Set<Role>(['stud', 'king', 'cripple', 'stud.gable']);
 
 /** Every framing drawing of the design, in sheet order. `marks` maps member ids to cut-list marks. */
 export function buildDrawings(
@@ -40,7 +35,9 @@ export function buildDrawings(
     foundationPlan(context),
     floorPlan(context),
     ...names.sides.map((wall) => wallElevation(context, wall)),
+    ...names.sides.filter((wall) => UPPER[wall].startsWith('gable')).map((wall) => upperElevation(context, wall)),
     loftPlan(context),
+    ...names.sides.filter((wall) => UPPER[wall].startsWith('knee')).map((wall) => upperElevation(context, wall)),
     roofPlan(context),
     buildingSection(context),
     rafterDetail(context),
@@ -179,61 +176,120 @@ function floorPlan({ config, model, marks }: Context): Drawing | null {
   });
 }
 
-function wallElevation({ config, model, names, marks }: Context, wall: Wall): Drawing {
-  const frame = wallFrames(config.width, config.length)[wall];
-  const view: View = { origin: frame.origin, right: frame.u, up: UP, forward: frame.v };
-  const wallDepth = LUMBER[config.walls.stud].width;
-  const flush = (member: Member) =>
-    corners(member).every((point) => {
-      const depth = depthOf(view, point);
-      return depth > -NEAR && depth < wallDepth + NEAR;
-    });
-  // The loft rims and the deck's edge under a knee wall stand flush with the wall below.
-  const own = model.members.filter((member) => ELEVATION[wall].includes(member.assembly) || (member.role === 'rim.loft' && flush(member)));
-  const deck = model.solids.filter(
-    ({ layer, material, shape }) =>
-      layer === 'loft' && material === 'sheet' && shape.kind === 'panel' && Math.abs(Math.min(...panelCorners(shape).map((point) => depthOf(view, point)))) < NEAR,
+// Each panel is seen from outside in its wall's frame.
+const elevationView = ({ width, length }: ShedConfig, wall: Wall): View => {
+  const frame = wallFrames(width, length)[wall];
+  return { origin: frame.origin, right: frame.u, up: UP, forward: frame.v };
+};
+
+/**
+ * A panel's dimensions: layout from `origin`, RO edges, and the panel's length along the bottom; its
+ * height on the right; each RO's width, height, and sill height above `base` inside it.
+ */
+function panelDims(
+  view: View,
+  framing: readonly Member[],
+  openings: readonly RoughOpening[],
+  { origin, span: [start, end], base }: { origin: number; span: [number, number]; base: number },
+): Dimension[] {
+  const box = extentOf(view, framing);
+  const layout = distinct(framing.filter((member) => LAYOUT.has(member.role)).map((member) => extentOf(view, [member]).min[0])).filter(
+    (value) => value > origin + NEAR,
   );
-  const framing = own.filter((member) => member.assembly === `wall.${wall}`);
-  // For reference: the end rafter over a gable-end wall, and the adjacent walls' framing at the
-  // corners, seen end-on.
-  const context = model.members.filter((member) => {
-    const depths = corners(member).map((point) => depthOf(view, point));
-    const [near, far] = [Math.min(...depths), Math.max(...depths)];
-    if (member.role === 'rafter') return near > -NEAR && far < wallDepth + NEAR;
-    return member.assembly.startsWith('wall.') && member.assembly !== `wall.${wall}` && near < wallDepth - NEAR && far > NEAR;
-  });
-
-  const plates = extentOf(view, framing.filter((member) => member.role === 'plate.bottom' || member.role === 'plate.sill'));
-  const [start, end] = [plates.min[0], plates.max[0]];
-  const walls = extentOf(view, framing);
-  const all = extentOf(view, own);
-  const openings = model.openings.filter((opening) => opening.wall === wall).sort((first, second) => first.left - second.left);
-  const layout = distinct(
-    framing.filter((member) => LAYOUT.has(member.role)).map((member) => extentOf(view, [member]).min[0]),
-  ).filter((value) => value > start + NEAR);
-
-  const dims: Dimension[] = [{ kind: 'running', side: 'bottom', tier: 1, origin: start, at: layout }];
+  const dims: Dimension[] = [{ kind: 'running', side: 'bottom', tier: 1, origin, at: layout }];
   if (openings.length > 0) {
     dims.push({ kind: 'chain', side: 'bottom', tier: 2, at: [start, ...openings.flatMap(({ left, right }) => [left, right]), end] });
   }
   dims.push({ kind: 'chain', side: 'bottom', tier: openings.length > 0 ? 3 : 2, at: [start, end], feet: true });
-  dims.push({ kind: 'chain', side: 'right', tier: 1, at: [walls.min[1], walls.max[1]], feet: true });
-  if (all.max[1] > walls.max[1] + NEAR) dims.push({ kind: 'chain', side: 'right', tier: 2, at: [walls.min[1], all.max[1]], feet: true });
+  dims.push({ kind: 'chain', side: 'right', tier: 1, at: [box.min[1], box.max[1]], feet: true });
   for (const { left, right, bottom, top } of openings) {
     dims.push({ kind: 'aligned', from: [left, top], to: [right, top], offset: INSIDE });
-    if (bottom > 0) dims.push({ kind: 'aligned', from: [left, 0], to: [left, bottom], offset: INSIDE });
+    if (bottom > base + NEAR) dims.push({ kind: 'aligned', from: [left, base], to: [left, bottom], offset: INSIDE });
     dims.push({ kind: 'aligned', from: [left, bottom], to: [left, top], offset: INSIDE });
   }
+  return dims;
+}
 
-  const notes = [
-    `${config.walls.stud} studs at ${config.walls.oc}" o.c.`,
-    'Layout and RO (rough opening) positions run from the left end of the bottom plate, viewed from outside.',
-  ];
+const openingLabels = (openings: readonly RoughOpening[]) =>
+  openings.map(({ name, left, right, bottom, top }) => ({ at: [(left + right) / 2, (bottom + top) / 2] as Point, text: name, room: right - left }));
+
+// The wall's own framing; the gable end or knee wall above it has its own sheet.
+function wallElevation({ config, model, names, marks }: Context, wall: Wall): Drawing {
+  const view = elevationView(config, wall);
+  const wallDepth = LUMBER[config.walls.stud].width;
+  const framing = model.members.filter((member) => member.assembly === `wall.${wall}`);
+  // For reference: the adjacent walls' framing at the corners, seen end-on.
+  const context = model.members.filter((member) => {
+    if (!member.assembly.startsWith('wall.') || member.assembly === `wall.${wall}`) return false;
+    const depths = corners(member).map((point) => depthOf(view, point));
+    return Math.min(...depths) < wallDepth - NEAR && Math.max(...depths) > NEAR;
+  });
+  const plates = extentOf(view, framing.filter((member) => member.role === 'plate.bottom' || member.role === 'plate.sill'));
+  const top = extentOf(view, framing).max[1];
+  const openings = model.openings
+    .filter((opening) => opening.wall === wall && opening.bottom < top - NEAR)
+    .sort((first, second) => first.left - second.left);
   return makeDrawing(`wall-${wall}`, `${names.assembly(`wall.${wall}`).label}, from outside`, {
-    shapes: shapesOf(view, own, deck, marks, { context }),
-    dims,
-    labels: openings.map(({ name, left, right, bottom, top }) => ({ at: [(left + right) / 2, (bottom + top) / 2], text: name, room: right - left })),
+    shapes: shapesOf(view, framing, [], marks, { context }),
+    dims: panelDims(view, framing, openings, { origin: plates.min[0], span: [plates.min[0], plates.max[0]], base: 0 }),
+    labels: openingLabels(openings),
+    notes: [
+      `${config.walls.stud} studs at ${config.walls.oc}" o.c.`,
+      'Layout and RO (rough opening) positions run from the left end of the bottom plate, viewed from outside.',
+    ],
+  });
+}
+
+// The gable end or knee wall over a wall, as a panel of its own.
+function upperElevation({ config, model, names, marks }: Context, wall: Wall): Drawing | null {
+  const assembly = UPPER[wall];
+  const framing = model.members.filter((member) => member.assembly === assembly);
+  if (framing.length === 0) return null;
+  const view = elevationView(config, wall);
+  const wallDepth = LUMBER[config.walls.stud].width;
+  const gable = assembly.startsWith('gable');
+  // For reference: the end rafter over a gable end and the end wall's plates under it, or the loft
+  // rim under a knee wall.
+  const context = model.members.filter((member) => {
+    const fits = gable
+      ? member.role === 'rafter' || (member.assembly === `wall.${wall}` && (member.role === 'plate.top' || member.role === 'plate.cap'))
+      : member.role === 'rim.loft';
+    if (!fits) return false;
+    const depths = corners(member).map((point) => depthOf(view, point));
+    return Math.min(...depths) > -NEAR && Math.max(...depths) < wallDepth + NEAR;
+  });
+  // The deck's edge, which the knee wall stands on.
+  const deck = gable
+    ? []
+    : model.solids.filter(
+        ({ layer, material, shape }) =>
+          layer === 'loft' && material === 'sheet' && shape.kind === 'panel' && Math.abs(Math.min(...panelCorners(shape).map((point) => depthOf(view, point)))) < NEAR,
+      );
+  const box = extentOf(view, framing);
+  const panel = framing.filter((member) => member.role === 'plate.bottom');
+  // A gable cut in place stands on the end wall and takes the wall's layout.
+  const below = gable && panel.length === 0 ? model.members.filter((member) => member.assembly === `wall.${wall}`) : [];
+  const plates = extentOf(view, panel.length > 0 ? panel : below.filter((member) => member.role === 'plate.bottom' || member.role === 'plate.sill'));
+  const openings = model.openings
+    .filter((opening) => opening.wall === wall && opening.bottom >= box.min[1] - NEAR)
+    .sort((first, second) => first.left - second.left);
+  const origin = `Layout and RO positions run from the left end of the ${panel.length > 0 ? "panel's" : "end wall's"} bottom plate, viewed from outside.`;
+  const notes = gable
+    ? [
+        `${config.walls.stud} gable studs on the ${config.walls.oc}" wall layout, top cut to the gable top plates.`,
+        panel.length > 0
+          ? 'Built as a panel. Frame it flat on the floor. Stand it on the end wall. Nail the bottom plate down to the top plate.'
+          : "Cut in place. Cut each stud to fit between the end wall's top plate and the gable top plate. Toenail both ends.",
+        origin,
+      ]
+    : [
+        `${config.roof.kneeWalls.stud} studs at ${config.walls.oc}" o.c., on the wall layout. The loft rim below is dashed.`,
+        'Layout runs from the left end of the bottom plate, viewed from outside.',
+      ];
+  return makeDrawing(assembly.replace('.', '-'), `${names.assembly(assembly).label}, from outside`, {
+    shapes: shapesOf(view, framing, deck, marks, { context }),
+    dims: panelDims(view, framing, openings, { origin: plates.min[0], span: [plates.min[0], plates.max[0]], base: box.min[1] }),
+    labels: openingLabels(openings),
     notes,
   });
 }

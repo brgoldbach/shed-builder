@@ -27,6 +27,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **One sheet per panel:** each wall elevation shows the wall alone. Each gable end and each knee
+  wall has its own sheet, dimensioned from its own bottom plate, so the PDF has a page for each
+  panel. The knee-wall sheet shows the loft rim and the deck edge under it.
 - **Rake ladders go up in one piece:** a rail of the ladder size stands against the gable-end
   rafter, tops flush, and the lookouts run between it and the fly rafter. You build the ladder on
   the ground, then face-nail the rail to the gable-end rafter. Lookouts are 1-1/2 in shorter: 5 in on

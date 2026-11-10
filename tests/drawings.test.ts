@@ -75,29 +75,66 @@ describe('wall elevation', () => {
     expect(front.labels).toEqual([{ at: [60, 64.25], text: 'window 24x36', room: 24 }]);
   });
 
-  it('draws the loft rim between an eave wall and its knee wall', () => {
-    const raised = shedSchema.parse({
-      ...gableSkid,
-      roof: { ...gableSkid.roof, loft: { enabled: true, joist: '2x6', oc: 16 }, kneeWalls: { enabled: true, height: 36 } },
-    });
-    const { shapes } = find(drawingsOf(raised), 'wall-front');
-    // On the wall top at 97-1/8, 5-1/2 deep, between the gable-end walls, with the deck's edge on
+  it('shows the adjacent walls end-on at the corners, for reference', () => {
+    const left = find(drawingsOf(), 'wall-left');
+    const walls = left.shapes.filter((shape) => shape.kind === 'context');
+    // The eave walls' caps lap over the end wall's top plate at each corner, 95-5/8 to 97-1/8 up.
+    expect(walls.map((shape) => bounds([shape]))).toEqual([
+      { min: [92.5, 95.625], max: [96, 97.125] },
+      { min: [0, 95.625], max: [3.5, 97.125] },
+    ]);
+  });
+});
+
+describe('panel sheets', () => {
+  const raised = shedSchema.parse({
+    ...gableSkid,
+    roof: { ...gableSkid.roof, loft: { enabled: true, joist: '2x6', oc: 16 }, kneeWalls: { enabled: true, height: 36 } },
+  });
+  const drawings = drawingsOf(raised);
+
+  it('gives each panel its own sheet, in build order', () => {
+    expect(drawings.map((drawing) => drawing.id)).toEqual([
+      'foundation', 'floor', 'wall-front', 'wall-back', 'wall-left', 'wall-right',
+      'gable-left', 'gable-right', 'loft', 'knee-front', 'knee-back', 'roof', 'section', 'rafter',
+    ]);
+  });
+
+  it('draws a wall without the panel above it', () => {
+    expect(bounds(find(drawings, 'wall-front').shapes).max[1]).toBe(97.125);
+  });
+
+  it('draws the loft rim, dashed, and the deck edge under a knee wall', () => {
+    const { shapes } = find(drawings, 'knee-front');
+    // The rim on the wall top at 97-1/8, 5-1/2 deep, between the gable-end walls. The deck's edge on
     // top: two sheets, 23/32 thick, under the knee wall at 103-11/32.
-    expect(shapes.filter((shape) => shape.role === 'rim.loft').map((shape) => bounds([shape]))).toEqual([{ min: [3.5, 97.125], max: [116.5, 102.625] }]);
+    expect(shapes.filter((shape) => shape.role === 'rim.loft').map((shape) => [shape.kind, bounds([shape])])).toEqual([
+      ['context', { min: [3.5, 97.125], max: [116.5, 102.625] }],
+    ]);
     expect(shapes.filter((shape) => shape.kind === 'sheet').map((shape) => bounds([shape]))).toEqual([
       { min: [3.5, 102.625], max: [96, 103.34375] },
       { min: [96, 102.625], max: [116.5, 103.34375] },
     ]);
   });
 
-  it('shows the adjacent walls end-on at the corners, for reference', () => {
-    const left = find(drawingsOf(), 'wall-left');
-    const walls = left.shapes.filter((shape) => shape.kind === 'context' && shape.role !== 'rafter');
-    // The eave walls' caps lap over the end wall's top plate at each corner, 95-5/8 to 97-1/8 up.
-    expect(walls.map((shape) => bounds([shape]))).toEqual([
-      { min: [92.5, 95.625], max: [96, 97.125] },
-      { min: [0, 95.625], max: [3.5, 97.125] },
+  it("lays out a gable cut in place from the end wall's bottom plate", () => {
+    const gable = find(drawingsOf(), 'gable-left');
+    expect(gable.dims).toEqual([
+      { kind: 'running', side: 'bottom', tier: 1, origin: 0, at: [15.25, 31.25, 63.25, 79.25] },
+      { kind: 'chain', side: 'bottom', tier: 2, at: [0, 96], feet: true },
+      // From the end wall's top plate to the peak.
+      { kind: 'chain', side: 'right', tier: 1, at: [97.125, 119.46875], feet: true },
     ]);
+    // Dashed: the end wall's top and cap plates, and the end rafters.
+    expect(gable.shapes.filter((shape) => shape.kind === 'context').map((shape) => shape.role)).toEqual(['plate.top', 'plate.cap', 'rafter', 'rafter']);
+  });
+
+  it('lays out a gable panel from its own bottom plate', () => {
+    const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, gablePanel: true } });
+    const [layout, length] = find(drawingsOf(config), 'gable-left').dims;
+    // The plate stops where the 2x4 end rafters clear it, 5-9/16 in from each corner.
+    expect(layout).toMatchObject({ origin: 5.5625, at: [15.25, 31.25, 63.25, 79.25] });
+    expect(length).toMatchObject({ at: [5.5625, 90.4375] });
   });
 });
 
