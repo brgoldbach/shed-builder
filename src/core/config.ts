@@ -41,6 +41,7 @@ export const PURLINS = ['1x4', '2x4'] as const;
 // Main roof: shingles on sheathing, metal on purlins over open rafters, or metal on purlins over
 // sheathing.
 export const ROOFING = ['shingles', 'metal', 'metal-over-sheathing'] as const;
+export const SIDINGS = ['none', 'lap', 't1-11', 'board-batten'] as const;
 export const OPPOSITE = { front: 'back', back: 'front', left: 'right', right: 'left' } as const;
 
 const len = (min: number, max: number) =>
@@ -273,6 +274,19 @@ const prices = z.strictObject({
   roofing: priceTable(DEFAULT_PRICES.roofing).prefault({}),
 });
 
+const color = (fallback: string) => z.string().regex(/^#[0-9a-f]{6}$/i, 'Not a color, e.g. #a0b0c0').default(fallback);
+
+// The look of the shed in 3D only: nothing here changes the framing, cut list, or BOM.
+const finishes = z.strictObject({
+  siding: z.enum(SIDINGS).default('lap'),
+  sidingColor: color('#b8a58a'),
+  trimColor: color('#f4f1ea'), // corner boards, casings, jambs, window frames
+  roofColor: color('#4f5357'),
+  doorColor: color('#7d3a2c'), // doors and garage doors
+  panelLength: len(48, 480).default(120), // longest metal roofing panel
+  metalOverhang: len(0, 12).default(2), // metal roofing past the eave
+});
+
 const catalog = z.strictObject({
   species: z.enum(SPECIES_KEYS).default('spf'), // No. 2 grade, for the span checks
   kerf: len(0, 0.25).default(0.125),
@@ -299,6 +313,7 @@ export const shedSchema = z.strictObject({
   openings: z.array(opening).default([]),
   roof: roof.prefault({}),
   additions: z.array(addition).default([]),
+  finishes: finishes.prefault({}),
   loads: loads.prefault({}),
   catalog: catalog.prefault({}),
 }).superRefine((config, context) => {

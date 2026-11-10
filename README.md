@@ -43,8 +43,8 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 
 | Tab | Content |
 |---|---|
-| Form (left) | Size, front (eave wall or gable end), precut stud height, foundation, floor, walls, openings, roof, loft, knee walls, lean-tos, loads, species, and stock lengths. Each section, group, and list card folds closed to a one-line summary. The loft, knee walls, and ties show their fields only when switched on. |
-| 3D | Each member and sheet, by layer: foundation, floor, walls, gable ends, loft, knee walls, roof, rake ladders, lean-tos, and sheathing. A click on a member selects its cut-list line and shows the piece laid flat, with its cut dimensions. |
+| Form (left) | Size, front (eave wall or gable end), precut stud height, foundation, floor, walls, openings, roof, loft, knee walls, lean-tos, finishes, loads, species, and stock lengths. Each section, group, and list card folds closed to a one-line summary. The loft, knee walls, and ties show their fields only when switched on. |
+| 3D | Each member and sheet, by layer: foundation, floor, walls, gable ends, loft, knee walls, roof, rake ladders, lean-tos, sheathing, siding, roofing, and doors and windows. Framing and Finished switch between the bare frame and the finished look, in the colors under Finishes. A click on a member selects its cut-list line and shows the piece laid flat, with its cut dimensions. |
 | Framing | Foundation plan, an elevation of each wall, gable end, and knee wall, loft and roof plans, a building section, a rafter detail, and a sheet that shows how cut lengths are measured, dimensioned. Zoom opens a drawing to pan and zoom. Download PDF writes the set to scale on Letter or Tabloid sheets, with title blocks. |
 | Cut list | Each part by mark, with its cut notes. Lengths run long point to long point along the board. A click on a line shows the piece laid flat, with its cut dimensions. Print or CSV. |
 | BOM | Lumber by stock length with a cutting plan, sheets, concrete, hardware, and roofing, each with a cost from the unit prices under Lumber catalog in the form, and a total. Print or CSV. |

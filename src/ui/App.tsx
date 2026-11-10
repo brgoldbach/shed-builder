@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { APP_VERSION, parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
 import { LAYERS, layerOf, type Layer } from '../core/member';
+import { buildFinishes } from '../core/gen/finishes';
 import { buildModel } from '../core/model';
 import { naming } from '../core/naming';
 import { buildBom } from '../core/out/bom';
@@ -30,6 +31,11 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id'];
 
 const STORAGE_KEY = 'shed-builder.config';
+// The framing view hides the finishes; the finished view hides only the sheathing under them.
+const VIEWS = {
+  Framing: ['sheathing', 'siding', 'roofing', 'openings'],
+  Finished: ['sheathing'],
+} as const satisfies Record<string, readonly Layer[]>;
 
 function restore(): ShedConfig {
   try {
@@ -61,8 +67,7 @@ export function App() {
   const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
   const [tab, setTab] = useState<TabId>('3d');
   const [selected, setSelected] = useState<string | null>(null);
-  // Sheathing would hide the framing, so it starts hidden.
-  const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(['sheathing']));
+  const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(VIEWS.Framing));
   const [changelogOpen, setChangelogOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -82,6 +87,8 @@ export function App() {
     [model, hidden],
   );
   const shownSolids = useMemo(() => model.solids.filter((solid) => !hidden.has(solid.layer)), [model, hidden]);
+  const finishes = useMemo(() => buildFinishes(config, model), [config, model]);
+  const shownFinishes = useMemo(() => finishes.filter((part) => !hidden.has(part.layer)), [finishes, hidden]);
   const selectedLine = cutList.find((line) => line.mark === selected);
   const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
   const toggle = (mark: string | null) => setSelected((current) => (current === mark ? null : mark));
@@ -199,9 +206,20 @@ export function App() {
           <View3D
             members={shown}
             solids={shownSolids}
+            finishes={shownFinishes}
+            trimColor={hidden.has('siding') ? null : config.finishes.trimColor}
             front={config.front}
             toolbar={
               <div className="layer-toggles">
+                {(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((name) => (
+                  <button
+                    key={name}
+                    aria-pressed={hidden.size === VIEWS[name].length && VIEWS[name].every((layer) => hidden.has(layer))}
+                    onClick={() => setHidden(new Set(VIEWS[name]))}
+                  >
+                    {name}
+                  </button>
+                ))}
                 {(Object.keys(LAYERS) as Layer[]).map((layer) => (
                   <label key={layer}>
                     <input

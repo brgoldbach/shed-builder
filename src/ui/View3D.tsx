@@ -1,11 +1,14 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { ShedConfig } from '../core/config';
+import type { FinishPart } from '../core/gen/finishes';
 import type { Member, Solid } from '../core/member';
 import { FramingScene } from '../view3d/scene';
 
 interface Props {
   members: readonly Member[];
   solids: readonly Solid[];
+  finishes: readonly FinishPart[];
+  trimColor: string | null; // paints the fascia and fly rafters
   front: ShedConfig['front'];
   selected: ReadonlySet<string>;
   onPick: (id: string | null) => void;
@@ -13,7 +16,7 @@ interface Props {
   children?: ReactNode;
 }
 
-export function View3D({ members, solids, front, selected, onPick, toolbar, children }: Props) {
+export function View3D({ members, solids, finishes, trimColor, front, selected, onPick, toolbar, children }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<FramingScene | null>(null);
   const pick = useRef(onPick);
@@ -32,8 +35,8 @@ export function View3D({ members, solids, front, selected, onPick, toolbar, chil
   }, []);
 
   useEffect(() => {
-    view.current?.setModel(members, solids);
-  }, [members, solids]);
+    view.current?.setModel(members, solids, finishes, trimColor);
+  }, [members, solids, finishes, trimColor]);
 
   useEffect(() => {
     view.current?.setSelection(selected);

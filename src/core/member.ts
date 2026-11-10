@@ -15,6 +15,9 @@ export const LAYERS = {
   rake: 'Rake ladders',
   additions: 'Lean-tos',
   sheathing: 'Sheathing',
+  siding: 'Siding',
+  roofing: 'Roofing',
+  openings: 'Doors and windows',
 } as const;
 export type Layer = keyof typeof LAYERS;
 

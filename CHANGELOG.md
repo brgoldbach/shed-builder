@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Finishes:** a Finished view in 3D shows siding (lap, T1-11, or board and batten), shingles or
+  corrugated metal roofing, doors, garage doors, and windows, with corner boards, casings, and
+  painted fascia. Pick the siding, trim, roof, and door colors under Finishes. Metal roofing shows
+  each panel, with end laps where the slope is longer than the longest panel, an overhang past the
+  eaves (2 in by default), and a vented metal ridge cap on a gable roof. Finishes are for the look
+  only: they do not change the framing, cut list, or BOM.
 - **Setup and start scripts:** `./setup.sh` checks for Node.js and npm, then installs, tests, and
   builds. `./start.sh` starts the app and opens it in the browser, and reinstalls the
   dependencies first when a pull changed them.

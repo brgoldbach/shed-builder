@@ -26,6 +26,7 @@ import {
   ROOF_STYLES,
   ROOFING,
   SHEATHING,
+  SIDINGS,
   SKID_SIZES,
   SPACINGS,
   STUD_HEIGHTS,
@@ -40,6 +41,7 @@ import {
   AutoLengthField,
   Card,
   CheckField,
+  ColorField,
   Group,
   LengthField,
   LengthListField,
@@ -65,6 +67,7 @@ type Walls = ShedConfig['walls'];
 type Roof = ShedConfig['roof'];
 type Catalog = ShedConfig['catalog'];
 
+const SIDING_LABELS = { none: 'None', lap: 'Lap siding', 't1-11': 'T1-11', 'board-batten': 'Board and batten' };
 const ROOFING_LABELS = {
   shingles: 'Shingles on sheathing',
   metal: 'Metal on purlins, open',
@@ -166,6 +169,7 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       <Section title="Lean-tos" brief={count(value.additions.length, 'lean-to')}>
         <AdditionsEditor value={value} onChange={onChange} />
       </Section>
+      <FinishesSection value={value} onChange={onChange} />
       <LoadsSection value={value} onChange={onChange} />
       <CatalogSection value={value.catalog} onChange={set('catalog')} />
     </>
@@ -414,6 +418,29 @@ function LoftSection({ value, onChange, names }: SectionProps<Roof> & { names: N
       <Group title="Hatches" brief={count(value.loft.hatches.length, 'hatch', 'hatches')}>
         <HatchesEditor value={value.loft.hatches} onChange={loft('hatches')} names={names} />
       </Group>
+    </Section>
+  );
+}
+
+// The look in 3D: the Finished view shows it.
+function FinishesSection({ value, onChange }: SectionProps<ShedConfig>) {
+  const set = setter(value.finishes, setter(value, onChange)('finishes'));
+  const { finishes } = value;
+  const metal = value.roof.roofing !== 'shingles' || value.additions.some(({ roofing }) => roofing === 'metal');
+  return (
+    <Section title="Finishes" brief={`${SIDING_LABELS[finishes.siding]}, ${value.roof.roofing === 'shingles' ? 'shingles' : 'metal roof'}`}>
+      <p className="muted hint">For the look in 3D only: the Finished view shows them. They do not change the framing, cut list, or BOM.</p>
+      <SelectField label="Siding" value={finishes.siding} options={SIDINGS} describe={(siding) => SIDING_LABELS[siding]} onChange={set('siding')} />
+      {finishes.siding !== 'none' && <ColorField label="Siding color" value={finishes.sidingColor} onChange={set('sidingColor')} />}
+      <ColorField label="Trim color" value={finishes.trimColor} onChange={set('trimColor')} />
+      <ColorField label="Roof color" value={finishes.roofColor} onChange={set('roofColor')} />
+      <ColorField label="Door color" value={finishes.doorColor} onChange={set('doorColor')} />
+      {metal && (
+        <>
+          <LengthField label="Longest metal panel" value={finishes.panelLength} onChange={set('panelLength')} />
+          <LengthField label="Metal past the eaves" value={finishes.metalOverhang} onChange={set('metalOverhang')} />
+        </>
+      )}
     </Section>
   );
 }

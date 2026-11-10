@@ -288,6 +288,12 @@ button {
   justify-self: start;
 }
 
+.field input[type='color'] {
+  width: 48px;
+  height: 26px;
+  padding: 1px 2px;
+}
+
 .field input[aria-invalid='true'] {
   border-color: var(--error);
 }
@@ -491,6 +497,11 @@ button {
   display: flex;
   gap: 4px;
   align-items: center;
+}
+
+.layer-toggles button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .pick-info {

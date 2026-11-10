@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { formatLength, formatMoney, parseLength } from '../core/units';
 
 /** Apply an edit. Returns an error message when the edit is rejected, else null. */
@@ -223,6 +223,23 @@ export function SelectField<T extends string | number>(props: SelectProps<T>) {
     <label className="field">
       <span>{props.label}</span>
       <SelectInput {...props} />
+    </label>
+  );
+}
+
+/** A color picker. It commits when the picker closes, not at each step of a drag. */
+export function ColorField({ label, value, onChange }: FieldProps<string>) {
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const element = input.current!;
+    const commit = () => onChange(element.value);
+    element.addEventListener('change', commit);
+    return () => element.removeEventListener('change', commit);
+  }, [onChange]);
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input ref={input} type="color" key={value} defaultValue={value} />
     </label>
   );
 }

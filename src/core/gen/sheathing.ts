@@ -16,13 +16,13 @@ const Y: Vec3 = [0, 1, 0];
 const UP: Vec3 = [0, 0, 1];
 
 type Span = readonly [number, number];
-interface Rect {
+export interface Rect {
   min: Point;
   max: Point;
 }
 
 // A surface to sheathe, in its own (u, v) plane coordinates. Panels extrude along u × v.
-interface Face {
+export interface Face {
   origin: Vec3;
   u: Vec3;
   v: Vec3;
@@ -120,7 +120,11 @@ function centers(members: readonly Member[], along: (point: Vec3) => number): nu
 // Sheets stand on the outside face from the bottom of the wall. The face takes in the framing
 // flush with it: wall, gable end, knee wall, and loft rim. The eave walls run past each corner to
 // cover the end-wall sheathing edge; the end walls cover the corners, up to the eave walls' tops.
-function wallFace(
+/**
+ * A wall's outside face, gable or knee wall included, in its frame: u along the wall from its
+ * origin, v up. Eave walls reach `thick` past the end walls, to cover their sheet edges.
+ */
+export function wallFace(
   config: ShedConfig,
   wall: Wall,
   frame: Frame,
