@@ -6,6 +6,7 @@ import type { Model } from '../core/model';
 import type { Naming } from '../core/naming';
 import { formatInches } from '../core/units';
 import { depthOf, project, shapesOf, type Dimension, type Drawing, type View } from './drawing';
+import { cutLengthKey } from './piece';
 
 const UP: Vec3 = [0, 0, 1];
 const DOWN: Vec3 = [0, 0, -1];
@@ -41,6 +42,7 @@ export function buildDrawings(
     roofPlan(context),
     buildingSection(context),
     rafterDetail(context),
+    cutLengthKey(model.members, marks),
   ];
   return drawings.filter((drawing) => drawing !== null);
 }
@@ -416,6 +418,13 @@ function rafterDetail({ config, model, marks }: Context): Drawing | null {
       return { kind: 'aligned', from: start, to: finish, offset: 16 };
     }),
   ];
+  // The cut length, long point to long point along the rafter, below it and clear of the seat dimension.
+  const axis = shapes[0].axis!;
+  const along: Point = axis[0] < 0 ? [-axis[0], -axis[1]] : axis;
+  const reach = ([x, y]: Point) => x * along[0] + y * along[1];
+  const tail = points.reduce((best, point) => (reach(point) < reach(best) ? point : best));
+  const ridge = points.reduce((best, point) => (reach(point) > reach(best) ? point : best));
+  dims.push({ kind: 'aligned', from: tail, to: ridge, offset: -56, along });
   const mark = marks.get(rafter.id);
   return makeDrawing('rafter', 'Common rafter', {
     shapes,

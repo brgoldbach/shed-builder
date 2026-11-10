@@ -7,6 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Piece drawings:** a selected piece, in 3D, on a drawing, or in the cut list, shows one of its
+  pieces laid flat: the cut length from long point to long point, each edge shorter than that,
+  and the board width, with its cut notes.
+- **Measuring cut lengths sheet:** the last framing sheet shows a piece of the design for each kind
+  of end cut, dimensioned as the cut list measures it.
+- **Cut length rule:** the cut list and its CSV say how lengths are measured: long point to long
+  point, along the board, the shortest board each piece comes from. The common rafter sheet
+  dimensions that length.
 - **Gable panels:** "Build the gable ends as panels" puts each gable end on its own bottom plate,
   so you can frame it flat and stand it on the end wall. The gable studs are 1-1/2 in shorter.
 - **Main roof roofing:** shingles on sheathing (as before), metal on purlins over open rafters,

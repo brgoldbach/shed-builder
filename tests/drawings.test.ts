@@ -6,6 +6,7 @@ import { naming } from '../src/core/naming';
 import { PRESETS } from '../src/core/presets';
 import { bounds, shapesOf, type Dimension, type Drawing } from '../src/drawings/drawing';
 import { buildDrawings } from '../src/drawings/sheets';
+import { formatInches } from '../src/core/units';
 
 const [gableSkid, leanToPier] = PRESETS;
 const drawingsOf = (config = gableSkid) => buildDrawings(config, buildModel(config), naming(config), new Map());
@@ -96,7 +97,7 @@ describe('panel sheets', () => {
   it('gives each panel its own sheet, in build order', () => {
     expect(drawings.map((drawing) => drawing.id)).toEqual([
       'foundation', 'floor', 'wall-front', 'wall-back', 'wall-left', 'wall-right',
-      'gable-left', 'gable-right', 'loft', 'knee-front', 'knee-back', 'roof', 'section', 'rafter',
+      'gable-left', 'gable-right', 'loft', 'knee-front', 'knee-back', 'roof', 'section', 'rafter', 'cut-lengths',
     ]);
   });
 
@@ -150,9 +151,16 @@ describe('rafter detail', () => {
 
   it('dimensions the birdsmouth seat and heel', () => {
     // 2x4 at 6/12: the seat stops at 1/3 of the depth, 41/16; heel = seat × 6/12.
-    expect(aligned).toHaveLength(4);
+    expect(aligned).toHaveLength(5);
     expect(aligned[2]).toBeCloseTo(2.5625, 9);
     expect(aligned[3]).toBeCloseTo(1.28125, 9);
+  });
+
+  it('dimensions the cut length long point to long point, along the rafter', () => {
+    // The tail and ridge plumb cuts are parallel, so the long points sit on opposite edges.
+    const { from, to, along } = ofKind(rafter, 'aligned')[4];
+    const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
+    expect(formatInches(Math.abs(dx * along![0] + dy * along![1]) / Math.hypot(...along!))).toBe('68"');
   });
 });
 

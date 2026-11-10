@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { APP_VERSION, parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
-import { LAYERS, ROLES, layerOf, type Layer } from '../core/member';
+import { LAYERS, layerOf, type Layer } from '../core/member';
 import { buildModel } from '../core/model';
 import { naming } from '../core/naming';
 import { buildBom } from '../core/out/bom';
-import { buildCutList } from '../core/out/cutlist';
+import { buildCutList, LENGTH_RULE } from '../core/out/cutlist';
 import { bomCsv, cutListCsv } from '../core/out/csv';
 import { checkSpans, spanWarnings } from '../core/out/spans';
 import { PRESETS } from '../core/presets';
-import { formatInches } from '../core/units';
 import { buildDrawings } from '../drawings/sheets';
 import { BomView } from './BomView';
-import { CutListTable, stockLabel } from './CutListTable';
+import { CutListTable } from './CutListTable';
 import { SpanTable } from './SpanTable';
 import { DesignForm } from './DesignForm';
 import { FramingView } from './FramingView';
+import { PieceInfo } from './PieceInfo';
 import { View3D } from './View3D';
 
 const TABS = [
@@ -83,13 +83,8 @@ export function App() {
   const selectedLine = cutList.find((line) => line.mark === selected);
   const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
   const toggle = (mark: string | null) => setSelected((current) => (current === mark ? null : mark));
-  const pickInfo = selectedLine && (
-    <>
-      <strong>{selectedLine.mark}</strong> {names.assembly(selectedLine.assembly).label},{' '}
-      {ROLES[selectedLine.role].toLowerCase()}: {selectedLine.ids.length} × {stockLabel(selectedLine)} at{' '}
-      {formatInches(selectedLine.length)}
-    </>
-  );
+  const selectedMember = selectedLine && model.members.find((member) => member.id === selectedLine.ids[0]);
+  const pickInfo = selectedLine && selectedMember && <PieceInfo line={selectedLine} member={selectedMember} names={names} />;
 
   useEffect(() => {
     try {
@@ -243,7 +238,12 @@ export function App() {
             </button>
             <button onClick={() => window.print()}>Print</button>
           </div>
+          <p className="muted hint cutlist-hint">
+            {LENGTH_RULE} Select a line to see one of its pieces laid flat and dimensioned. The Framing tab's "Measuring cut
+            lengths" sheet shows an example of each kind of end cut.
+          </p>
           <CutListTable lines={cutList} names={names} selected={selected} onSelect={toggle} />
+          {pickInfo && <div className="pick-info sticky">{pickInfo}</div>}
         </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'bom'}>
           <BomView bom={bom} marks={markOf} onCsv={() => download(fileName(config.name, 'bom.csv'), bomCsv(bom), 'text/csv')} />

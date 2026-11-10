@@ -3,7 +3,7 @@ import { ROLES } from '../member';
 import type { Naming } from '../naming';
 import { formatInches, formatLength } from '../units';
 import { sheetLabel, type Bom } from './bom';
-import type { CutLine } from './cutlist';
+import { LENGTH_RULE, type CutLine } from './cutlist';
 
 const cell = (value: string | number) => {
   const text = String(value);
@@ -26,6 +26,7 @@ export function cutListCsv(lines: readonly CutLine[], names: Naming): string {
       formatInches(line.length),
       line.note ?? '',
     ]),
+    [LENGTH_RULE],
   ]);
 }
 

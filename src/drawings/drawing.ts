@@ -32,13 +32,15 @@ export type Side = 'bottom' | 'top' | 'left' | 'right';
 /**
  * - chain: consecutive dimensions between positions along the side's axis, outside the drawing.
  * - running: the distance from `origin` to each position, as a tape reads it.
- * - aligned: one dimension from `from` to `to`, `offset` px to the left of that direction.
+ * - aligned: one dimension from `from` to `to`, `offset` px to the left of that direction. With
+ *   `along`, it measures only the distance along that direction, on a line `offset` px beyond the
+ *   farther of the two points.
  * `tier` 1 is nearest the drawing.
  */
 export type Dimension =
   | { kind: 'chain'; side: Side; tier: number; at: number[]; feet?: boolean }
   | { kind: 'running'; side: Side; tier: number; origin: number; at: number[] }
-  | { kind: 'aligned'; from: Point; to: Point; offset: number };
+  | { kind: 'aligned'; from: Point; to: Point; offset: number; along?: Point };
 
 /** One framing drawing in inches, drawing y up. */
 export interface Drawing {

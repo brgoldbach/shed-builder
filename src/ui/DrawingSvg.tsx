@@ -57,6 +57,13 @@ export function layoutOf(drawing: Drawing, fixedScale?: number) {
   return { scale, width, height, geometry, px, tierOffset };
 }
 
+/** The largest scale, in px per inch and at most `most`, that fits the drawing and its dimensions in `width` × `height` px. */
+export function fitScale(drawing: Drawing, width: number, height: number, most = MAX_SCALE): number {
+  const empty = layoutOf(drawing, 0);
+  const unit = layoutOf(drawing, 1);
+  return Math.min((width - empty.width) / (unit.width - empty.width), (height - empty.height) / (unit.height - empty.height), most);
+}
+
 interface DrawingProps {
   drawing: Drawing;
   selected: ReadonlySet<string>;
@@ -178,18 +185,23 @@ function DimText({ at: [x, y], angle, children }: { at: Point; angle: number; ch
 
 function Aligned({ dim, px }: { dim: Extract<Dimension, { kind: 'aligned' }>; px: (point: Point) => Point }) {
   const [dx, dy] = [dim.to[0] - dim.from[0], dim.to[1] - dim.from[1]];
-  const length = Math.hypot(dx, dy);
+  const [ux, uy] = dim.along ?? [dx, dy];
+  const norm = Math.hypot(ux, uy);
+  const length = Math.abs(dx * ux + dy * uy) / norm;
   // The drawing's left normal, in px with y down.
-  const normal: Point = [-dy / length, -dx / length];
+  const normal: Point = [-uy / norm, -ux / norm];
   const sign = Math.sign(dim.offset);
   const shift = ([x, y]: Point, by: number): Point => [x + normal[0] * by, y + normal[1] * by];
+  const level = ([x, y]: Point) => x * normal[0] + y * normal[1];
   const [from, to] = [px(dim.from), px(dim.to)];
-  const [start, end] = [shift(from, dim.offset), shift(to, dim.offset)];
+  // The dimension line stands `offset` beyond the farther point; without `along` both are as far.
+  const line = (sign > 0 ? Math.max : Math.min)(level(from), level(to)) + dim.offset;
+  const [start, end] = [shift(from, line - level(from)), shift(to, line - level(to))];
   return (
     <>
       {[from, to].map((point, index) => {
         const [x1, y1] = shift(point, sign * 2);
-        const [x2, y2] = shift(point, dim.offset + sign * 4);
+        const [x2, y2] = shift(point, line - level(point) + sign * 4);
         return <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} />;
       })}
       <line x1={start[0]} y1={start[1]} x2={end[0]} y2={end[1]} />

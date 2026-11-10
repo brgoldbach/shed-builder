@@ -3,7 +3,7 @@ import { shedSchema } from '../src/core/config';
 import { DISCLAIMER } from '../src/core/disclaimer';
 import { buildModel } from '../src/core/model';
 import { buildBom, packLumber, packSheets, type Bom } from '../src/core/out/bom';
-import { buildCutList } from '../src/core/out/cutlist';
+import { buildCutList, LENGTH_RULE } from '../src/core/out/cutlist';
 import { bomCsv, cutListCsv } from '../src/core/out/csv';
 import { naming } from '../src/core/naming';
 import { PRESETS } from '../src/core/presets';
@@ -114,6 +114,9 @@ describe('CSV', () => {
     const lines = buildCutList(buildModel(gableSkid).members, naming(gableSkid));
     const [header, first] = cutListCsv(lines, naming(gableSkid)).split('\n');
     expect(header).toBe('Mark,Assembly,Part,Stock,Qty,Length (in),Length,Notes');
+    // How lengths are measured, then the caution, close the file.
+    const rows = cutListCsv(lines, naming(gableSkid)).split('\n');
+    expect(rows.slice(-3, -1)).toEqual([`"${LENGTH_RULE}"`, `"${DISCLAIMER}"`]);
     expect(first).toBe('FD-1,Foundation,Skid,4x6 PT,2,120,"120""",');
   });
 

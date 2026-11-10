@@ -441,6 +441,24 @@ button {
   display: inline-block;
 }
 
+.drawing.piece {
+  max-width: 100%;
+  margin: 6px 0 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.piece-note {
+  max-width: 420px;
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+
+.cutlist-hint {
+  max-width: 960px;
+}
+
 .panel-toolbar {
   display: flex;
   gap: 8px;

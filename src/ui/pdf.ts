@@ -6,7 +6,7 @@ import { APP_VERSION } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
 import type { Drawing } from '../drawings/drawing';
 import { pickScale, pointsPerInch } from '../drawings/scale';
-import { DrawingSvg, layoutOf } from './DrawingSvg';
+import { DrawingSvg, fitScale, layoutOf } from './DrawingSvg';
 
 export type Paper = 'letter' | 'tabloid';
 
@@ -67,10 +67,7 @@ export async function plansPdf(drawings: readonly Drawing[], designName: string,
 
     // A standard scale when one fits, else the scale that fills the area.
     const scale = pickScale((points) => layoutOf(drawing, points), area);
-    const empty = layoutOf(drawing, 0);
-    const unit = layoutOf(drawing, 1);
-    const fill = Math.min((area.width - empty.width) / (unit.width - empty.width), (area.height - empty.height) / (unit.height - empty.height));
-    const points = scale ? pointsPerInch(scale) : fill;
+    const points = scale ? pointsPerInch(scale) : fitScale(drawing, area.width, area.height, Infinity);
     const { width, height } = layoutOf(drawing, points);
     await svg2pdf(svgOf(drawing, points), doc, { x: MARGIN + (area.width - width) / 2, y: MARGIN + (area.height - height) / 2, width, height });
 

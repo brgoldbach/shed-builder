@@ -16,6 +16,10 @@ export interface CutLine {
 
 const ROLE_ORDER = Object.keys(ROLES);
 
+/** How the cut list measures a piece. */
+export const LENGTH_RULE =
+  'Cut lengths run long point to long point, measured along the board: the shortest board each piece comes from.';
+
 /**
  * Group members into cut lines: by assembly, then role, then longest first. Lengths round to
  * 1/16 in. Assembly order and mark prefixes follow the user's side names.
