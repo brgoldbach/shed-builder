@@ -15,6 +15,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Hosting:** the README explains how to host the app free on Cloudflare, with a rebuild on each
   push to `main`. `.nvmrc` pins Node 26 for the host's build.
 
+### Changed
+
+- **Saved files and links hold only what the design uses:** Save and Copy link leave out the
+  settings the design does not use, such as a slab's skid, pier, and floor settings or a loft's
+  details when there is no loft, and every value at its default. The B and B shed's file drops from
+  5,754 to 2,110 bytes, and its link from 1,000 to 745 characters. Older files and links still load.
+
 ### Removed
 
 - **B and B shed preset:** share its design by link or file instead. The tests keep it as a fixture.

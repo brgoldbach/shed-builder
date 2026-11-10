@@ -10,7 +10,7 @@ import { buildCutList, LENGTH_RULE } from '../core/out/cutlist';
 import { bomCsv, cutListCsv } from '../core/out/csv';
 import { checkSpans, spanWarnings } from '../core/out/spans';
 import { PRESETS } from '../core/presets';
-import { designFromLink, designToLink, LINK_KEY, linkData } from '../core/share';
+import { designFileText, designFromLink, designToLink, LINK_KEY, linkData } from '../core/share';
 import { buildDrawings } from '../drawings/sheets';
 import { BomView } from './BomView';
 import { ChangelogDialog } from './ChangelogDialog';
@@ -211,7 +211,7 @@ export function App() {
             ))}
           </select>
           <button onClick={() => fileInput.current?.click()}>Open…</button>
-          <button onClick={() => download(fileName(config.name, 'shed.json'), serializeConfig(config))}>Save</button>
+          <button onClick={() => download(fileName(config.name, 'shed.json'), designFileText(config))}>Save</button>
           <button title="Copy a link that opens this design" disabled={!shareLink} onClick={() => shareLink && copyLink(shareLink)}>
             {copied ? 'Link copied' : 'Copy link'}
           </button>

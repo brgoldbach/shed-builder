@@ -86,10 +86,15 @@ A failed build leaves the last good deployment live. To push without a deploymen
 ## Design files
 
 Save writes the design as a JSON file, and Open loads one. The app also keeps the last design in
-the browser's storage. The `presets/` folder holds the examples that "New from preset" loads.
+the browser's storage, whole, so a setting you switch away from and back keeps its value. The
+`presets/` folder holds the examples that "New from preset" loads.
 
-Copy link puts the whole design in a link: the part after `#design=` holds it, compressed, with
-only the settings that differ from the defaults. Nothing is stored on a server, and the part after
+A saved file and a link hold only the settings the design uses, such as the active foundation type's
+settings, and of those only the ones that differ from the defaults. Opening fills every missing
+setting with its default, so older, fuller files and links still load.
+
+Copy link puts the whole design in a link: the part after `#design=` holds it, compressed. Nothing
+is stored on a server, and the part after
 `#` never leaves the browser. Opening the link loads the design; when the browser already has one,
 the app asks first. A link is a copy of the design at the time it was made. The PDF plans end with
 an "Open this design" sheet: the same link as a QR code, up to 5 in across, for a phone camera.
