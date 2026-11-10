@@ -82,7 +82,8 @@ button {
   border-bottom: 1px solid var(--border);
 }
 
-.topbar h1 {
+.topbar h1,
+.topbar .version {
   white-space: nowrap;
 }
 

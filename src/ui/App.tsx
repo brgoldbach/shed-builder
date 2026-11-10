@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
+import { APP_VERSION, parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
 import { ASSEMBLIES, LAYERS, ROLES, type Layer } from '../core/member';
 import { buildModel } from '../core/model';
@@ -130,6 +130,7 @@ export function App() {
     >
       <header className="topbar">
         <h1>Shed Builder</h1>
+        <span className="muted version">v{APP_VERSION}</span>
         <span className="muted title">{config.name}</span>
         <div className="actions">
           <select

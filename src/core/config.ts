@@ -1,8 +1,12 @@
 import { z } from 'zod';
+import { version } from '../../package.json';
 import { LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
 import { formatLength } from './units';
 
 // All lengths are inches.
+
+/** The app's release version (semver). Each saved file records it. */
+export const APP_VERSION = version;
 
 export const SPACINGS = [12, 16, 19.2, 24] as const;
 export const STUD_HEIGHTS = [...PRECUT_STUDS, 'custom'] as const;
@@ -252,7 +256,7 @@ const catalog = z.strictObject({
 });
 
 export const shedSchema = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(1), // goes up only when an older file needs an upgrade step to load
   name: z.string().trim().min(1, 'Required').default('Untitled shed'),
   width: len(48, 480).default(120), // front to back
   length: len(48, 480).default(144), // left to right
@@ -312,8 +316,16 @@ export type ParseResult = { ok: true; config: ShedConfig } | { ok: false; errors
 const keepWallHeight = (raw: unknown) =>
   raw !== null && typeof raw === 'object' && 'wallHeight' in raw && !('studHeight' in raw) ? { ...raw, studHeight: 'custom' } : raw;
 
+// The saving app's version is for people who read the file. The design does not keep it.
+function withoutAppVersion(raw: unknown): unknown {
+  if (raw === null || typeof raw !== 'object' || !('appVersion' in raw)) return raw;
+  const copy = { ...raw };
+  Reflect.deleteProperty(copy, 'appVersion');
+  return copy;
+}
+
 export function parseConfig(raw: unknown): ParseResult {
-  const result = shedSchema.safeParse(keepWallHeight(raw));
+  const result = shedSchema.safeParse(keepWallHeight(withoutAppVersion(raw)));
   if (result.success) return { ok: true, config: result.data };
   const errors = result.error.issues.map(
     (issue) => `${issue.path.join('.') || 'file'}: ${issue.message}`,
@@ -331,6 +343,8 @@ export function parseConfigText(text: string): ParseResult {
   return parseConfig(raw);
 }
 
+/** The design as file text, with the version of the app that saved it after the schema version. */
 export function serializeConfig(config: ShedConfig): string {
-  return `${JSON.stringify(config, null, 2)}\n`;
+  const { schemaVersion, ...design } = config;
+  return `${JSON.stringify({ schemaVersion, appVersion: APP_VERSION, ...design }, null, 2)}\n`;
 }

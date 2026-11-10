@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseConfig, parseConfigText, serializeConfig } from '../src/core/config';
+import { APP_VERSION, parseConfig, parseConfigText, serializeConfig } from '../src/core/config';
 import { PRESETS } from '../src/core/presets';
 
 describe('parseConfig', () => {
@@ -63,6 +63,15 @@ describe('parseConfig', () => {
 
   it('rejects text that is not JSON', () => {
     expect(parseConfigText('{')).toEqual({ ok: false, errors: ['Not valid JSON'] });
+  });
+
+  it('records the saving app version after the schema version, and ignores it on load', () => {
+    const [preset] = PRESETS;
+    expect(Object.keys(JSON.parse(serializeConfig(preset))).slice(0, 3)).toEqual(['schemaVersion', 'appVersion', 'name']);
+    expect(JSON.parse(serializeConfig(preset)).appVersion).toBe(APP_VERSION);
+    expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+    const older = parseConfig({ schemaVersion: 1, appVersion: '0.0.1' });
+    expect(older.ok && 'appVersion' in older.config).toBe(false);
   });
 });
 
