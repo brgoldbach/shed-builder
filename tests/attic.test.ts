@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
 import { frameRoof } from '../src/core/gen/roof';
-import { corners, type Member, type Role } from '../src/core/member';
+import { corners, layerOf, type Member, type Role } from '../src/core/member';
 
 // 8 x 10 ft, 2x4 walls with 92-5/8 in studs and a cap plate: plate tops at 97-1/8 in.
 // Gable 6/12, 2x6 rafters at 24 in (seat 3-1/2, plumb 6.149), 2x8 ridge. The rafter top edge is at
@@ -136,6 +136,16 @@ describe('knee walls raise the roof', () => {
     // Layout 16 and 80: rafter underside 145.969, less 1.677, less the end-wall plate at 97-1/8.
     const layout = ofRole(left, 'stud.gable').filter(({ note }) => note?.startsWith('Top cut'));
     expect(Math.min(...layout.map((stud) => stud.length))).toBeCloseTo(47.1667, 3);
+  });
+
+  it('shows gable ends, knee walls, and rake ladders on their own 3D layers', () => {
+    const layers = (role: Role, assembly?: string) =>
+      new Set(members.filter((member) => member.role === role && (!assembly || member.assembly.startsWith(assembly))).map(layerOf));
+    expect(layers('stud.gable')).toEqual(new Set(['gables']));
+    expect(layers('stud', 'knee')).toEqual(new Set(['knee']));
+    expect(layers('rail.ladder')).toEqual(new Set(['rake']));
+    expect(layers('lookout')).toEqual(new Set(['rake']));
+    expect(layers('rafter')).toEqual(new Set(['roof']));
   });
 
   it('seats the gable-end rafters on the lap with the same birdsmouth as the others', () => {

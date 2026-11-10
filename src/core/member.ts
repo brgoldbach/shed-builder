@@ -3,12 +3,16 @@ import { LUMBER, type LumberSize, type SheetKey } from './catalog';
 export type Vec3 = readonly [number, number, number];
 export type Point = readonly [number, number];
 
+// In build order, as the 3D view's toggles show them.
 export const LAYERS = {
   foundation: 'Foundation',
   floor: 'Floor',
   walls: 'Walls',
-  roof: 'Roof',
+  gables: 'Gable ends',
   loft: 'Loft',
+  knee: 'Knee walls',
+  roof: 'Roof',
+  rake: 'Rake ladders',
   additions: 'Lean-tos',
   sheathing: 'Sheathing',
 } as const;
@@ -22,12 +26,12 @@ export const ASSEMBLIES = {
   'wall.back': { label: 'Back wall', prefix: 'BW', layer: 'walls' },
   'wall.left': { label: 'Left wall', prefix: 'LW', layer: 'walls' },
   'wall.right': { label: 'Right wall', prefix: 'RW', layer: 'walls' },
-  'gable.left': { label: 'Left gable end', prefix: 'GL', layer: 'roof' },
-  'gable.right': { label: 'Right gable end', prefix: 'GR', layer: 'roof' },
+  'gable.left': { label: 'Left gable end', prefix: 'GL', layer: 'gables' },
+  'gable.right': { label: 'Right gable end', prefix: 'GR', layer: 'gables' },
   roof: { label: 'Roof', prefix: 'RF', layer: 'roof' },
   loft: { label: 'Loft', prefix: 'LF', layer: 'loft' },
-  'knee.front': { label: 'Front knee wall', prefix: 'KF', layer: 'loft' },
-  'knee.back': { label: 'Back knee wall', prefix: 'KB', layer: 'loft' },
+  'knee.front': { label: 'Front knee wall', prefix: 'KF', layer: 'knee' },
+  'knee.back': { label: 'Back knee wall', prefix: 'KB', layer: 'knee' },
   'addition.front': { label: 'Front lean-to', prefix: 'AF', layer: 'additions' },
   'addition.back': { label: 'Back lean-to', prefix: 'AB', layer: 'additions' },
   'addition.left': { label: 'Left lean-to', prefix: 'AL', layer: 'additions' },
@@ -128,6 +132,14 @@ export interface Member {
   axes: { length: Vec3; width: Vec3; thick: Vec3 };
   profile?: { points: readonly Point[]; depth: number };
   note?: string; // shop instruction for the cut list
+}
+
+// The rake ladder's parts are roof members on a layer of their own.
+const RAKE_ROLES = new Set<Role>(['rafter.fly', 'rail.ladder', 'lookout']);
+
+/** The 3D layer a member shows on. */
+export function layerOf(member: Member): Layer {
+  return RAKE_ROLES.has(member.role) ? 'rake' : ASSEMBLIES[member.assembly].layer;
 }
 
 /** A member's corners: its profile on both faces, or its eight box corners. */

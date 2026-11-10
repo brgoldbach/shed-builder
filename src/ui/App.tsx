@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { APP_VERSION, parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
-import { ASSEMBLIES, LAYERS, ROLES, type Layer } from '../core/member';
+import { LAYERS, ROLES, layerOf, type Layer } from '../core/member';
 import { buildModel } from '../core/model';
 import { naming } from '../core/naming';
 import { buildBom } from '../core/out/bom';
@@ -76,7 +76,7 @@ export function App() {
   const spans = useMemo(() => checkSpans(config, model, names), [config, model, names]);
   const warnings = [...model.warnings, ...bom.warnings, ...spanWarnings(spans, config)];
   const shown = useMemo(
-    () => model.members.filter((member) => !hidden.has(ASSEMBLIES[member.assembly].layer)),
+    () => model.members.filter((member) => !hidden.has(layerOf(member))),
     [model, hidden],
   );
   const shownSolids = useMemo(() => model.solids.filter((solid) => !hidden.has(solid.layer)), [model, hidden]);
@@ -227,7 +227,13 @@ export function App() {
           </View3D>
         </section>
         <section className="panel framing" role="tabpanel" hidden={tab !== 'framing'}>
-          <FramingView drawings={drawings} selected={selectedIds} onPick={(id) => toggle(markOf.get(id) ?? null)} />
+          <FramingView
+            drawings={drawings}
+            selected={selectedIds}
+            onPick={(id) => toggle(markOf.get(id) ?? null)}
+            designName={config.name}
+            pdfName={fileName(config.name, 'plans.pdf')}
+          />
           {pickInfo && <div className="pick-info sticky">{pickInfo}</div>}
         </section>
         <section className="panel" role="tabpanel" hidden={tab !== 'cutlist'}>

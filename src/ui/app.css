@@ -467,8 +467,57 @@ button {
 }
 
 .drawing figcaption {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 8px;
   font-weight: 600;
+}
+
+.drawing figcaption button {
+  font-weight: normal;
+}
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.viewer-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.viewer-bar .muted {
+  margin-right: auto;
+  font-size: 0.85rem;
+}
+
+.viewer-canvas.drawing {
+  position: relative;
+  flex: 1;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg);
+  border: none;
+  border-radius: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.viewer-art {
+  position: absolute;
 }
 
 .drawing svg {
@@ -675,6 +724,11 @@ button {
 
   .print-only {
     display: block;
+  }
+
+  .viewer,
+  .drawing figcaption button {
+    display: none !important;
   }
 
   .drawing .notice {

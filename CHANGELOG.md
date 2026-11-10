@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **PDF plans:** "Download PDF" on the Framing tab writes every drawing as one sheet, on Letter or
+  Tabloid paper, landscape. Each sheet gets the largest architectural scale that fits and a title
+  block: design, sheet title and number, scale, date, app version, and the notice.
+- **Drawing zoom:** "Zoom" opens a drawing over the whole window. The wheel or a pinch zooms about
+  the pointer, a drag pans, and Esc closes it.
+- **3D layers:** Gable ends, Knee walls, and Rake ladders each have their own toggle, apart from
+  Roof and Loft.
 - **Rake ladder options:** "Lookout at the fascia" puts a lookout at each fascia end of a ladder.
   "Ridge runs out to the fly rafters" (on by default) can be turned off: the ridge board then stops
   at the gable framing, the fly rafters and rails meet at the ridge line, and a plumb block at the
