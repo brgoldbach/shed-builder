@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Gable panels:** "Build the gable ends as panels" puts each gable end on its own bottom plate,
+  so you can frame it flat and stand it on the end wall. The gable studs are 1-1/2 in shorter.
 - **Main roof roofing:** shingles on sheathing (as before), metal on purlins over open rafters,
   or metal on purlins over the sheathing. Purlins are 1x4 or 2x4 flat, evenly spaced up each
   slope at most the purlin spacing apart, rake to rake.

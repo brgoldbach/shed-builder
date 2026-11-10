@@ -445,13 +445,15 @@ function frameGableEnds(
   slope: Slope,
   sides: Side[],
   gable: boolean,
-  plateTop: number,
+  wallTop: number,
   wallDepth: number,
   bearingDepth: number,
   raised: boolean,
   warnings: Warning[],
 ): { members: Member[]; openings: RoughOpening[] } {
   const { width, length, walls, roof } = config;
+  // The gable framing stands on the end wall's top plate, or on its own bottom plate as a panel.
+  const plateTop = wallTop + (roof.gablePanel ? PLY : 0);
   const { pitch } = slope;
   const members: Member[] = [];
   const openings: RoughOpening[] = [];
@@ -475,6 +477,7 @@ function frameGableEnds(
   const cornerTop = raised && walls.capPlate ? base - PLY : base;
   const support = raised ? cornerTop : plateTop;
   const meet = slope.seat + (support + plateThick - base) / pitch.rise;
+  const tip = slope.seat + Math.max(0, support - base) / pitch.rise; // where the end rafter clears the support
   const low = raised ? (walls.capPlate ? Math.max(slope.seat, bearingDepth) : slope.seat) : Math.max(meet, bearingDepth);
   const levelCut = raised ? slope.bottom(low) - plateThick < support : meet >= bearingDepth;
   const cornerLength = Math.max(bearingDepth + PLY, levelCut ? meet : low);
@@ -482,11 +485,11 @@ function frameGableEnds(
   const high = gable ? (post ? post[0] : width / 2) : width - wallDepth;
   const highEnd = `${degrees(pitch)} at the ${gable ? 'ridge post' : 'high wall'}`;
   const plateOutline: Point[] = levelCut
-    ? [[raised ? low : slope.seat, support], [meet, support], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)], [low, slope.bottom(low)]]
+    ? [[raised ? low : tip, support], [meet, support], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)], [low, slope.bottom(low)]]
     : [[low, slope.bottom(low) - plateThick], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)], [low, slope.bottom(low)]];
   const lowEndNote = raised
     ? `${walls.capPlate ? "Plumb cut against the knee wall's cap plate, level" : 'Level'} cut on the corner plate`
-    : 'Level cut on the wall plate';
+    : `Level cut on the ${roof.gablePanel ? 'bottom' : 'wall'} plate`;
   const plateNote = levelCut
     ? `${lowEndNote}. Plumb cut ${highEnd}.`
     : `Plumb cuts ${degrees(pitch)} at the ${raised ? 'knee wall' : "eave wall's inside face"} and ${highEnd}.`;
@@ -555,6 +558,15 @@ function frameGableEnds(
         const dir: Point = [finish[0] - start[0], finish[1] - start[1]];
         members.push(make('plate.gable', 'TP', plateOutline.map(toPlane), dir, plateNote));
       }
+    }
+    // A panel's bottom plate, under the whole gable: to the corners on a raised roof, else from
+    // where the end rafter clears it to the ridge's far side or the high wall.
+    if (roof.gablePanel) {
+      const reach = raised ? 0 : tip;
+      const ys = gable ? [reach, width - reach] : [reach, high].map((y) => sides[0].map(y));
+      const [first, last] = ys.map((y) => end.toY(y)).sort((one, other) => one - other);
+      const plate: Point[] = [[first, wallTop], [last, wallTop], [last, plateTop], [first, plateTop]];
+      members.push(make('plate.bottom', 'BP', plate, [1, 0], "Bottom plate of the gable panel. Nail it down to the end wall's top plate."));
     }
     // At each eave corner: the corner plate, on an end stud and a stud at the knee wall's inside face.
     if (raised) {

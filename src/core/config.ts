@@ -147,6 +147,7 @@ const roof = z.strictObject({
   fascia: z.enum(FASCIA).default('2x6'),
   sheathing: z.enum(SHEATHING).default('osb-7/16'),
   roofing: z.enum(ROOFING).default('shingles'),
+  gablePanel: z.boolean().default(false), // gable ends built as panels, on their own bottom plates
   purlin: z.enum(PURLINS).default('1x4'),
   purlinSpacing: len(12, 48).default(24), // along the slope, center to center
   rakeLadder: z

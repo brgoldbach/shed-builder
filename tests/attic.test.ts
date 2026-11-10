@@ -138,6 +138,15 @@ describe('knee walls raise the roof', () => {
     expect(Math.min(...layout.map((stud) => stud.length))).toBeCloseTo(47.1667, 3);
   });
 
+  it('runs the gable panel bottom plate to the corners, under the corner studs', () => {
+    const left = roofOf({ loft, kneeWalls: { enabled: true, height: 36 }, gablePanel: true }).members.filter((member) => member.assembly === 'gable.left');
+    const [plate] = ofRole(left, 'plate.bottom');
+    expect(plate.length).toBe(96);
+    // Corner studs stand on it: 39-7/32 less 1-1/2.
+    const cornerStuds = ofRole(left, 'stud.gable').filter(({ note }) => note === 'Square cut. Under the corner plate.');
+    expect(cornerStuds.map(({ length }) => length)).toEqual(new Array(4).fill(37.71875));
+  });
+
   it('shows gable ends, knee walls, and rake ladders on their own 3D layers', () => {
     const layers = (role: Role, assembly?: string) =>
       new Set(members.filter((member) => member.role === role && (!assembly || member.assembly.startsWith(assembly))).map(layerOf));

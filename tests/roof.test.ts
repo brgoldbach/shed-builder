@@ -121,6 +121,24 @@ describe('gable roof', () => {
     expect(high.note).toBe('Over the roof sheathing: fasten through it into the rafters.');
   });
 
+  it('builds the gable ends as panels on their own bottom plates when chosen', () => {
+    const gableStuds = (members: Member[]) => members.filter((member) => member.assembly === 'gable.left' && member.role === 'stud.gable');
+    const { members } = roofOf({ ...gableRoof, gablePanel: true });
+    const left = members.filter((member) => member.assembly === 'gable.left');
+    // On the end wall's top at 97-1/8, from where the end rafter's underside clears it: the 3-1/2 in
+    // seat plus 1-1/2 / (6/12), 6-1/2 in from each wall face.
+    const [plate] = ofRole(left, 'plate.bottom');
+    const ys = corners(plate).map(([, y]) => y);
+    expect([Math.min(...ys), Math.max(...ys)]).toEqual([6.5, 89.5]);
+    expect(Math.min(...corners(plate).map(([, , z]) => z))).toBe(97.125);
+    expect(ofRole(left, 'plate.gable')[0].note).toBe('Level cut on the bottom plate. Plumb cut 26.6° at the ridge post.');
+    // The gable studs stand 1-1/2 in higher. The two shortest, 3.45 in now, drop under the 3 in
+    // minimum and are left out.
+    const longest = (studs: Member[]) => Math.max(...studs.map(({ length }) => length));
+    expect(longest(gableStuds(members))).toBeCloseTo(longest(gableStuds(roofOf(gableRoof).members)) - 1.5, 9);
+    expect(gableStuds(members)).toHaveLength(gableStuds(roofOf(gableRoof).members).length - 2);
+  });
+
   it('puts a lookout at the fascia when chosen', () => {
     const { members } = roofOf({ ...gableRoof, rakeLadder: { fasciaLookouts: true } });
     expect(ofRole(members, 'lookout')).toHaveLength(12);

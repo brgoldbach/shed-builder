@@ -266,6 +266,7 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
           <LengthField label="Purlin spacing" value={value.purlinSpacing} onChange={set('purlinSpacing')} />
         </>
       )}
+      <CheckField label="Build the gable ends as panels" value={value.gablePanel} onChange={set('gablePanel')} />
       <SelectField label="Rake ladder" value={value.rakeLadder.size} options={TWO_BY} onChange={ladder('size')} />
       <SelectField label="Lookout o.c. (in)" value={value.rakeLadder.spacing} options={SPACINGS} onChange={ladder('spacing')} />
       {value.style === 'gable' && (
