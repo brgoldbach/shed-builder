@@ -62,8 +62,14 @@ STOCK 2x6 12' 0" x3
 SHEETS 7/16" OSB, 4×8 x17
 SHEETS 23/32" T&G (3/4"), 4×8 x3
 ITEM Hurricane tie, rafter to plate: 12 ea
-ITEM Roof area: 129.9 sq ft
+ITEM Roof area, shingles: 129.9 sq ft
 ITEM Drip edge: 45.6 ft
+COST lumber $488.09
+COST sheets $382.50
+COST concrete $0.00
+COST hardware $9.00
+COST roofing $263.25
+COST total $1,142.84
 SPAN Rafters: 2x4 at 24" o.c. 44-11/16" of 96-1/8" (bending)
 SPAN Floor joists: 2x6 at 16" o.c. 89" of 111-13/16" (deflection)
 SPAN window 24x36 header (front wall): 2-ply 2x8 24" of 145-1/2" (bending)

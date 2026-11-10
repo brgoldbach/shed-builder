@@ -1,4 +1,14 @@
-import { LUMBER_SIZES, SHEETS, SHEET_KEYS, SPECIES, SPECIES_KEYS, TWO_BY, stockLengths } from '../core/catalog';
+import {
+  LUMBER_SIZES,
+  SHEETS,
+  SHEET_KEYS,
+  SPECIES,
+  SPECIES_KEYS,
+  TWO_BY,
+  stockLengths,
+  type LumberSize,
+  type SheetKey,
+} from '../core/catalog';
 import {
   CORNERS,
   FASCIA,
@@ -25,7 +35,7 @@ import {
   WALLS,
   type ShedConfig,
 } from '../core/config';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   AutoLengthField,
   Card,
@@ -34,6 +44,7 @@ import {
   LengthField,
   LengthListField,
   NumberField,
+  PriceField,
   Section,
   SelectField,
   TextField,
@@ -44,7 +55,7 @@ import {
 } from './fields';
 import { studLengths, wallTops, type Wall } from '../core/gen/walls';
 import { naming, type Naming } from '../core/naming';
-import { formatInches, formatLength } from '../core/units';
+import { formatInches, formatLength, formatMoney } from '../core/units';
 import { AdditionsEditor } from './AdditionsEditor';
 import { OpeningRowsEditor, OpeningTypesEditor } from './OpeningsEditor';
 
@@ -80,6 +91,20 @@ const STUD_HEIGHT_LABELS: Record<(typeof STUD_HEIGHTS)[number], string> = {
   116.625: '10 ft (116-5/8")',
   custom: 'Custom',
 };
+
+const LUMBER_PRICE_LABELS = Object.fromEntries(LUMBER_SIZES.map((size) => [size, `${size}, per ft`])) as Record<LumberSize, string>;
+const SHEET_PRICE_LABELS = Object.fromEntries(SHEET_KEYS.map((key) => [key, SHEETS[key].label])) as Record<SheetKey, string>;
+const CONCRETE_PRICE_LABELS = { bag: '80 lb bag', readyMix: 'Ready-mix, per cu yd', formTube: 'Form tube' };
+const HARDWARE_PRICE_LABELS = {
+  anchorBolt: 'Anchor bolt',
+  hurricaneTie: 'Hurricane tie',
+  postBase: 'Post base',
+  postCap: 'Post cap',
+  joistHanger: 'Joist hanger',
+  doubleHanger: 'Double joist hanger',
+  lag: 'Ledger lag screw',
+};
+const ROOFING_PRICE_LABELS = { shingles: 'Shingles, per sq ft', metal: 'Metal panels, per sq ft', dripEdge: 'Drip edge, per ft' };
 
 const sheetLabel = (key: (typeof SHEATHING)[number]) => (key === 'none' ? 'None' : SHEETS[key].label);
 const noneLabel = (option: string) => (option === 'none' ? 'None' : option);
@@ -439,6 +464,8 @@ function LoadsSection({ value, onChange }: SectionProps<ShedConfig>) {
 
 function CatalogSection({ value, onChange }: SectionProps<Catalog>) {
   const set = setter(value, onChange);
+  const prices = setter(value.prices, set('prices'));
+  const { lumber, sheets, concrete, hardware, roofing } = value.prices;
   return (
     <Section title="Lumber catalog" brief={`Stock to ${formatLength(value.maxLength)}`}>
       <LengthField label="Saw kerf" value={value.kerf} onChange={set('kerf')} />
@@ -464,7 +491,61 @@ function CatalogSection({ value, onChange }: SectionProps<Catalog>) {
           }}
         />
       ))}
+      <p className="muted hint">
+        Prices are US dollars, before tax and delivery. The defaults are US home-center prices from November 2026. Check them
+        against a local yard.
+      </p>
+      <PriceGroup title="Lumber prices" brief={`2x4 ${formatMoney(lumber['2x4'])}/ft`} labels={LUMBER_PRICE_LABELS} value={lumber} onChange={prices('lumber')}>
+        <NumberField label="Treated markup (%)" value={value.prices.treatedMarkup} onChange={prices('treatedMarkup')} />
+      </PriceGroup>
+      <PriceGroup
+        title="Sheet prices"
+        brief={`OSB ${formatMoney(sheets['osb-7/16'])}`}
+        labels={SHEET_PRICE_LABELS}
+        value={sheets}
+        onChange={prices('sheets')}
+      />
+      <PriceGroup
+        title="Concrete prices"
+        brief={`${formatMoney(concrete.bag)} a bag`}
+        labels={CONCRETE_PRICE_LABELS}
+        value={concrete}
+        onChange={prices('concrete')}
+      />
+      <PriceGroup
+        title="Hardware prices"
+        brief={`Hurricane tie ${formatMoney(hardware.hurricaneTie)}`}
+        labels={HARDWARE_PRICE_LABELS}
+        value={hardware}
+        onChange={prices('hardware')}
+      />
+      <PriceGroup
+        title="Roofing prices"
+        brief={`Shingles ${formatMoney(roofing.shingles)}/sq ft`}
+        labels={ROOFING_PRICE_LABELS}
+        value={roofing}
+        onChange={prices('roofing')}
+      />
     </Section>
+  );
+}
+
+interface PriceGroupProps<K extends string> extends SectionProps<Record<K, number>> {
+  title: string;
+  brief: string;
+  labels: Record<K, string>;
+  children?: ReactNode;
+}
+
+function PriceGroup<K extends string>({ title, brief, labels, value, onChange, children }: PriceGroupProps<K>) {
+  const set = setter(value, onChange);
+  return (
+    <Group title={title} brief={brief}>
+      {(Object.keys(labels) as K[]).map((key) => (
+        <PriceField key={key} label={labels[key]} value={value[key]} onChange={set(key)} />
+      ))}
+      {children}
+    </Group>
   );
 }
 

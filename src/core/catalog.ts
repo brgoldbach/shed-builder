@@ -63,6 +63,23 @@ export const SHEETS: Record<SheetKey, { label: string; thick: number }> = {
   'tg-23/32': { label: '23/32" T&G (3/4")', thick: 23 / 32 },
 };
 
+/**
+ * Default unit prices in US dollars, before tax and delivery: US home-center retail as searched in
+ * November 2026 (plan, section 5.4). Lumber is per linear foot, untreated; treated adds
+ * `treatedMarkup` percent. Check them against a local yard.
+ */
+export const DEFAULT_PRICES = {
+  lumber: { '1x4': 0.45, '2x4': 0.45, '2x6': 0.75, '2x8': 1.05, '2x10': 1.5, '2x12': 2, '4x4': 1.4, '4x6': 2.1, '6x6': 3.5 } satisfies Record<
+    LumberSize,
+    number
+  >,
+  treatedMarkup: 50,
+  sheets: { 'osb-7/16': 16.5, 'ply-15/32': 28, 'ply-19/32': 35, 'tg-23/32': 34 } satisfies Record<SheetKey, number>,
+  concrete: { bag: 6, readyMix: 165, formTube: 16 }, // 80 lb bag; per cu yd, delivered; each
+  hardware: { anchorBolt: 2.5, hurricaneTie: 0.75, postBase: 9, postCap: 9, joistHanger: 1.6, doubleHanger: 3, lag: 1.25 },
+  roofing: { shingles: 1.5, metal: 1.75, dripEdge: 1.5 }, // per sq ft, per sq ft, per ft
+};
+
 export const SPECIES_KEYS = ['spf', 'dfl', 'hf', 'sp'] as const;
 export type Species = (typeof SPECIES_KEYS)[number];
 

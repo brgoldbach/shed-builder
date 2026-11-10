@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { version } from '../../package.json';
-import { LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
+import { DEFAULT_PRICES, LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
 import { formatLength } from './units';
 
 // All lengths are inches.
@@ -257,12 +257,29 @@ const loads = z.strictObject({
   loft: z.enum(LOFT_USES).default('storage'),
 });
 
+const money = (fallback: number) => z.number().min(0, 'Min 0').max(10_000, 'Max 10000').default(fallback);
+// A price for each key, each with its own default, so a file may give only some.
+const priceTable = <K extends string>(defaults: Record<K, number>) =>
+  z.strictObject(
+    Object.fromEntries(Object.entries<number>(defaults).map(([key, value]) => [key, money(value)])) as Record<K, ReturnType<typeof money>>,
+  );
+
+const prices = z.strictObject({
+  lumber: priceTable(DEFAULT_PRICES.lumber).prefault({}), // per linear foot, untreated
+  treatedMarkup: z.number().min(0, 'Min 0').max(500, 'Max 500').default(DEFAULT_PRICES.treatedMarkup), // percent
+  sheets: priceTable(DEFAULT_PRICES.sheets).prefault({}),
+  concrete: priceTable(DEFAULT_PRICES.concrete).prefault({}),
+  hardware: priceTable(DEFAULT_PRICES.hardware).prefault({}),
+  roofing: priceTable(DEFAULT_PRICES.roofing).prefault({}),
+});
+
 const catalog = z.strictObject({
   species: z.enum(SPECIES_KEYS).default('spf'), // No. 2 grade, for the span checks
   kerf: len(0, 0.25).default(0.125),
   maxLength: len(96, 480).default(192), // longest board to buy: longer runs splice on framing
   maxOnePiece: len(96, 480).default(240), // longest board for a longer piece that cannot splice: a rafter, tie, or joist
   stock: z.partialRecord(z.enum(LUMBER_SIZES), z.array(len(12, 480)).min(1)).default({}),
+  prices: prices.prefault({}), // US dollars, before tax and delivery
 });
 
 export const shedSchema = z.strictObject({
@@ -317,6 +334,7 @@ export const shedSchema = z.strictObject({
 });
 
 export type ShedConfig = z.infer<typeof shedSchema>;
+export type Prices = ShedConfig['catalog']['prices'];
 export type OpeningType = ShedConfig['openingTypes'][number];
 export type Opening = ShedConfig['openings'][number];
 

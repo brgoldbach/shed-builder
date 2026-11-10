@@ -6,9 +6,9 @@ import { buildBom, sheetLabel } from '../src/core/out/bom';
 import { buildCutList } from '../src/core/out/cutlist';
 import { checkSpans, spanWarnings } from '../src/core/out/spans';
 import { PRESETS } from '../src/core/presets';
-import { formatInches, formatLength } from '../src/core/units';
+import { formatInches, formatLength, formatMoney } from '../src/core/units';
 
-// A change in any preset's cut list, warnings, parts, bill of materials, or span checks fails here
+// A change in any preset's cut list, warnings, parts, bill of materials, costs, or span checks fails here
 // until the golden file is reviewed and updated with `npx vitest run -u`.
 describe('preset cut lists', () => {
   it.each(PRESETS.map((preset) => [preset.name, preset] as const))('%s', async (name, preset) => {
@@ -35,6 +35,7 @@ describe('preset cut lists', () => {
     );
     const sheets = bom.sheets.map(({ sheet, count }) => `SHEETS ${sheetLabel(sheet)} x${count}`);
     const items = [...bom.concrete, ...bom.hardware, ...bom.roofing].map(({ item, quantity, unit }) => `ITEM ${item}: ${quantity} ${unit}`);
+    const costs = Object.entries(bom.costs).map(([section, dollars]) => `COST ${section} ${formatMoney(dollars)}`);
     const bomWarnings = bom.warnings.map((warning) => `WARNING ${warning.source}: ${warning.message}`);
     const checks = checkSpans(preset, model, naming(preset));
     const spans = checks.map(
@@ -42,7 +43,7 @@ describe('preset cut lists', () => {
         `SPAN ${member}: ${lumber} ${formatInches(span)} of ${allowed === null ? 'unchecked' : `${formatInches(allowed)} (${governs})`}`,
     );
     const spanWarns = spanWarnings(checks, preset).map((warning) => `WARNING ${warning.source}: ${warning.message}`);
-    const all = [...lines, ...warnings, ...solids, ...stock, ...sheets, ...items, ...bomWarnings, ...spans, ...spanWarns];
+    const all = [...lines, ...warnings, ...solids, ...stock, ...sheets, ...items, ...costs, ...bomWarnings, ...spans, ...spanWarns];
     await expect(`${all.join('\n')}\n`).toMatchFileSnapshot(
       `golden/${name.replaceAll(' ', '-')}.txt`,
     );

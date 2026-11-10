@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Prices:** the BOM gives each line a cost, a total for each section, and a total for the shed.
+  Set the unit prices under Lumber catalog: lumber per foot by size with a percent markup for
+  pressure-treated, sheets, concrete, hardware, and roofing. The defaults are US home-center
+  prices from November 2026, before tax and delivery. The BOM CSV adds price and cost columns and
+  a total row.
 - **Piece drawings:** a selected piece, in 3D, on a drawing, or in the cut list, shows one of its
   pieces laid flat: the cut length from long point to long point, each edge shorter than that,
   and the board width, with its cut notes.
@@ -36,6 +41,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - **Headers:** framing drawings and PDF plans draw headers like any other member, without a tint.
+- **Roof area:** the BOM gives one line for shingles and one for metal panels, so each takes its own
+  price.
 - **Form layout:** each section folds closed to a one-line summary, and the Roof section splits
   into groups that fold: Overhangs, Rake ladder, Roofing, Rafter ties, and Collar ties. The loft
   has its own section after Roof. Loft, Knee walls, Rafter ties, and Collar ties have a switch in

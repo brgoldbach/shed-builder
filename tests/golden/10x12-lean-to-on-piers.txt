@@ -71,8 +71,14 @@ SHEETS 23/32" T&G (3/4"), 4×8 x5
 ITEM Concrete, 9 piers: 0.67 cu yd
 ITEM Form tube, 10": 9 ea
 ITEM Hurricane tie, rafter to plate: 20 ea
-ITEM Roof area: 168.4 sq ft
+ITEM Roof area, shingles: 168.4 sq ft
 ITEM Drip edge: 51.9 ft
+COST lumber $747.94
+COST sheets $549.50
+COST concrete $324.00
+COST hardware $15.00
+COST roofing $330.45
+COST total $1,966.89
 SPAN Rafters: 2x8 at 16" o.c. 113" of 218-3/16" (bending)
 SPAN Floor joists: 2x6 at 16" o.c. 52" of 111-13/16" (deflection)
 SPAN door 36 header (front wall): 2-ply 2x8 38" of 125-3/8" (bending)

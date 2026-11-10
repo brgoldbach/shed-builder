@@ -488,6 +488,10 @@ button {
   max-width: 480px;
 }
 
+.bom .cutlist.costs {
+  max-width: 320px;
+}
+
 .bom .cutlist td.unit {
   white-space: nowrap;
 }

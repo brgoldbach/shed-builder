@@ -87,8 +87,14 @@ SHEETS 7/16" OSB, 4×8 x34
 ITEM Concrete, slab: 4.44 cu yd
 ITEM Anchor bolt, 1/2", with nut and washer: 17 ea
 ITEM Hurricane tie, rafter to plate: 32 ea
-ITEM Roof area: 339.9 sq ft
+ITEM Roof area, shingles: 339.9 sq ft
 ITEM Drip edge: 74.5 ft
+COST lumber $856.12
+COST sheets $561.00
+COST concrete $732.60
+COST hardware $66.50
+COST roofing $621.60
+COST total $2,837.82
 SPAN Rafters: 2x6 at 16" o.c. 67-3/4" of 172-1/4" (bending)
 SPAN door 36 header (front wall): 2-ply 2x8 38" of 120-5/8" (bending)
 SPAN window 24x36 header (back wall): 2-ply 2x8 24" of 120-5/8" (bending)

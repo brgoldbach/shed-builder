@@ -134,8 +134,15 @@ ITEM Hurricane tie, rafter to plate: 36 ea
 ITEM Post base, 6x6: 6 ea
 ITEM Post cap, 6x6: 6 ea
 ITEM Joist hanger, 2x6: 18 ea
-ITEM Roof area: 686.4 sq ft
+ITEM Roof area, shingles: 353.7 sq ft
+ITEM Roof area, metal panels: 332.8 sq ft
 ITEM Drip edge: 149.1 ft
+COST lumber $1,820.97
+COST sheets $998.00
+COST concrete $981.60
+COST hardware $208.80
+COST roofing $1,336.60
+COST total $5,345.97
 SPAN Rafters: 2x6 at 24" o.c. 91-3/4" of 109-9/16" (bending)
 SPAN Loft joists: 2x10 at 16" o.c. 185" of 217-5/16" (bending)
 SPAN door 36 header (left wall): 2-ply 2x6 38" of 47-11/16" (bending)

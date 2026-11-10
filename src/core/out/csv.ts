@@ -2,7 +2,7 @@ import { DISCLAIMER } from '../disclaimer';
 import { ROLES } from '../member';
 import type { Naming } from '../naming';
 import { formatInches, formatLength } from '../units';
-import { sheetLabel, type Bom } from './bom';
+import { PRICE_NOTE, sheetLabel, type Bom } from './bom';
 import { LENGTH_RULE, type CutLine } from './cutlist';
 
 const cell = (value: string | number) => {
@@ -30,20 +30,27 @@ export function cutListCsv(lines: readonly CutLine[], names: Naming): string {
   ]);
 }
 
-/** The bill of materials as CSV: lumber by stock length, sheets, then counted items. */
+const dollars = (value: number) => value.toFixed(2);
+
+/**
+ * The bill of materials as CSV: lumber by stock length, sheets, then counted items, each with its
+ * price and cost in dollars, then the total.
+ */
 export function bomCsv(bom: Bom): string {
-  const rows: (string | number)[][] = [['Section', 'Item', 'Length', 'Qty', 'Unit', 'Notes']];
+  const rows: (string | number)[][] = [['Section', 'Item', 'Length', 'Qty', 'Unit', 'Price', 'Cost', 'Notes']];
   for (const group of bom.lumber) {
     const item = `${group.size}${group.treated ? ' PT' : ''}`;
     for (const [stock, boards] of Map.groupBy(group.boards, ({ stock }) => stock)) {
-      rows.push(['Lumber', item, formatLength(stock), boards.length, 'ea', '']);
+      rows.push(['Lumber', item, formatLength(stock), boards.length, 'ea', group.cost.basis, dollars((boards.length * stock * group.rate) / 12), '']);
     }
   }
   for (const group of bom.sheets) {
-    rows.push(['Sheets', sheetLabel(group.sheet), '', group.count, 'sheets', group.uses.map(({ label, panels }) => `${label}: ${panels} panels`).join('; ')]);
+    const uses = group.uses.map(({ label, panels }) => `${label}: ${panels} panels`).join('; ');
+    rows.push(['Sheets', sheetLabel(group.sheet), '', group.count, 'sheets', group.cost.basis, dollars(group.cost.total), uses]);
   }
   for (const [section, lines] of [['Concrete', bom.concrete], ['Hardware', bom.hardware], ['Roofing', bom.roofing]] as const) {
-    for (const line of lines) rows.push([section, line.item, '', line.quantity, line.unit, line.note ?? '']);
+    for (const line of lines) rows.push([section, line.item, '', line.quantity, line.unit, line.cost.basis, dollars(line.cost.total), line.note ?? '']);
   }
+  rows.push(['Total', 'Materials', '', '', '', '', dollars(bom.costs.total), PRICE_NOTE]);
   return csv(rows);
 }

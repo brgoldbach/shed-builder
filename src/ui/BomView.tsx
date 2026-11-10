@@ -1,5 +1,5 @@
-import { sheetLabel, type Bom, type Line, type LumberGroup, type Piece } from '../core/out/bom';
-import { formatInches, formatLength } from '../core/units';
+import { PRICE_NOTE, sheetLabel, type Bom, type Line, type LumberGroup, type Piece } from '../core/out/bom';
+import { formatInches, formatLength, formatMoney } from '../core/units';
 
 interface Props {
   bom: Bom;
@@ -8,6 +8,13 @@ interface Props {
 }
 
 const percent = (fraction: number) => `${Math.round(fraction * 100)}%`;
+const SECTIONS = [
+  ['lumber', 'Lumber'],
+  ['sheets', 'Sheets'],
+  ['concrete', 'Concrete'],
+  ['hardware', 'Hardware'],
+  ['roofing', 'Roofing'],
+] as const;
 
 export function BomView({ bom, marks, onCsv }: Props) {
   return (
@@ -17,12 +24,32 @@ export function BomView({ bom, marks, onCsv }: Props) {
         <button onClick={() => window.print()}>Print</button>
       </div>
 
+      <h3>Cost</h3>
+      <table className="cutlist costs">
+        <tbody>
+          {SECTIONS.filter(([key]) => bom.costs[key] > 0).map(([key, label]) => (
+            <tr key={key}>
+              <td>{label}</td>
+              <td className="number">{formatMoney(bom.costs[key])}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th>Total</th>
+            <th className="number">{formatMoney(bom.costs.total)}</th>
+          </tr>
+        </tfoot>
+      </table>
+      <p className="muted hint">{PRICE_NOTE}</p>
+
       <h3>Lumber</h3>
       <table className="cutlist lumber">
         <thead>
           <tr>
             <th>Length</th>
             <th className="number">Qty</th>
+            <th className="number">Cost</th>
           </tr>
         </thead>
         {bom.lumber.map((group) => (
@@ -53,14 +80,18 @@ export function BomView({ bom, marks, onCsv }: Props) {
               <tr>
                 <th>Sheet</th>
                 <th className="number">Qty</th>
+                <th>Price</th>
+                <th className="number">Cost</th>
                 <th>Used for</th>
               </tr>
             </thead>
             <tbody>
-              {bom.sheets.map(({ sheet, count, uses, waste }) => (
+              {bom.sheets.map(({ sheet, count, uses, waste, cost }) => (
                 <tr key={sheet}>
                   <td>{sheetLabel(sheet)}</td>
                   <td className="number">{count}</td>
+                  <td className="nowrap">{cost.basis}</td>
+                  <td className="number">{formatMoney(cost.total)}</td>
                   <td>
                     {uses.map(({ label, panels }) => `${label}: ${panels} panels`).join('; ')}
                     <span className="note"> Waste {percent(waste)}.</span>
@@ -97,25 +128,28 @@ function LumberRows({ group, marks }: { group: LumberGroup; marks: ReadonlyMap<s
         <th colSpan={2}>
           {label}{' '}
           <span className="note">
-            {group.boards.length} boards, {Math.round(bought / 12)} ft, waste {percent(group.waste)}
+            {group.boards.length} boards, {Math.round(bought / 12)} ft, waste {percent(group.waste)}, at {group.cost.basis}
           </span>
         </th>
+        <th className="number">{formatMoney(group.cost.total)}</th>
       </tr>
       {[...Map.groupBy(group.boards, ({ stock }) => stock)].map(([stock, boards]) => (
         <tr key={stock}>
           <td>{formatLength(stock)}</td>
           <td className="number">{boards.length}</td>
+          <td className="number">{formatMoney((boards.length * stock * group.rate) / 12)}</td>
         </tr>
       ))}
       {group.tooLong.length > 0 && (
         <tr>
           <td>Special order</td>
           <td className="number">{group.tooLong.length}</td>
+          <td className="number muted">Not priced</td>
         </tr>
       )}
       {group.tooLong.length > 0 && (
         <tr>
-          <td colSpan={2} className="note">
+          <td colSpan={3} className="note">
             Longer than any stock: {group.tooLong.map((piece) => pieceText(marks, piece)).join(', ')}
           </td>
         </tr>
@@ -156,15 +190,19 @@ function LineTable({ title, lines }: { title: string; lines: readonly Line[] }) 
             <th>Item</th>
             <th className="number">Qty</th>
             <th>Unit</th>
+            <th>Price</th>
+            <th className="number">Cost</th>
             <th>Notes</th>
           </tr>
         </thead>
         <tbody>
-          {lines.map(({ item, quantity, unit, note }) => (
+          {lines.map(({ item, quantity, unit, note, cost }) => (
             <tr key={item}>
               <td>{item}</td>
               <td className="number">{quantity}</td>
               <td className="unit">{unit}</td>
+              <td className="nowrap">{cost.basis}</td>
+              <td className="number">{formatMoney(cost.total)}</td>
               <td className="note">{note}</td>
             </tr>
           ))}

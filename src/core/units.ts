@@ -1,3 +1,8 @@
+const DOLLARS = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+/** Format US dollars to the cent, for example `$1,234.50`. */
+export const formatMoney = (dollars: number) => DOLLARS.format(dollars);
+
 /** Format inches as feet and inches to the nearest 1/16 in, for example `7' 8-5/8"`. */
 export function formatLength(inches: number): string {
   return format(inches, true);

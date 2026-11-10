@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { formatLength, parseLength } from '../core/units';
+import { formatLength, formatMoney, parseLength } from '../core/units';
 
 /** Apply an edit. Returns an error message when the edit is rejected, else null. */
 export type Edit<T> = (value: T) => string | null;
@@ -143,6 +143,11 @@ export function NumberField(props: FieldProps<number>) {
 
 export function LengthField(props: FieldProps<number>) {
   return <ParsedField {...props} parse={parseLength} format={formatLength} invalid={NOT_A_LENGTH} />;
+}
+
+/** A price in US dollars. Takes `$1,234.50` or `1234.5`. */
+export function PriceField(props: FieldProps<number>) {
+  return <ParsedField {...props} parse={(text) => parseNumber(text.replace(/[$,]/g, ''))} format={formatMoney} invalid="Not a price, e.g. $3.50" />;
 }
 
 /** Length field that also accepts "auto". */

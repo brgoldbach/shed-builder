@@ -1,8 +1,8 @@
 import { SHEETS, stockFor, type LumberSize, type SheetKey } from '../catalog';
-import type { ShedConfig } from '../config';
+import type { Prices, ShedConfig } from '../config';
 import type { Member, Solid, Warning } from '../member';
 import type { Model } from '../model';
-import { formatInches } from '../units';
+import { formatInches, formatMoney } from '../units';
 
 const SHEET_LENGTH = 96;
 const SHEET_WIDTH = 48;
@@ -10,10 +10,22 @@ const SHEET_WIDTH = 48;
 const BAG_YIELD = 0.6;
 const CUBIC_FOOT = 1728; // cu in
 const NEAR = 0.01;
+// cu yd: a smaller pour is priced in bags. Ready-mix adds a short-load fee below about this.
+const BAGS_UNDER = 1;
+
+/** What the prices cover. */
+export const PRICE_NOTE =
+  'US dollars, before tax and delivery, at the unit prices in the lumber catalog. Special-order lumber is not priced.';
 
 export interface Piece {
   id: string;
   length: number;
+}
+
+/** A cost in US dollars, and how it was priced, for example `$0.75 each`. */
+export interface Cost {
+  total: number;
+  basis: string;
 }
 
 /** One stock board and the pieces cut from it. */
@@ -26,8 +38,10 @@ export interface LumberGroup {
   size: LumberSize;
   treated: boolean;
   boards: Board[];
-  tooLong: Piece[]; // longer than any stock length
+  tooLong: Piece[]; // longer than any stock length, not priced
   waste: number; // fraction of the stock length bought that is not in a piece
+  rate: number; // dollars per foot of stock, with the treated markup
+  cost: Cost;
 }
 
 export interface SheetGroup {
@@ -35,6 +49,7 @@ export interface SheetGroup {
   count: number;
   uses: { label: string; panels: number }[];
   waste: number;
+  cost: Cost;
 }
 
 /** A counted item: concrete, hardware, or roofing. */
@@ -43,6 +58,7 @@ export interface Line {
   quantity: number;
   unit: string;
   note?: string;
+  cost: Cost;
 }
 
 export interface Bom {
@@ -52,6 +68,7 @@ export interface Bom {
   hardware: Line[];
   roofing: Line[];
   warnings: Warning[];
+  costs: Record<'lumber' | 'sheets' | 'concrete' | 'hardware' | 'roofing' | 'total', number>;
 }
 
 /** Materials to buy for the model. `marks` maps member ids to cut-list marks, for warnings. */
@@ -64,17 +81,22 @@ export function buildBom(config: ShedConfig, model: Model, marks: ReadonlyMap<st
       message: `The ${size} at ${formatInches(length)} is longer than the longest stock, ${formatInches(longest)}. Splice it or order it long.`,
     }));
   });
-  return {
-    lumber,
-    sheets: sheetGroups(model.solids, config.catalog.kerf),
-    concrete: concrete(model.solids),
-    hardware: hardware(config, model),
-    roofing: roofing(model),
-    warnings,
+  const { prices } = config.catalog;
+  const sheets = sheetGroups(model.solids, config.catalog.kerf, prices);
+  const lines = { concrete: concrete(model.solids, prices), hardware: hardware(config, model), roofing: roofing(config, model) };
+  const costOf = (parts: readonly { cost: Cost }[]) => sum(parts.map(({ cost }) => cost.total));
+  const costs = {
+    lumber: costOf(lumber),
+    sheets: costOf(sheets),
+    concrete: costOf(lines.concrete),
+    hardware: costOf(lines.hardware),
+    roofing: costOf(lines.roofing),
   };
+  return { lumber, sheets, ...lines, warnings, costs: { ...costs, total: sum(Object.values(costs)) } };
 }
 
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
+const each = (quantity: number, price: number, unit = 'each'): Cost => ({ total: quantity * price, basis: `${formatMoney(price)} ${unit}` });
 const onePiece = ({ catalog }: ShedConfig, size: LumberSize) => stockFor(catalog, size, Math.max(catalog.maxLength, catalog.maxOnePiece));
 const round = (value: number, places: number) => Math.round(value * 10 ** places) / 10 ** places;
 
@@ -95,12 +117,16 @@ function lumberGroups(config: ShedConfig, members: readonly Member[]): LumberGro
     );
     const bought = sum(boards.map(({ stock }) => stock));
     const used = sum(boards.flatMap((board) => board.pieces.map(({ length }) => length)));
+    const { lumber, treatedMarkup } = config.catalog.prices;
+    const rate = lumber[size] * (treated ? 1 + treatedMarkup / 100 : 1);
     return {
       size,
       treated,
       boards,
       tooLong: pieces.filter(({ length }) => length > longest + NEAR),
       waste: bought > 0 ? 1 - used / bought : 0,
+      rate,
+      cost: { total: (bought / 12) * rate, basis: `${formatMoney(rate)}/ft${treated ? `, untreated +${treatedMarkup}%` : ''}` },
     };
   });
 }
@@ -180,7 +206,7 @@ export function packSheets(pieces: readonly { long: number; short: number }[], k
 }
 
 // Each panel is cut from the rectangle around it.
-function sheetGroups(solids: readonly Solid[], kerf: number): SheetGroup[] {
+function sheetGroups(solids: readonly Solid[], kerf: number, prices: Prices): SheetGroup[] {
   const panels = solids.filter((solid) => solid.sheet !== undefined && solid.shape.kind === 'panel');
   return [...Map.groupBy(panels, ({ sheet }) => sheet!)].map(([sheet, group]) => {
     const pieces = group.map(({ shape }) => {
@@ -191,11 +217,17 @@ function sheetGroups(solids: readonly Solid[], kerf: number): SheetGroup[] {
     });
     const count = packSheets(pieces, kerf);
     const uses = [...Map.groupBy(group, ({ label }) => label.split(',')[0])].map(([label, used]) => ({ label, panels: used.length }));
-    return { sheet, count, uses, waste: 1 - sum(pieces.map(({ long, short }) => long * short)) / (count * SHEET_LENGTH * SHEET_WIDTH) };
+    return {
+      sheet,
+      count,
+      uses,
+      waste: 1 - sum(pieces.map(({ long, short }) => long * short)) / (count * SHEET_LENGTH * SHEET_WIDTH),
+      cost: each(count, prices.sheets[sheet], 'per sheet'),
+    };
   });
 }
 
-function concrete(solids: readonly Solid[]): Line[] {
+function concrete(solids: readonly Solid[], prices: Prices): Line[] {
   const lines: Line[] = [];
   const poured = solids.filter(({ material }) => material === 'concrete');
   const volume = (solid: Solid) => {
@@ -204,13 +236,16 @@ function concrete(solids: readonly Solid[]): Line[] {
     if (shape.kind === 'cylinder') return Math.PI * shape.radius ** 2 * shape.height;
     return 0;
   };
+  const { bag, readyMix, formTube } = prices.concrete;
   const pour = (item: string, parts: Solid[]) => {
     const cubicFeet = sum(parts.map(volume)) / CUBIC_FOOT;
+    const [yards, bags] = [round(cubicFeet / 27, 2), Math.ceil(cubicFeet / BAG_YIELD)];
     lines.push({
       item,
-      quantity: round(cubicFeet / 27, 2),
+      quantity: yards,
       unit: 'cu yd',
-      note: `${round(cubicFeet, 1)} cu ft net, or ${Math.ceil(cubicFeet / BAG_YIELD)} bags of 80 lb mix at 0.60 cu ft each.`,
+      note: `${round(cubicFeet, 1)} cu ft net, or ${bags} bags of 80 lb mix at 0.60 cu ft each.`,
+      cost: yards < BAGS_UNDER ? { total: bags * bag, basis: `${bags} bags at ${formatMoney(bag)}` } : each(yards, readyMix, 'per cu yd, ready-mix'),
     });
   };
   const slab = poured.filter(({ shape }) => shape.kind === 'box');
@@ -221,7 +256,13 @@ function concrete(solids: readonly Solid[]): Line[] {
     const [first] = piers;
     if (first.shape.kind === 'cylinder') {
       const { radius, height } = first.shape;
-      lines.push({ item: `Form tube, ${formatInches(2 * radius)}`, quantity: piers.length, unit: 'ea', note: `${formatInches(height)} each.` });
+      lines.push({
+        item: `Form tube, ${formatInches(2 * radius)}`,
+        quantity: piers.length,
+        unit: 'ea',
+        note: `${formatInches(height)} each.`,
+        cost: each(piers.length, formTube),
+      });
     }
   }
   return lines;
@@ -230,11 +271,12 @@ function concrete(solids: readonly Solid[]): Line[] {
 function hardware(config: ShedConfig, model: Model): Line[] {
   const lines: Line[] = [];
   const count = (role: Member['role']) => model.members.filter((member) => member.role === role).length;
-  const add = (item: string, quantity: number, note?: string) => {
-    if (quantity > 0) lines.push({ item, quantity, unit: 'ea', ...(note && { note }) });
+  const price = config.catalog.prices.hardware;
+  const add = (item: string, quantity: number, unitPrice: number, note?: string) => {
+    if (quantity > 0) lines.push({ item, quantity, unit: 'ea', ...(note && { note }), cost: each(quantity, unitPrice) });
   };
 
-  add('Anchor bolt, 1/2", with nut and washer', model.solids.filter(({ label }) => label.startsWith('Anchor bolt')).length);
+  add('Anchor bolt, 1/2", with nut and washer', model.solids.filter(({ label }) => label.startsWith('Anchor bolt')).length, price.anchorBolt);
   const seats = config.roof.style === 'lean-to' ? 2 : 1;
   const rafters = (assembly: string) => model.members.filter((member) => member.role === 'rafter' && member.assembly === assembly);
   // A lean-to rafter seats on its beam, and an extension rafter on the main wall too.
@@ -242,11 +284,12 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   add(
     'Hurricane tie, rafter to plate',
     rafters('roof').length * seats + leanTos.reduce((sum, { rafters, extension }) => sum + rafters.length * (extension ? 2 : 1), 0),
+    price.hurricaneTie,
     `One at each rafter seat: ${seats} per main rafter${leanTos.length ? '; per lean-to rafter, 1 on its beam and 1 on the main wall for an extension' : ''}.`,
   );
   for (const [size, posts] of Map.groupBy(model.members.filter(({ role }) => role === 'post'), ({ size }) => size)) {
-    add(`Post base, ${size}`, posts.length, 'Set in the pier, or anchored to the slab.');
-    add(`Post cap, ${size}`, posts.length, 'To the girder or beam.');
+    add(`Post base, ${size}`, posts.length, price.postBase, 'Set in the pier, or anchored to the slab.');
+    add(`Post cap, ${size}`, posts.length, price.postCap, 'To the girder or beam.');
   }
 
   // Joist hangers by size: hung loft joists, hatch framing, and lean-to rafters at their ledgers.
@@ -258,22 +301,45 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   single(loft.joist, count('tail.loft') * (hung ? 2 : 1) + (hung ? 2 * count('joist.loft') : 0));
   // Below-soffit lean-to rafters hang from their ledgers.
   leanTos.filter(({ extension }) => !extension).forEach(({ rafters }) => rafters.forEach(({ size }) => single(size, 1)));
-  for (const [size, quantity] of singles) add(`Joist hanger, ${size}`, quantity);
-  add(`Joist hanger, double ${loft.joist}`, count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0));
-  add('Ledger lag screw, 1/2"', model.leanTos.reduce((sum, { lags }) => sum + lags, 0), 'Two at each main-wall stud behind a lean-to ledger.');
+  for (const [size, quantity] of singles) add(`Joist hanger, ${size}`, quantity, price.joistHanger);
+  add(`Joist hanger, double ${loft.joist}`, count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0), price.doubleHanger);
+  add(
+    'Ledger lag screw, 1/2"',
+    model.leanTos.reduce((sum, { lags }) => sum + lags, 0),
+    price.lag,
+    'Two at each main-wall stud behind a lean-to ledger.',
+  );
   return lines;
 }
 
-// From the sheathing planes: drip edge along every eave and rake, but not along the ridge.
-function roofing(model: Model): Line[] {
+// From the roof planes: roof area by roofing, and drip edge along every eave and rake, but not
+// along the ridge.
+function roofing(config: ShedConfig, model: Model): Line[] {
   const { planes } = model;
   if (planes.length === 0) return [];
-  const area = sum(planes.map(({ length, width }) => length * width)) / 144;
+  const price = config.catalog.prices.roofing;
+  // The main roof's roofing is in the config. A lean-to's roof is metal where it is not sheathed.
+  const metal = ({ assembly, sheathed }: Model['planes'][number]) => (assembly === 'roof' ? config.roof.roofing !== 'shingles' : !sheathed);
+  const areas = [
+    { item: 'Roof area, shingles', planes: planes.filter((plane) => !metal(plane)), price: price.shingles },
+    { item: 'Roof area, metal panels', planes: planes.filter(metal), price: price.metal },
+  ].flatMap(({ item, planes: covered, price: unitPrice }): Line[] => {
+    if (covered.length === 0) return [];
+    const area = round(sum(covered.map(({ length, width }) => length * width)) / 144, 1);
+    return [{ item, quantity: area, unit: 'sq ft', note: `${round(area / 100, 2)} squares.`, cost: each(area, unitPrice, 'per sq ft') }];
+  });
   const eaves = sum(planes.map(({ length, eaves }) => length * eaves)) / 12;
   const rakes = sum(planes.map(({ width }) => 2 * width)) / 12;
+  const edge = round(eaves + rakes, 1);
   return [
-    { item: 'Roof area', quantity: round(area, 1), unit: 'sq ft', note: `${round(area / 100, 2)} squares.` },
-    { item: 'Drip edge', quantity: round(eaves + rakes, 1), unit: 'ft', note: `Eaves ${round(eaves, 1)} ft, rakes ${round(rakes, 1)} ft.` },
+    ...areas,
+    {
+      item: 'Drip edge',
+      quantity: edge,
+      unit: 'ft',
+      note: `Eaves ${round(eaves, 1)} ft, rakes ${round(rakes, 1)} ft.`,
+      cost: each(edge, price.dripEdge, 'per ft'),
+    },
   ];
 }
 
