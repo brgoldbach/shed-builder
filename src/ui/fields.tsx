@@ -17,18 +17,56 @@ export function setter<T extends object>(value: T, onChange: Edit<T>) {
 
 export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-export function Section({ title, open = false, children }: { title: string; open?: boolean; children: ReactNode }) {
+interface FoldProps {
+  title: string;
+  /** A short summary, shown beside the title while the fold is closed. */
+  brief?: string;
+  open?: boolean;
+  /** A feature switch in the header. While it is off, the fold shows only its header. */
+  enabled?: boolean;
+  onEnable?: Edit<boolean>;
+  children: ReactNode;
+}
+
+function Fold({ kind, title, brief, open = false, enabled, onEnable, children }: FoldProps & { kind: string }) {
+  // A switch turned on opens the fold, to show the fields it adds.
+  const [opened, setOpened] = useState(false);
+  const toggle = onEnable && (
+    <input
+      type="checkbox"
+      aria-label={title}
+      checked={enabled}
+      onChange={(event) => {
+        onEnable(event.target.checked);
+        setOpened(event.target.checked);
+      }}
+    />
+  );
+  if (onEnable && !enabled) {
+    return (
+      <label className={`fold ${kind} off`}>
+        <span className="title">{title}</span>
+        {toggle}
+      </label>
+    );
+  }
   return (
-    <details className="section" open={open}>
-      <summary>{title}</summary>
+    <details className={`fold ${kind}`} open={open || opened}>
+      <summary>
+        <span className="title">{title}</span>
+        {brief && <span className="brief">{brief}</span>}
+        {toggle}
+      </summary>
       {children}
     </details>
   );
 }
 
-export function Subhead({ children }: { children: ReactNode }) {
-  return <h3 className="subhead">{children}</h3>;
-}
+/** A top-level form section that folds closed. */
+export const Section = (props: FoldProps) => <Fold kind="section" {...props} />;
+
+/** A group of related fields inside a section that folds closed. */
+export const Group = (props: FoldProps) => <Fold kind="group" {...props} />;
 
 interface FieldProps<T> {
   label: string;

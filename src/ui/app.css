@@ -123,24 +123,72 @@ button {
   padding-left: 18px;
 }
 
+.fold > summary,
+.fold.off {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary::before,
+.fold.off::before {
+  content: '▸';
+  width: 0.8em;
+  color: var(--muted);
+}
+
+.fold[open] > summary::before {
+  content: '▾';
+}
+
+.fold.off::before {
+  visibility: hidden;
+}
+
+.fold .title {
+  flex: 1 0 auto;
+}
+
+.fold .brief {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fold.off .title {
+  color: var(--muted);
+}
+
+.fold[open] > summary > .brief {
+  display: none;
+}
+
 .section {
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
 }
 
-.section summary {
-  padding: 4px 0;
-  font-weight: 600;
-  cursor: pointer;
+.group {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
 }
 
-.subhead {
-  margin: 14px 0 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.group > summary,
+.group.off {
+  font-size: 0.9rem;
 }
 
 .hint {

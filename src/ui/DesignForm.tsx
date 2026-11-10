@@ -28,12 +28,12 @@ import {
 import {
   AutoLengthField,
   CheckField,
+  Group,
   LengthField,
   LengthListField,
   NumberField,
   Section,
   SelectField,
-  Subhead,
   TextField,
   capitalize,
   setter,
@@ -81,6 +81,9 @@ const STUD_HEIGHT_LABELS: Record<(typeof STUD_HEIGHTS)[number], string> = {
 
 const sheetLabel = (key: (typeof SHEATHING)[number]) => (key === 'none' ? 'None' : SHEETS[key].label);
 const noneLabel = (option: string) => (option === 'none' ? 'None' : option);
+const count = (number: number, one: string, many = `${one}s`) => (number === 0 ? 'None' : `${number} ${number === 1 ? one : many}`);
+const spacing = (size: string, oc: number) => `${size} at ${oc}" o.c.`;
+const every = (pairs: number) => (pairs === 1 ? 'every pair' : `every ${pairs} pairs`);
 
 export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
   const set = setter(value, onChange);
@@ -130,14 +133,10 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       <FoundationSection value={value.foundation} onChange={set('foundation')} />
       {value.foundation.type !== 'slab' && <FloorSection value={value.floor} onChange={set('floor')} />}
       <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} gable={value.roof.style === 'gable'} names={names} />
-      <Section title="Opening types">
-        <OpeningTypesEditor value={value} onChange={onChange} />
-      </Section>
-      <Section title="Openings">
-        <OpeningRowsEditor value={value} onChange={onChange} />
-      </Section>
+      <OpeningsSection value={value} onChange={onChange} />
       <RoofSection value={value.roof} onChange={set('roof')} names={names} />
-      <Section title="Lean-tos">
+      {value.roof.style === 'gable' && <LoftSection value={value.roof} onChange={set('roof')} names={names} />}
+      <Section title="Lean-tos" brief={count(value.additions.length, 'lean-to')}>
         <AdditionsEditor value={value} onChange={onChange} />
       </Section>
       <LoadsSection value={value} onChange={onChange} />
@@ -146,13 +145,19 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
   );
 }
 
+const FOUNDATION_BRIEFS: Record<Foundation['type'], (foundation: Foundation) => string> = {
+  skid: ({ skid }) => `${skid.count} ${skid.size} skids`,
+  pier: ({ pier }) => `Piers, ${pier.girderCount} ${pier.girder} girders`,
+  slab: ({ slab }) => `${formatInches(slab.thickness)} slab`,
+};
+
 function FoundationSection({ value, onChange }: SectionProps<Foundation>) {
   const set = setter(value, onChange);
   const skid = setter(value.skid, set('skid'));
   const pier = setter(value.pier, set('pier'));
   const slab = setter(value.slab, set('slab'));
   return (
-    <Section title="Foundation">
+    <Section title="Foundation" brief={FOUNDATION_BRIEFS[value.type](value)}>
       <SelectField label="Type" value={value.type} options={FOUNDATION_TYPES} describe={capitalize} onChange={set('type')} />
       {value.type === 'skid' && (
         <>
@@ -196,7 +201,7 @@ function FoundationSection({ value, onChange }: SectionProps<Foundation>) {
 function FloorSection({ value, onChange }: SectionProps<Floor>) {
   const set = setter(value, onChange);
   return (
-    <Section title="Floor">
+    <Section title="Floor" brief={spacing(value.joist, value.oc)}>
       <SelectField label="Joist" value={value.joist} options={TWO_BY} onChange={set('joist')} />
       <SelectField label="Joist o.c. (in)" value={value.oc} options={SPACINGS} onChange={set('oc')} />
       <CheckField label="Pressure treated" value={value.treated} onChange={set('treated')} />
@@ -215,7 +220,7 @@ function WallsSection({ value, onChange, onSlab, gable, names }: SectionProps<Wa
   };
   const throughLabels = { ends: pair(['left', 'right'], 'gable ends'), eaves: pair(['front', 'back'], 'eaves') };
   return (
-    <Section title="Walls">
+    <Section title="Walls" brief={spacing(value.stud, value.oc)}>
       <SelectField label="Stud" value={value.stud} options={WALL_STUDS} onChange={set('stud')} />
       <SelectField label="Stud o.c. (in)" value={value.oc} options={SPACINGS} onChange={set('oc')} />
       {onSlab && (
@@ -232,10 +237,25 @@ function WallsSection({ value, onChange, onSlab, gable, names }: SectionProps<Wa
       {gable && (
         <SelectField label="Corner posts on" value={value.through} options={THROUGH} describe={(walls) => throughLabels[walls]} onChange={set('through')} />
       )}
-      <SelectField label="Default header" value={value.header} options={TWO_BY} onChange={set('header')} />
-      <LengthField label="2 jacks when RO over" value={value.doubleJackOver} onChange={set('doubleJackOver')} />
-      <SelectField label="Rough sill plies" value={value.sillPlies} options={[1, 2]} onChange={set('sillPlies')} />
       <SelectField label="Sheathing" value={value.sheathing} options={SHEATHING} describe={sheetLabel} onChange={set('sheathing')} />
+    </Section>
+  );
+}
+
+function OpeningsSection({ value, onChange }: SectionProps<ShedConfig>) {
+  const walls = setter(value.walls, setter(value, onChange)('walls'));
+  const placed = value.openings.filter((row) => row.enabled).reduce((sum, row) => sum + row.at.length, 0);
+  return (
+    <Section title="Openings" brief={count(placed, 'opening')}>
+      <OpeningRowsEditor value={value} onChange={onChange} />
+      <Group title="Opening types" brief={count(value.openingTypes.length, 'type')} open={value.openingTypes.length === 0}>
+        <OpeningTypesEditor value={value} onChange={onChange} />
+      </Group>
+      <Group title="Header and jack defaults" brief={`${value.walls.header} headers`}>
+        <SelectField label="Default header" value={value.walls.header} options={TWO_BY} onChange={walls('header')} />
+        <LengthField label="2 jacks when RO over" value={value.walls.doubleJackOver} onChange={walls('doubleJackOver')} />
+        <SelectField label="Rough sill plies" value={value.walls.sillPlies} options={[1, 2]} onChange={walls('sillPlies')} />
+      </Group>
     </Section>
   );
 }
@@ -245,36 +265,10 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
   const ladder = setter(value.rakeLadder, set('rakeLadder'));
   const ties = setter(value.rafterTies, set('rafterTies'));
   const collar = setter(value.collarTies, set('collarTies'));
-  const loft = setter(value.loft, set('loft'));
-  const open = setter(value.loft.open, loft('open'));
-  const knee = setter(value.kneeWalls, set('kneeWalls'));
+  const gable = value.style === 'gable';
   return (
-    <Section title="Roof">
+    <Section title="Roof" brief={`${capitalize(value.style)}, ${value.pitch}/12, ${spacing(value.rafter, value.oc)}`}>
       <SelectField label="Style" value={value.style} options={ROOF_STYLES} describe={capitalize} onChange={set('style')} />
-      <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} />
-      <SelectField label="Rafter" value={value.rafter} options={TWO_BY} onChange={set('rafter')} />
-      <SelectField label="Rafter o.c. (in)" value={value.oc} options={SPACINGS} onChange={set('oc')} />
-      <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} />
-      <LengthField label="Rake overhang" value={value.rakeOverhang} onChange={set('rakeOverhang')} />
-      <SelectField label="Tail cut" value={value.tailCut} options={TAIL_CUTS} describe={capitalize} onChange={set('tailCut')} />
-      <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={noneLabel} onChange={set('fascia')} />
-      <SelectField label="Sheathing" value={value.sheathing} options={SHEATHING} describe={sheetLabel} onChange={set('sheathing')} />
-      <SelectField label="Roofing" value={value.roofing} options={ROOFING} describe={(roofing) => ROOFING_LABELS[roofing]} onChange={set('roofing')} />
-      {value.roofing !== 'shingles' && (
-        <>
-          <SelectField label="Purlins" value={value.purlin} options={PURLINS} describe={(size) => `${size} flat`} onChange={set('purlin')} />
-          <LengthField label="Purlin spacing" value={value.purlinSpacing} onChange={set('purlinSpacing')} />
-        </>
-      )}
-      <CheckField label="Build the gable ends as panels" value={value.gablePanel} onChange={set('gablePanel')} />
-      <SelectField label="Rake ladder" value={value.rakeLadder.size} options={TWO_BY} onChange={ladder('size')} />
-      <SelectField label="Lookout o.c. (in)" value={value.rakeLadder.spacing} options={SPACINGS} onChange={ladder('spacing')} />
-      {value.style === 'gable' && (
-        <CheckField label="Ridge runs out to the fly rafters" value={value.rakeLadder.ridgeExtends} onChange={ladder('ridgeExtends')} />
-      )}
-      <CheckField label="Lookout at the fascia" value={value.rakeLadder.fasciaLookouts} onChange={ladder('fasciaLookouts')} />
-      <CheckField label="Build the ladder on the gable-end rafter" value={value.rakeLadder.onEndRafter} onChange={ladder('onEndRafter')} />
-
       {value.style === 'lean-to' && (
         <SelectField
           label="High side"
@@ -284,71 +278,115 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
           onChange={set('highSide')}
         />
       )}
+      <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} />
+      <SelectField label="Rafter" value={value.rafter} options={TWO_BY} onChange={set('rafter')} />
+      <SelectField label="Rafter o.c. (in)" value={value.oc} options={SPACINGS} onChange={set('oc')} />
+      {gable && <SelectField label="Ridge board" value={value.ridge} options={TWO_BY} onChange={set('ridge')} />}
+      <CheckField label="Build the gable ends as panels" value={value.gablePanel} onChange={set('gablePanel')} />
 
-      {value.style === 'gable' && (
-        <>
-          <SelectField label="Ridge board" value={value.ridge} options={TWO_BY} onChange={set('ridge')} />
-
-          <Subhead>Loft</Subhead>
-          <CheckField label="Loft deck" value={value.loft.enabled} onChange={loft('enabled')} />
-          {value.loft.enabled && (
-            <>
-              <SelectField label="Loft joist" value={value.loft.joist} options={TWO_BY} onChange={loft('joist')} />
-              <SelectField label="Loft joist o.c. (in)" value={value.loft.oc} options={SPACINGS} onChange={loft('oc')} />
-              <SelectField
-                label="Joist support"
-                value={value.loft.support}
-                options={LOFT_SUPPORTS}
-                describe={(support) => LOFT_SUPPORT_LABELS[support]}
-                onChange={loft('support')}
-              />
-              <SelectField label="Deck" value={value.loft.deck} options={SHEET_KEYS} describe={sheetLabel} onChange={loft('deck')} />
-              <SelectField
-                label="Open end"
-                value={value.loft.open.end}
-                options={LOFT_OPEN_ENDS}
-                describe={(end) => (end === 'none' ? 'None' : capitalize(names.side(end)))}
-                onChange={open('end')}
-              />
-              {value.loft.open.end !== 'none' && (
-                <LengthField label="Open length" value={value.loft.open.length} onChange={open('length')} />
-              )}
-              <HatchesEditor value={value.loft.hatches} onChange={loft('hatches')} names={names} />
-              <CheckField label="Knee walls" value={value.kneeWalls.enabled} onChange={knee('enabled')} />
-              {value.kneeWalls.enabled && (
-                <>
-                  <LengthField label="Knee wall height" value={value.kneeWalls.height} onChange={knee('height')} />
-                  <SelectField label="Knee wall stud" value={value.kneeWalls.stud} options={WALL_STUDS} onChange={knee('stud')} />
-                </>
-              )}
-            </>
+      <Group title="Overhangs" brief={`${formatInches(value.eaveOverhang)} eaves, ${formatInches(value.rakeOverhang)} rakes`}>
+        <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} />
+        <SelectField label="Tail cut" value={value.tailCut} options={TAIL_CUTS} describe={capitalize} onChange={set('tailCut')} />
+        <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={noneLabel} onChange={set('fascia')} />
+        <LengthField label="Rake overhang" value={value.rakeOverhang} onChange={set('rakeOverhang')} />
+      </Group>
+      {/* The model frames a rake ladder from 1-1/2 in of rake overhang. */}
+      {value.rakeOverhang >= 1.5 && (
+        <Group title="Rake ladder" brief={`${value.rakeLadder.size}, lookouts at ${value.rakeLadder.spacing}" o.c.`}>
+          <SelectField label="Ladder" value={value.rakeLadder.size} options={TWO_BY} onChange={ladder('size')} />
+          <SelectField label="Lookout o.c. (in)" value={value.rakeLadder.spacing} options={SPACINGS} onChange={ladder('spacing')} />
+          {gable && (
+            <CheckField label="Ridge runs out to the fly rafters" value={value.rakeLadder.ridgeExtends} onChange={ladder('ridgeExtends')} />
           )}
-
-          {!value.loft.enabled && (
-            <>
-              <Subhead>Rafter ties</Subhead>
-              <CheckField label="Rafter ties" value={value.rafterTies.enabled} onChange={ties('enabled')} />
-              {value.rafterTies.enabled && (
-                <>
-                  <SelectField label="Size" value={value.rafterTies.size} options={TWO_BY} onChange={ties('size')} />
-                  <NumberField label="Every Nth pair" value={value.rafterTies.every} onChange={ties('every')} />
-                  <LengthField label="Height above plate" value={value.rafterTies.height} onChange={ties('height')} />
-                </>
-              )}
-            </>
-          )}
-
-          <Subhead>Collar ties</Subhead>
-          <CheckField label="Collar ties" value={value.collarTies.enabled} onChange={collar('enabled')} />
-          {value.collarTies.enabled && (
-            <>
-              <SelectField label="Size" value={value.collarTies.size} options={TWO_BY} onChange={collar('size')} />
-              <NumberField label="Every Nth pair" value={value.collarTies.every} onChange={collar('every')} />
-              <AutoLengthField label="Height above plate" value={value.collarTies.height} onChange={collar('height')} />
-            </>
-          )}
-        </>
+          <CheckField label="Lookout at the fascia" value={value.rakeLadder.fasciaLookouts} onChange={ladder('fasciaLookouts')} />
+          <CheckField label="Build the ladder on the gable-end rafter" value={value.rakeLadder.onEndRafter} onChange={ladder('onEndRafter')} />
+        </Group>
       )}
+      <Group title="Roofing" brief={ROOFING_LABELS[value.roofing]}>
+        <SelectField label="Sheathing" value={value.sheathing} options={SHEATHING} describe={sheetLabel} onChange={set('sheathing')} />
+        <SelectField label="Roofing" value={value.roofing} options={ROOFING} describe={(roofing) => ROOFING_LABELS[roofing]} onChange={set('roofing')} />
+        {value.roofing !== 'shingles' && (
+          <>
+            <SelectField label="Purlins" value={value.purlin} options={PURLINS} describe={(size) => `${size} flat`} onChange={set('purlin')} />
+            <LengthField label="Purlin spacing" value={value.purlinSpacing} onChange={set('purlinSpacing')} />
+          </>
+        )}
+      </Group>
+
+      {gable &&
+        (value.loft.enabled ? (
+          <p className="muted hint">The loft joists tie the rafters.</p>
+        ) : (
+          <Group
+            title="Rafter ties"
+            enabled={value.rafterTies.enabled}
+            onEnable={ties('enabled')}
+            brief={`${value.rafterTies.size}, ${every(value.rafterTies.every)}`}
+          >
+            <SelectField label="Size" value={value.rafterTies.size} options={TWO_BY} onChange={ties('size')} />
+            <NumberField label="Every Nth pair" value={value.rafterTies.every} onChange={ties('every')} />
+            <LengthField label="Height above plate" value={value.rafterTies.height} onChange={ties('height')} />
+          </Group>
+        ))}
+      {gable && (
+        <Group
+          title="Collar ties"
+          enabled={value.collarTies.enabled}
+          onEnable={collar('enabled')}
+          brief={`${value.collarTies.size}, ${every(value.collarTies.every)}`}
+        >
+          <SelectField label="Size" value={value.collarTies.size} options={TWO_BY} onChange={collar('size')} />
+          <NumberField label="Every Nth pair" value={value.collarTies.every} onChange={collar('every')} />
+          <AutoLengthField label="Height above plate" value={value.collarTies.height} onChange={collar('height')} />
+        </Group>
+      )}
+    </Section>
+  );
+}
+
+// The loft is a gable-roof option, so it lives in the roof config.
+function LoftSection({ value, onChange, names }: SectionProps<Roof> & { names: Naming }) {
+  const set = setter(value, onChange);
+  const loft = setter(value.loft, set('loft'));
+  const open = setter(value.loft.open, loft('open'));
+  const knee = setter(value.kneeWalls, set('kneeWalls'));
+  return (
+    <Section
+      title="Loft"
+      enabled={value.loft.enabled}
+      onEnable={loft('enabled')}
+      brief={`${spacing(value.loft.joist, value.loft.oc)}${value.kneeWalls.enabled ? ', knee walls' : ''}`}
+    >
+      <SelectField label="Joist" value={value.loft.joist} options={TWO_BY} onChange={loft('joist')} />
+      <SelectField label="Joist o.c. (in)" value={value.loft.oc} options={SPACINGS} onChange={loft('oc')} />
+      <SelectField
+        label="Joist support"
+        value={value.loft.support}
+        options={LOFT_SUPPORTS}
+        describe={(support) => LOFT_SUPPORT_LABELS[support]}
+        onChange={loft('support')}
+      />
+      <SelectField label="Deck" value={value.loft.deck} options={SHEET_KEYS} describe={sheetLabel} onChange={loft('deck')} />
+      <SelectField
+        label="Open end"
+        value={value.loft.open.end}
+        options={LOFT_OPEN_ENDS}
+        describe={(end) => (end === 'none' ? 'None' : capitalize(names.side(end)))}
+        onChange={open('end')}
+      />
+      {value.loft.open.end !== 'none' && <LengthField label="Open length" value={value.loft.open.length} onChange={open('length')} />}
+      <Group
+        title="Knee walls"
+        enabled={value.kneeWalls.enabled}
+        onEnable={knee('enabled')}
+        brief={`${formatLength(value.kneeWalls.height)}, ${value.kneeWalls.stud}`}
+      >
+        <LengthField label="Height" value={value.kneeWalls.height} onChange={knee('height')} />
+        <SelectField label="Stud" value={value.kneeWalls.stud} options={WALL_STUDS} onChange={knee('stud')} />
+      </Group>
+      <Group title="Hatches" brief={count(value.loft.hatches.length, 'hatch', 'hatches')}>
+        <HatchesEditor value={value.loft.hatches} onChange={loft('hatches')} names={names} />
+      </Group>
     </Section>
   );
 }
@@ -358,7 +396,7 @@ function LoadsSection({ value, onChange }: SectionProps<ShedConfig>) {
   const loads = setter(value.loads, setter(value, onChange)('loads'));
   const catalog = setter(value.catalog, setter(value, onChange)('catalog'));
   return (
-    <Section title="Loads and species">
+    <Section title="Loads and species" brief={`${value.loads.roof} psf roof, ${value.catalog.species.toUpperCase()}`}>
       <SelectField
         label="Lumber"
         value={value.catalog.species}
@@ -400,7 +438,7 @@ function LoadsSection({ value, onChange }: SectionProps<ShedConfig>) {
 function CatalogSection({ value, onChange }: SectionProps<Catalog>) {
   const set = setter(value, onChange);
   return (
-    <Section title="Lumber catalog">
+    <Section title="Lumber catalog" brief={`Stock to ${formatLength(value.maxLength)}`}>
       <LengthField label="Saw kerf" value={value.kerf} onChange={set('kerf')} />
       <LengthField label="Longest stock" value={value.maxLength} onChange={set('maxLength')} />
       <p className="muted hint">
