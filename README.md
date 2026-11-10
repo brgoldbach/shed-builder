@@ -61,8 +61,8 @@ among them the 16x16 "B and B shed".
 ## Versioning
 
 The app follows [Semantic Versioning](https://semver.org/). `package.json` holds the version, and
-the header shows it. [CHANGELOG.md](CHANGELOG.md) lists the changes in each release. Each release
-has a `vX.Y.Z` tag on `main`.
+the header shows it. Click it to read the changelog. [CHANGELOG.md](CHANGELOG.md) lists the changes
+in each release. Each release has a `vX.Y.Z` tag on `main`.
 
 ## Project layout
 

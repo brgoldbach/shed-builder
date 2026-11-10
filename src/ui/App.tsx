@@ -11,6 +11,7 @@ import { checkSpans, spanWarnings } from '../core/out/spans';
 import { PRESETS } from '../core/presets';
 import { buildDrawings } from '../drawings/sheets';
 import { BomView } from './BomView';
+import { ChangelogDialog } from './ChangelogDialog';
 import { CutListTable } from './CutListTable';
 import { SpanTable } from './SpanTable';
 import { DesignForm } from './DesignForm';
@@ -62,6 +63,7 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   // Sheathing would hide the framing, so it starts hidden.
   const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(['sheathing']));
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const model = useMemo(() => buildModel(config), [config]);
@@ -125,7 +127,10 @@ export function App() {
     >
       <header className="topbar">
         <h1>Shed Builder</h1>
-        <span className="muted version">v{APP_VERSION}</span>
+        <button className="version" title="Changelog" onClick={() => setChangelogOpen(true)}>
+          v{APP_VERSION}
+        </button>
+        {changelogOpen && <ChangelogDialog onClose={() => setChangelogOpen(false)} />}
         <span className="muted title">{config.name}</span>
         <div className="actions">
           <select

@@ -37,6 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   at the gable framing, the fly rafters and rails meet at the ridge line, and a plumb block at the
   peak of each ladder meets the one on the other slope. "Build the ladder on the gable-end rafter"
   makes that rafter the ladder's inner rail: no separate rail, and the ladder goes up with it.
+- **Changelog:** the version in the header opens this changelog.
 
 ### Changed
 

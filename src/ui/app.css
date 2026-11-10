@@ -87,6 +87,76 @@ button {
   white-space: nowrap;
 }
 
+.topbar .version {
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.topbar .version:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.changelog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.changelog::backdrop {
+  background: rgb(0 0 0 / 40%);
+}
+
+.changelog-bar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.changelog-bar h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.changelog-body {
+  padding: 4px 16px 16px;
+  line-height: 1.45;
+}
+
+.changelog-body h3 {
+  margin: 20px 0 4px;
+  font-size: 1rem;
+}
+
+.changelog-body h4 {
+  margin: 12px 0 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.changelog-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.changelog-body li {
+  margin: 4px 0;
+}
+
 .topbar .title {
   min-width: 0;
   overflow: hidden;
