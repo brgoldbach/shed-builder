@@ -5,11 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Rake ladder options:** "Lookout at the fascia" puts a lookout at each fascia end of a ladder.
+  "Ridge runs out to the fly rafters" (on by default) can be turned off: the ridge board then stops
+  at the gable framing, the fly rafters and rails meet at the ridge line, and a plumb block at the
+  peak of each ladder meets the one on the other slope. "Build the ladder on the gable-end rafter"
+  makes that rafter the ladder's inner rail: no separate rail, and the ladder goes up with it.
+
 ### Changed
 
-- **Rake ladders:** on a gable roof the ridge board, which runs out to the fly rafters, is the top
-  rung. No lookout goes against the ridge, so each ladder has one lookout fewer, and the top
-  lookout sits one space down the slope.
+- **Rake ladders go up in one piece:** a rail of the ladder size stands against the gable-end
+  rafter, tops flush, and the lookouts run between it and the fly rafter. You build the ladder on
+  the ground, then face-nail the rail to the gable-end rafter. Lookouts are 1-1/2 in shorter: 5 in on
+  an 8 in rake.
+- **Rake ladder ends:** no lookout goes at either end by default. On a gable roof the ridge board,
+  which runs out to the fly rafters, is the top rung, and the fascia ties the tail.
 - **Knee-wall corners tie into the gable end:** the knee wall's cap plate runs to the building
   corner and laps over a level gable corner plate, as at a wall corner. The gable top plate starts
   at the knee wall's inside face, and the gable-end rafters seat on the lap with the same birdsmouth

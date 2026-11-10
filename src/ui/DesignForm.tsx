@@ -254,6 +254,11 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
       <SelectField label="Sheathing" value={value.sheathing} options={SHEATHING} describe={sheetLabel} onChange={set('sheathing')} />
       <SelectField label="Rake ladder" value={value.rakeLadder.size} options={TWO_BY} onChange={ladder('size')} />
       <SelectField label="Lookout o.c. (in)" value={value.rakeLadder.spacing} options={SPACINGS} onChange={ladder('spacing')} />
+      {value.style === 'gable' && (
+        <CheckField label="Ridge runs out to the fly rafters" value={value.rakeLadder.ridgeExtends} onChange={ladder('ridgeExtends')} />
+      )}
+      <CheckField label="Lookout at the fascia" value={value.rakeLadder.fasciaLookouts} onChange={ladder('fasciaLookouts')} />
+      <CheckField label="Build the ladder on the gable-end rafter" value={value.rakeLadder.onEndRafter} onChange={ladder('onEndRafter')} />
 
       {value.style === 'lean-to' && (
         <SelectField

@@ -151,10 +151,14 @@ export function frameRoof(config: ShedConfig): {
           `${formatInches((width - wallDepth + run) / pitch.cos)} from its low end; each seat ${formatInches(seat)}, ` +
           `heel ${formatInches(pitch.rise * seat)}. Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
   };
+  // A rake ladder built on the gable-end rafter goes up with it.
+  const onEndRafter = (x: number) => rake > 0 && roof.rakeLadder.onEndRafter && (x === rafters[0] || x === rafters[rafters.length - 1]);
+  const ladderNote = 'Build the rake ladder on this rafter on the ground (lookouts and fly rafter), then set it in place.';
   for (const side of sides) {
     const rafterOutline = outline(slope, lowEnd(side), to, notches, lowCut(side), highCut);
     for (const x of rafters) {
-      const base = { id: nextId('R'), assembly: 'roof', role: 'rafter', size: roof.rafter, note: rafterNote(side) } as const;
+      const note = onEndRafter(x) ? `${rafterNote(side)} ${ladderNote}` : rafterNote(side);
+      const base = { id: nextId('R'), assembly: 'roof', role: 'rafter', size: roof.rafter, note } as const;
       members.push(planeMember(base, planeAt(x, side), rafterOutline, [pitch.cos, pitch.sin]));
     }
   }
@@ -166,7 +170,8 @@ export function frameRoof(config: ShedConfig): {
     if (ridgeDepth < plumb) {
       warn(`The ridge board (${roof.ridge}) is shallower than the rafter plumb cut (${formatInches(plumb)}).`);
     }
-    for (const [start, end] of splitPlate(ends, maxStock(roof.ridge), centers)) {
+    const ridgeEnds: [number, number] = roof.rakeLadder.ridgeExtends ? ends : [0, length];
+    for (const [start, end] of splitPlate(ridgeEnds, maxStock(roof.ridge), centers)) {
       members.push(box(nextId('RB'), 'ridge', roof.ridge, end - start, [start, width / 2 - PLY / 2, ridgeTop - ridgeDepth], {
         length: X,
         width: UP,
@@ -180,34 +185,62 @@ export function frameRoof(config: ShedConfig): {
   }
 
   if (rake > 0) {
-    const flyNote = (side: Side) =>
-      gable
-        ? `Plumb cut ${degrees(pitch)} at the ridge. No birdsmouth. ${tailText(side)}`
-        : `No birdsmouth. Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
-    const lookoutLength = rake - PLY;
+    const { rakeLadder } = roof;
+    // Without the ridge board out to them, a gable's fly rafters and rails meet at the ridge line.
+    const meeting = gable && !rakeLadder.ridgeExtends;
+    const flyTo = meeting ? width / 2 : to;
+    const ends = (side: Side) =>
+      gable ? `Plumb cut ${degrees(pitch)} at the ridge. ${tailText(side)}` : `Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
+    // A rake ladder that goes up in one piece: the fly rafter, lookouts, and a rail that is
+    // face-nailed to the gable-end rafter, tops flush, or the gable-end rafter itself as the rail.
+    // Too short a rake leaves out the rail.
+    const lookoutDepth = LUMBER[rakeLadder.size].width;
+    const railed = !rakeLadder.onEndRafter && rake >= 2 * PLY;
+    const lookoutLength = rake - (railed ? 2 : 1) * PLY;
+    const railSlope: Slope = { ...slope, depth: lookoutDepth, bottom: (y) => slope.top(y) - lookoutDepth / pitch.cos };
+    const railNote = (side: Side) =>
+      `${ends(side)} Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.`;
     for (const side of sides) {
       const start = lowEnd(side);
-      const flyOutline = outline(slope, start, to, [], lowCut(side), highCut);
+      const flyOutline = outline(slope, start, flyTo, [], lowCut(side), highCut);
       for (const x of [-rake, length + rake - PLY]) {
-        const base = { id: nextId('FR'), assembly: 'roof', role: 'rafter.fly', size: roof.rafter, note: flyNote(side) } as const;
+        const base = { id: nextId('FR'), assembly: 'roof', role: 'rafter.fly', size: roof.rafter, note: `No birdsmouth. ${ends(side)}` } as const;
         members.push(planeMember(base, planeAt(x, side), flyOutline, [pitch.cos, pitch.sin]));
       }
+      if (railed) {
+        const railOutline = outline(railSlope, start, flyTo, [], lowCut(side), highCut);
+        for (const x of [-PLY, length]) {
+          const base = { id: nextId('LR'), assembly: 'roof', role: 'rail.ladder', size: rakeLadder.size, note: railNote(side) } as const;
+          members.push(planeMember(base, planeAt(x, side), railOutline, [pitch.cos, pitch.sin]));
+        }
+      }
       if (lookoutLength < PLY) continue;
-      // Lookouts on edge, flush with the rafter tops, evenly spaced from the tail up to where a
-      // lookout's lower corner meets the high end's plumb line. On a gable roof the ridge board,
-      // which runs out to the fly rafters, is the top rung, so no lookout goes there.
-      const lookoutDepth = LUMBER[roof.rakeLadder.size].width;
-      const reach = (to - start) / pitch.cos - PLY - lookoutDepth * pitch.rise;
-      const gaps = Math.max(1, Math.ceil(reach / roof.rakeLadder.spacing));
-      for (let index = 0; index < (gable ? gaps : gaps + 1); index++) {
+      // Lookouts on edge, flush with the rafter tops, evenly spaced along the ladder from the
+      // tail up to where a lookout's lower corner meets the high end's plumb line. The fascia ties
+      // the ladder's eave ends, so a lookout goes there only when chosen. On a gable roof the ridge
+      // board, run out to the fly rafters, is the top rung; without it a plumb block at the peak
+      // meets the one on the other slope.
+      const reach = (flyTo - start) / pitch.cos - PLY - lookoutDepth * pitch.rise;
+      const gaps = Math.max(1, Math.ceil(reach / rakeLadder.spacing));
+      const last = gable || !rakeLadder.fasciaLookouts ? gaps - 1 : gaps;
+      const xs = [-rake + PLY, length + (railed ? PLY : 0)];
+      for (let index = rakeLadder.fasciaLookouts ? 0 : 1; index <= last; index++) {
         const along = (index * reach) / gaps;
         const drawn: Point = [start + along * pitch.cos, slope.top(start) + along * pitch.sin];
-        for (const x of [-rake + PLY, length]) {
-          members.push(box(nextId('LO'), 'lookout', roof.rakeLadder.size, lookoutLength, [x, side.map(drawn[0]), drawn[1]], {
+        for (const x of xs) {
+          members.push(box(nextId('LO'), 'lookout', rakeLadder.size, lookoutLength, [x, side.map(drawn[0]), drawn[1]], {
             length: X,
             width: [0, side.sign * pitch.sin, -pitch.cos],
             thick: [0, side.sign * pitch.cos, pitch.sin],
           }));
+        }
+      }
+      if (meeting) {
+        const y = side.sign === 1 ? width / 2 - PLY : width / 2;
+        const bottom = slope.top(width / 2 - PLY) - lookoutDepth;
+        for (const x of xs) {
+          const block = box(nextId('LO'), 'lookout', rakeLadder.size, lookoutLength, [x, y, bottom], { length: X, width: UP, thick: [0, 1, 0] });
+          members.push({ ...block, note: 'Plumb, at the peak, against the block on the other slope.' });
         }
       }
     }

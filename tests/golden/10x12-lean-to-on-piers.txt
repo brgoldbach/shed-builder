@@ -48,8 +48,9 @@ GR-6      1  2x4           7-3/4"  Gable stud. Top cut 14.0°.
 GR-7      1  2x4           3-3/4"  Gable stud. Top cut 14.0°.
 RF-1     10  2x8         150-1/4"  Rafter. Birdsmouths on the top edge, 12-3/8" and 132-7/16" from its low end; each seat 3-1/2", heel 7/8". Both ends plumb cut 14.0°.
 RF-2      2  2x8         150-1/4"  Fly rafter. No birdsmouth. Both ends plumb cut 14.0°.
-RF-3     16  2x4           6-1/2"  Lookout
-RF-4      2  2x6             160"  Fascia
+RF-3      2  2x4        149-5/16"  Ladder rail. Both ends plumb cut 14.0°. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
+RF-4     12  2x4               5"  Lookout
+RF-5      2  2x6             160"  Fascia
 SOLID Pier, 10" diameter x9
 SOLID Roof sheathing, 7/16" OSB x10
 SOLID Subfloor, 23/32" T&G (3/4") x6
@@ -59,7 +60,7 @@ STOCK 2x6 PT 10' 0" x10
 STOCK 2x8 PT 12' 0" x6
 STOCK 2x4 16' 0" x6
 STOCK 2x4 14' 0" x3
-STOCK 2x4 12' 0" x13
+STOCK 2x4 12' 0" x15
 STOCK 2x4 9' 8-5/8" x8
 STOCK 2x4 7' 8-5/8" x32
 STOCK 2x8 16' 0" x4

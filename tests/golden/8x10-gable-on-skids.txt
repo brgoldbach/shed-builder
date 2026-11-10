@@ -41,18 +41,19 @@ GR-3      2  2x4          5-7/16"  Gable stud. Top cut 26.6°.
 GR-4      1  2x4          20-3/4"  Ridge post. Square cut.
 RF-1      1  2x6             136"  Ridge board
 RF-2     12  2x4              68"  Rafter. Plumb cut 26.6° at the ridge. Birdsmouth: heel line 52-13/16" from the ridge long point on the top edge; seat 2-9/16", heel 1-5/16". Tail 13-7/16" past the heel line on the top edge, plumb cut.
-RF-3      4  2x4              68"  Fly rafter. Plumb cut 26.6° at the ridge. No birdsmouth. Tail 13-7/16" past the heel line on the top edge, plumb cut.
-RF-4     12  2x4           6-1/2"  Lookout
-RF-5      2  2x6             136"  Fascia
-RF-6      4  2x4              96"  Rafter tie. Ends cut 26.6° to the roof line.
-RF-7      4  2x4          37-1/2"  Collar tie. Ends cut 26.6° to the roof line.
+RF-3      4  2x4              68"  Fly rafter. No birdsmouth. Plumb cut 26.6° at the ridge. Tail 13-7/16" past the heel line on the top edge, plumb cut.
+RF-4      4  2x4              68"  Ladder rail. Plumb cut 26.6° at the ridge. Tail 13-7/16" past the heel line on the top edge, plumb cut. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
+RF-5      8  2x4               5"  Lookout
+RF-6      2  2x6             136"  Fascia
+RF-7      4  2x4              96"  Rafter tie. Ends cut 26.6° to the roof line.
+RF-8      4  2x4          37-1/2"  Collar tie. Ends cut 26.6° to the roof line.
 SOLID Roof sheathing, 7/16" OSB x10
 SOLID Subfloor, 23/32" T&G (3/4") x4
 SOLID Wall sheathing, 7/16" OSB x14
 STOCK 2x6 PT 10' 0" x2
 STOCK 2x6 PT 8' 0" x9
 STOCK 4x6 PT 10' 0" x2
-STOCK 2x4 16' 0" x14
+STOCK 2x4 16' 0" x15
 STOCK 2x4 10' 0" x2
 STOCK 2x4 8' 0" x8
 STOCK 2x4 7' 8-5/8" x38

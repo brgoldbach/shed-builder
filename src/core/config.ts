@@ -147,6 +147,9 @@ const roof = z.strictObject({
     .strictObject({
       size: twoBy.default('2x4'),
       spacing: spacing.default(24),
+      ridgeExtends: z.boolean().default(true), // gable: the ridge board runs out to the fly rafters
+      fasciaLookouts: z.boolean().default(false), // a lookout at each fascia end of the ladder
+      onEndRafter: z.boolean().default(false), // the gable-end rafter is the ladder's inner rail
     })
     .prefault({}),
   ridge: twoBy.default('2x8'),

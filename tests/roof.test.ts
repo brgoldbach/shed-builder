@@ -59,16 +59,65 @@ describe('gable roof', () => {
     expect(ridge.origin[2]).toBeCloseTo(117.899, 3);
   });
 
-  it('builds a rake ladder: fly rafters and 6-1/2 in lookouts, with the ridge as the top rung', () => {
+  it('builds a rake ladder that goes up in one piece: fly rafter, 5 in lookouts, and a rail', () => {
     expect(ofRole(members, 'rafter.fly')).toHaveLength(4);
-    // Reach 59-1/4 / cos - 1-1/2 - 3-1/2 x 1/2 = 62.99: 3 gaps of 21.0 in, at most 24 in. The ridge
-    // board takes the top rung, so 3 lookouts per ladder, 4 ladders.
+    // The rail: a 2x4 on edge against the gable-end rafter's outside face (x -1-1/2 to 0), tops flush.
+    // Tail to ridge face along the top edge: 59-1/4 / cos, plus the 1-3/4 in plumb tail long point.
+    const rails = ofRole(members, 'rail.ladder');
+    expect(rails).toHaveLength(4);
+    const [left] = rails;
+    expect([Math.min(...corners(left).map(([x]) => x)), Math.max(...corners(left).map(([x]) => x))]).toEqual([-1.5, 0]);
+    const zs = (member: Member, y: number) => corners(member).filter(([, cornerY]) => Math.abs(cornerY - y) < 1e-9).map(([, , z]) => z);
+    const [rafter] = ofRole(members, 'rafter');
+    expect(Math.max(...zs(left, 47.25))).toBeCloseTo(Math.max(...zs(rafter, 47.25)), 9);
+    expect(Math.max(...zs(left, 47.25)) - Math.min(...zs(left, 47.25))).toBeCloseTo(3.5 * Math.hypot(1, 0.5), 9);
+    expect(left.note).toMatch(/face-nail this rail to the gable-end rafter, tops flush\.$/);
+    // Lookouts fit between the rail and the fly rafter: 8 - 2 x 1-1/2 = 5. Reach 59-1/4 / cos - 1-1/2
+    // - 3-1/2 x 1/2 = 62.99: 3 gaps of 21.0 in, at most 24 in. The fascia ties the tail and the ridge
+    // board takes the top rung, so 2 lookouts per ladder, 4 ladders.
     const lookouts = ofRole(members, 'lookout');
-    expect(lengths(lookouts)).toEqual(new Array(12).fill(6.5));
-    // On the front slope the highest lookout stops one gap short of the ridge face at 47-1/4.
+    expect(lengths(lookouts)).toEqual(new Array(8).fill(5));
+    // On the front slope the highest lookout stops one gap short of the ridge face at 47-1/4, and the
+    // lowest one gap up from the tail.
     const cos = 2 / Math.sqrt(5);
-    const highest = Math.max(...lookouts.flatMap((lookout) => corners(lookout).map(([, y]) => y)).filter((y) => y < 48));
-    expect(highest).toBeCloseTo(47.25 - ((59.25 / cos - 3.25) / 3) * cos, 9);
+    const gap = ((59.25 / cos - 3.25) / 3) * cos;
+    const front = lookouts.flatMap((lookout) => corners(lookout).map(([, y]) => y)).filter((y) => y < 48);
+    expect(Math.max(...front)).toBeCloseTo(47.25 - gap, 9);
+    expect(Math.min(...front)).toBeCloseTo(-12 + gap, 9);
+  });
+
+  it('builds the ladder on the gable-end rafter when chosen, with no separate rail', () => {
+    const { members } = roofOf({ ...gableRoof, rakeLadder: { onEndRafter: true } });
+    expect(ofRole(members, 'rail.ladder')).toHaveLength(0);
+    // Lookouts run from the fly rafter to the gable-end rafter: 8 - 1-1/2 = 6-1/2.
+    expect(lengths(ofRole(members, 'lookout'))).toEqual(new Array(8).fill(6.5));
+    const ladderNote = 'Build the rake ladder on this rafter on the ground (lookouts and fly rafter), then set it in place.';
+    const ends = ofRole(members, 'rafter').filter(({ note }) => note?.endsWith(ladderNote));
+    // The gable-end rafters: x 0 and 118-1/2 on the front slope; the back slope's planes start 1-1/2 further.
+    expect(ends.map(({ origin }) => origin[0])).toEqual([0, 118.5, 1.5, 120]);
+  });
+
+  it('puts a lookout at the fascia when chosen', () => {
+    const { members } = roofOf({ ...gableRoof, rakeLadder: { fasciaLookouts: true } });
+    expect(ofRole(members, 'lookout')).toHaveLength(12);
+  });
+
+  it('meets the ladders at the ridge line when the ridge board stops at the gable framing', () => {
+    const { members } = roofOf({ ...gableRoof, rakeLadder: { ridgeExtends: false } });
+    expect(lengths(ofRole(members, 'ridge'))).toEqual([120]);
+    // Fly rafters and rails run to the ridge line at 48 instead of the ridge face at 47-1/4.
+    const ys = (member: Member) => corners(member).map(([, y]) => y);
+    const [fly] = ofRole(members, 'rafter.fly');
+    expect(Math.max(...ys(fly))).toBeCloseTo(48, 9);
+    // A plumb block at the peak of each ladder, 1-1/2 in thick, against the one on the other slope.
+    const blocks = ofRole(members, 'lookout').filter(({ note }) => note === 'Plumb, at the peak, against the block on the other slope.');
+    expect(blocks.map((block) => [Math.min(...ys(block)), Math.max(...ys(block))])).toEqual([
+      [46.5, 48],
+      [46.5, 48],
+      [48, 49.5],
+      [48, 49.5],
+    ]);
+    expect(ofRole(members, 'lookout')).toHaveLength(12);
   });
 
   it('hangs fascia on both eaves, plumb, the full ridge length', () => {
