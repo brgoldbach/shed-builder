@@ -311,8 +311,9 @@ function frameLoft(
 
 /**
  * A knee wall at each eave, standing at `base`, outside face flush with the wall below, between
- * the gable-end walls. Its height runs from its base to the top of its plates, where the rafters
- * bear. Studs follow the wall layout from each wall's left corner, viewed from outside.
+ * the gable-end walls; its cap plate laps over their corners. Its height runs from its base to the
+ * top of its plates, where the rafters bear. Studs follow the wall layout from each wall's left
+ * corner, viewed from outside.
  */
 function frameKneeWalls(config: ShedConfig, base: number): Member[] {
   const { width, length, walls, roof, catalog } = config;
@@ -362,8 +363,9 @@ function frameKneeWalls(config: ShedConfig, base: number): Member[] {
       ['TP', 'plate.top', topPieces, base + PLY + studLength],
     ];
     if (walls.capPlate) {
+      // The cap runs to the building corners, lapping over the gable-end walls' corner plates.
       const avoid = topPieces.slice(1).map(([from]) => from);
-      const capPieces = splitPlate([start, end], maxStock, centers, avoid);
+      const capPieces = splitPlate([0, length], maxStock, centers, avoid);
       levels.push(['CP', 'plate.cap', capPieces, base + 2 * PLY + studLength]);
     }
     for (const [code, role, pieces, z] of levels) {

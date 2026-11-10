@@ -108,33 +108,39 @@ describe('knee walls raise the roof', () => {
     expect(joists[0].note).toBe('Square ends.');
   });
 
-  it('runs the gable end through to the corners, sloped down to the outside face', () => {
+  it('ties each knee wall into the gable corners: its cap laps over a level corner plate', () => {
+    // The knee wall's cap runs to the building corners; its top plate stays between the gable walls.
+    expect(ofRole(front, 'plate.cap').map(({ length, origin }) => [length, origin[0]])).toEqual([[120, 0]]);
     const left = members.filter((member) => member.assembly === 'gable.left');
-    const plates = ofRole(left, 'plate.gable');
-    expect(plates.map(({ note }) => note)).toEqual([
-      'Plumb cuts 26.6° at the outside face and 26.6° at the ridge post.',
-      'Plumb cuts 26.6° at the outside face and 26.6° at the ridge post.',
+    const box = (member: Member) => [0, 1, 2].map((axis) => [Math.min(...corners(member).map((p) => p[axis])), Math.max(...corners(member).map((p) => p[axis]))]);
+    // Corner plates level with the knee wall's top plate (139-11/32 less two plates), from the
+    // outside face to 1-1/2 in past the knee wall's inside face.
+    const cornerPlates = ofRole(left, 'plate.gable').filter(({ note }) => note === "Level, under the knee wall's cap plate, which laps over it.");
+    expect(cornerPlates.map(box)).toEqual([
+      [[0, 3.5], [0, 5], [136.34375, 137.84375]],
+      [[0, 3.5], [91, 96], [136.34375, 137.84375]],
     ]);
-    // Outside face to the post face (47-1/4) along the 6/12 slope, plus the plumb cut's long point,
-    // 1-1/2 × 6/12.
-    expect(plates[0].length).toBeCloseTo(47.25 * Math.hypot(1, 0.5) + 0.75, 9);
-    // End stud at each corner, from the end-wall plate at 97-1/8 to the plate underside 1-1/2 in
-    // from the corner: 139-11/32 - 6/12 × 2 - 1.677.
-    const studs = ofRole(left, 'stud.gable');
-    const ys = (stud: Member) => corners(stud).map(([, y]) => y);
-    const ends = studs.filter((stud) => Math.min(...ys(stud)) < 1e-9 || Math.max(...ys(stud)) > 96 - 1e-9);
-    expect(ends.map(({ length }) => length)).toEqual([expect.closeTo(39.5417, 4), expect.closeTo(39.5417, 4)]);
+    // Two studs under each, at the outside face and the knee wall's inside face, from the end-wall
+    // plate at 97-1/8.
+    const cornerStuds = ofRole(left, 'stud.gable').filter(({ note }) => note === 'Square cut. Under the corner plate.');
+    expect(cornerStuds.map((stud) => [box(stud)[1][0], stud.length])).toEqual([
+      [0, 39.21875],
+      [3.5, 39.21875],
+      [94.5, 39.21875],
+      [91, 39.21875],
+    ]);
+    // The sloped top plate starts at the knee wall's inside face, against the lap.
+    const [sloped] = ofRole(left, 'plate.gable').filter(({ note }) => note?.startsWith('Plumb cut against'));
+    expect(sloped.note).toBe("Plumb cut against the knee wall's cap plate, level cut on the corner plate. Plumb cut 26.6° at the ridge post.");
+    expect(box(sloped)[1][0]).toBeCloseTo(3.5, 9);
     // Layout 16 and 80: rafter underside 145.969, less 1.677, less the end-wall plate at 97-1/8.
-    const lengths = studs.map((stud) => stud.length).sort((first, second) => first - second);
-    expect(lengths[2]).toBeCloseTo(47.1667, 3);
+    const layout = ofRole(left, 'stud.gable').filter(({ note }) => note?.startsWith('Top cut'));
+    expect(Math.min(...layout.map((stud) => stud.length))).toBeCloseTo(47.1667, 3);
   });
 
-  it('sets the gable-end rafters on the gable top plates, with no birdsmouth', () => {
+  it('seats the gable-end rafters on the lap with the same birdsmouth as the others', () => {
     const rafters = ofRole(members, 'rafter');
-    const ends = rafters.filter(({ note }) => note?.includes('No birdsmouth'));
-    // Front slope at x 0 and 118-1/2; the back slope's planes start 1-1/2 further along x.
-    expect(ends.map(({ origin }) => origin[0])).toEqual([0, 118.5, 1.5, 120]);
-    expect(rafters.filter(({ note }) => note?.includes('Birdsmouth:'))).toHaveLength(rafters.length - 4);
+    expect(rafters.every(({ note }) => note?.includes('Birdsmouth: heel line'))).toBe(true);
   });
 
   it('adds rim plies under the knee walls across an open end', () => {

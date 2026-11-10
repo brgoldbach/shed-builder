@@ -151,16 +151,11 @@ export function frameRoof(config: ShedConfig): {
           `${formatInches((width - wallDepth + run) / pitch.cos)} from its low end; each seat ${formatInches(seat)}, ` +
           `heel ${formatInches(pitch.rise * seat)}. Both ends ${tailCut === 'plumb' ? `plumb cut ${degrees(pitch)}` : 'square cut'}.`;
   };
-  // On a raised roof the gable-end rafters bear on the gable top plates along their length.
-  const onGable = (x: number) => raised && (x === rafters[0] || x === rafters[rafters.length - 1]);
   for (const side of sides) {
     const rafterOutline = outline(slope, lowEnd(side), to, notches, lowCut(side), highCut);
-    const endOutline = outline(slope, lowEnd(side), to, [], lowCut(side), highCut);
-    const endNote = `Plumb cut ${degrees(pitch)} at the ridge. No birdsmouth: it bears on the gable top plate. ${tailText(side)}`;
     for (const x of rafters) {
-      const note = onGable(x) ? endNote : rafterNote(side);
-      const base = { id: nextId('R'), assembly: 'roof', role: 'rafter', size: roof.rafter, note } as const;
-      members.push(planeMember(base, planeAt(x, side), onGable(x) ? endOutline : rafterOutline, [pitch.cos, pitch.sin]));
+      const base = { id: nextId('R'), assembly: 'roof', role: 'rafter', size: roof.rafter, note: rafterNote(side) } as const;
+      members.push(planeMember(base, planeAt(x, side), rafterOutline, [pitch.cos, pitch.sin]));
     }
   }
 
@@ -418,21 +413,30 @@ function frameGableEnds(
 
   // Top plate in the drawn section: its top against the end rafter's underside and a plumb cut at
   // the ridge post or the high wall. Its low end has a level cut where its underside meets the
-  // end-wall plate, or a plumb cut at the eave wall's inside face. On a roof raised by knee walls
-  // the gable end runs through to the corners: the knee walls stop at its inside face, and the top
-  // plate runs down to a plumb cut at the outside face, under end rafters with no birdsmouth.
-  const meet = slope.seat + (plateTop + plateThick - slope.bottom(slope.seat)) / pitch.rise;
-  const low = raised ? 0 : Math.max(meet, bearingDepth);
-  const clear = raised ? PLY : Math.max(wallDepth, bearingDepth); // eave corners: no layout studs
+  // plate below, or a plumb cut. On a roof raised by knee walls the gable end runs through to the
+  // corners, and a level corner plate at each eave lines up with the knee wall's top plate. The
+  // knee wall's cap plate laps over it, as at a wall corner, and the end rafter seats on the lap.
+  // The top plate then starts at the knee wall's inside face, plumb against the lap.
+  const base = slope.bottom(slope.seat); // where the rafters bear
+  const cornerTop = raised && walls.capPlate ? base - PLY : base;
+  const support = raised ? cornerTop : plateTop;
+  const meet = slope.seat + (support + plateThick - base) / pitch.rise;
+  const low = raised ? (walls.capPlate ? Math.max(slope.seat, bearingDepth) : slope.seat) : Math.max(meet, bearingDepth);
+  const levelCut = raised ? slope.bottom(low) - plateThick < support : meet >= bearingDepth;
+  const cornerLength = Math.max(bearingDepth + PLY, levelCut ? meet : low);
+  const clear = raised ? cornerLength : Math.max(wallDepth, bearingDepth); // eave corners: no layout studs
   const high = gable ? (post ? post[0] : width / 2) : width - wallDepth;
   const highEnd = `${degrees(pitch)} at the ${gable ? 'ridge post' : 'high wall'}`;
-  const levelCut = !raised && meet >= bearingDepth;
   const plateOutline: Point[] = levelCut
-    ? [[slope.seat, plateTop], [low, plateTop], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)]]
+    ? [[raised ? low : slope.seat, support], [meet, support], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)], [low, slope.bottom(low)]]
     : [[low, slope.bottom(low) - plateThick], [high, slope.bottom(high) - plateThick], [high, slope.bottom(high)], [low, slope.bottom(low)]];
+  const lowEndNote = raised
+    ? `${walls.capPlate ? "Plumb cut against the knee wall's cap plate, level" : 'Level'} cut on the corner plate`
+    : 'Level cut on the wall plate';
   const plateNote = levelCut
-    ? `Level cut on the wall plate. Plumb cut ${highEnd}.`
-    : `Plumb cuts ${degrees(pitch)} at the ${raised ? 'outside face' : "eave wall's inside face"} and ${highEnd}.`;
+    ? `${lowEndNote}. Plumb cut ${highEnd}.`
+    : `Plumb cuts ${degrees(pitch)} at the ${raised ? 'knee wall' : "eave wall's inside face"} and ${highEnd}.`;
+  const cornerNote = walls.capPlate ? "Level, under the knee wall's cap plate, which laps over it." : "Level, under the gable-end rafter's seat.";
 
   // Each end wall's u runs along it from its left corner, viewed from outside. toY is its own inverse.
   const ends = [
@@ -498,8 +502,19 @@ function frameGableEnds(
         members.push(make('plate.gable', 'TP', plateOutline.map(toPlane), dir, plateNote));
       }
     }
-    // An end stud at each eave corner, under the top plate's plumb-cut end.
-    if (raised) for (const from of [0, width - PLY]) members.push(make('stud.gable', 'S', column(from, plateTop), [0, 1], topCut));
+    // At each eave corner: the corner plate, on an end stud and a stud at the knee wall's inside face.
+    if (raised) {
+      for (const side of sides) {
+        const toPlane = ([y, z]: Point): Point => [end.toY(side.map(y)), z];
+        const corner: Point[] = [[0, cornerTop - PLY], [cornerLength, cornerTop - PLY], [cornerLength, cornerTop], [0, cornerTop]];
+        const [first, second] = [toPlane(corner[0]), toPlane(corner[1])];
+        members.push(make('plate.gable', 'CP', corner.map(toPlane), [second[0] - first[0], 0], cornerNote));
+        for (const from of [0, bearingDepth]) {
+          const stud: Point[] = [[from, plateTop], [from + PLY, plateTop], [from + PLY, cornerTop - PLY], [from, cornerTop - PLY]];
+          members.push(make('stud.gable', 'S', stud.map(toPlane), [0, 1], 'Square cut. Under the corner plate.'));
+        }
+      }
+    }
     if (post) {
       const fit = inside(post[0]);
       if (fit) cripples(fit, post[0], true);

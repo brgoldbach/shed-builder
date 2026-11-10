@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Rake ladders:** on a gable roof the ridge board, which runs out to the fly rafters, is the top
   rung. No lookout goes against the ridge, so each ladder has one lookout fewer, and the top
   lookout sits one space down the slope.
+- **Knee-wall corners tie into the gable end:** the knee wall's cap plate runs to the building
+  corner and laps over a level gable corner plate, as at a wall corner. The gable top plate starts
+  at the knee wall's inside face, and the gable-end rafters seat on the lap with the same birdsmouth
+  as the others.
 
 ## [0.1.0] - 2026-11-09
 
