@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Main roof roofing:** shingles on sheathing (as before), metal on purlins over open rafters,
+  or metal on purlins over the sheathing. Purlins are 1x4 or 2x4 flat, evenly spaced up each
+  slope at most the purlin spacing apart, rake to rake.
 - **PDF plans:** "Download PDF" on the Framing tab writes every drawing as one sheet, on Letter or
   Tabloid paper, landscape. Each sheet gets the largest architectural scale that fits and a title
   block: design, sheet title and number, scale, date, app version, and the notice.

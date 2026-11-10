@@ -9,10 +9,12 @@ import {
   LOFT_USES,
   MUD_SILLS,
   PIER_DIAMETERS,
+  PURLINS,
   ROOF_DEAD_LOADS,
   ROOF_LOADS,
   POST_SIZES,
   ROOF_STYLES,
+  ROOFING,
   SHEATHING,
   SKID_SIZES,
   SPACINGS,
@@ -50,6 +52,11 @@ type Walls = ShedConfig['walls'];
 type Roof = ShedConfig['roof'];
 type Catalog = ShedConfig['catalog'];
 
+const ROOFING_LABELS = {
+  shingles: 'Shingles on sheathing',
+  metal: 'Metal on purlins, open',
+  'metal-over-sheathing': 'Metal on purlins over sheathing',
+};
 const ROOF_DEAD_LABELS = { 10: '10 psf: asphalt shingles', 15: '15 psf: slate to 1/4"', 20: '20 psf: clay tile' };
 const LOFT_USE_LABELS = { storage: 'Storage (20 psf)', sleeping: 'Sleeping (30 psf)' };
 
@@ -252,6 +259,13 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
       <SelectField label="Tail cut" value={value.tailCut} options={TAIL_CUTS} describe={capitalize} onChange={set('tailCut')} />
       <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={noneLabel} onChange={set('fascia')} />
       <SelectField label="Sheathing" value={value.sheathing} options={SHEATHING} describe={sheetLabel} onChange={set('sheathing')} />
+      <SelectField label="Roofing" value={value.roofing} options={ROOFING} describe={(roofing) => ROOFING_LABELS[roofing]} onChange={set('roofing')} />
+      {value.roofing !== 'shingles' && (
+        <>
+          <SelectField label="Purlins" value={value.purlin} options={PURLINS} describe={(size) => `${size} flat`} onChange={set('purlin')} />
+          <LengthField label="Purlin spacing" value={value.purlinSpacing} onChange={set('purlinSpacing')} />
+        </>
+      )}
       <SelectField label="Rake ladder" value={value.rakeLadder.size} options={TWO_BY} onChange={ladder('size')} />
       <SelectField label="Lookout o.c. (in)" value={value.rakeLadder.spacing} options={SPACINGS} onChange={ladder('spacing')} />
       {value.style === 'gable' && (

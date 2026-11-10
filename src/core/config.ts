@@ -38,6 +38,9 @@ export const LEAN_TO_FLOORS = ['none', 'slab'] as const;
 export const LEAN_TO_ROOFING = ['sheathing', 'metal'] as const;
 export const ATTACHMENTS = ['soffit', 'extension'] as const;
 export const PURLINS = ['1x4', '2x4'] as const;
+// Main roof: shingles on sheathing, metal on purlins over open rafters, or metal on purlins over
+// sheathing.
+export const ROOFING = ['shingles', 'metal', 'metal-over-sheathing'] as const;
 export const OPPOSITE = { front: 'back', back: 'front', left: 'right', right: 'left' } as const;
 
 const len = (min: number, max: number) =>
@@ -143,6 +146,9 @@ const roof = z.strictObject({
   tailCut: z.enum(TAIL_CUTS).default('plumb'),
   fascia: z.enum(FASCIA).default('2x6'),
   sheathing: z.enum(SHEATHING).default('osb-7/16'),
+  roofing: z.enum(ROOFING).default('shingles'),
+  purlin: z.enum(PURLINS).default('1x4'),
+  purlinSpacing: len(12, 48).default(24), // along the slope, center to center
   rakeLadder: z
     .strictObject({
       size: twoBy.default('2x4'),

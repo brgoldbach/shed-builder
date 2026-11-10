@@ -275,6 +275,27 @@ export function frameRoof(config: ShedConfig): {
   // The fascia thickness, measured along the slope. An extended side's sheathing stops at the wall
   // line, where the extension's takes over.
   const fasciaRun = roof.fascia === 'none' ? 0 : LUMBER[roof.fascia].thick / (tailCut === 'plumb' ? pitch.cos : 1);
+  // Metal roofing on purlins laid flat across the rafters, or across the sheathing on them, evenly
+  // spaced along the slope from the eave edge up to the ridge face or the high end, rake to rake.
+  if (roof.roofing !== 'shingles') {
+    const purlinWidth = LUMBER[roof.purlin].width;
+    const lift = roof.roofing === 'metal-over-sheathing' && roof.sheathing !== 'none' ? SHEETS[roof.sheathing].thick : 0;
+    for (const side of sides) {
+      const start = lowEnd(side);
+      const run = (to - start) / pitch.cos - purlinWidth;
+      const gaps = Math.max(1, Math.ceil(run / roof.purlinSpacing));
+      const thick: Vec3 = [0, -side.sign * pitch.sin, pitch.cos]; // out of the roof
+      for (let index = 0; index <= gaps; index++) {
+        const y = start + ((index * run) / gaps) * pitch.cos;
+        const origin = (from: number): Vec3 => [from, side.map(y) + thick[1] * lift, slope.top(y) + thick[2] * lift];
+        for (const [from, end] of splitPlate(ends, maxStock(roof.purlin), centers)) {
+          const purlin = box(nextId('PU'), 'purlin', roof.purlin, end - from, origin(from), { length: X, width: [0, side.sign * pitch.cos, pitch.sin], thick });
+          members.push(lift > 0 ? { ...purlin, note: 'Over the roof sheathing: fasten through it into the rafters.' } : purlin);
+        }
+      }
+    }
+  }
+
   const planes = sides.map((side): RoofPlane => {
     const lowRun = isExtended(side) ? 0 : fasciaRun;
     const lowEdge: Point = [lowEnd(side) - lowRun * pitch.cos, slope.top(lowEnd(side)) - lowRun * pitch.sin];
@@ -282,7 +303,7 @@ export function frameRoof(config: ShedConfig): {
     return {
       assembly: 'roof',
       eaves: (gable ? 0 : 1) + (isExtended(side) ? 0 : 1),
-      sheathed: true,
+      sheathed: roof.roofing !== 'metal',
       origin: [side.sign === 1 ? ends[0] : ends[1], side.map(lowEdge[0]), lowEdge[1]],
       u: [side.sign, 0, 0],
       v: [0, side.sign * pitch.cos, pitch.sin],

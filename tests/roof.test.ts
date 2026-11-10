@@ -97,6 +97,30 @@ describe('gable roof', () => {
     expect(ends.map(({ origin }) => origin[0])).toEqual([0, 118.5, 1.5, 120]);
   });
 
+  it('roofs with metal on purlins across the rafters, without sheathing', () => {
+    const { members, planes } = roofOf({ ...gableRoof, roofing: 'metal' });
+    // Tail (-12) to the ridge face (47-1/4) is 66.24 in along the slope, less a 3-1/2 in purlin:
+    // 3 gaps of at most 24 in, so 4 purlins a side, each rake to rake (-8 to 128).
+    const purlins = ofRole(members, 'purlin');
+    expect(lengths(purlins)).toEqual(new Array(8).fill(136));
+    expect(planes.every(({ sheathed }) => !sheathed)).toBe(true);
+    // The lowest front purlin lies on the rafter tops at the tail.
+    const [rafter] = ofRole(members, 'rafter');
+    const lowest = purlins.reduce((low, purlin) => (purlin.origin[1] < low.origin[1] ? purlin : low));
+    expect(lowest.origin[2]).toBeCloseTo(Math.max(...corners(rafter).filter(([, y]) => Math.abs(y + 12) < 1e-9).map(([, , z]) => z)), 9);
+  });
+
+  it('lays metal purlins over the sheathing when chosen', () => {
+    const open = roofOf({ ...gableRoof, roofing: 'metal' }).members;
+    const { members, planes } = roofOf({ ...gableRoof, roofing: 'metal-over-sheathing' });
+    expect(planes.every(({ sheathed }) => sheathed)).toBe(true);
+    // Raised 7/16 in square to the roof: 7/16 x cos up, 7/16 x sin toward the eave.
+    const cos = 2 / Math.sqrt(5);
+    const [low, high] = [ofRole(open, 'purlin')[0], ofRole(members, 'purlin')[0]];
+    expect(high.origin[2] - low.origin[2]).toBeCloseTo(0.4375 * cos, 9);
+    expect(high.note).toBe('Over the roof sheathing: fasten through it into the rafters.');
+  });
+
   it('puts a lookout at the fascia when chosen', () => {
     const { members } = roofOf({ ...gableRoof, rakeLadder: { fasciaLookouts: true } });
     expect(ofRole(members, 'lookout')).toHaveLength(12);
