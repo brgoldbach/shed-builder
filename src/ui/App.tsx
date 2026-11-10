@@ -10,6 +10,7 @@ import { buildCutList, LENGTH_RULE } from '../core/out/cutlist';
 import { bomCsv, cutListCsv } from '../core/out/csv';
 import { checkSpans, spanWarnings } from '../core/out/spans';
 import { PRESETS } from '../core/presets';
+import { designFromLink, designToLink, LINK_KEY, linkData } from '../core/share';
 import { buildDrawings } from '../drawings/sheets';
 import { BomView } from './BomView';
 import { ChangelogDialog } from './ChangelogDialog';
@@ -37,15 +38,19 @@ const VIEWS = {
   Finished: ['sheathing'],
 } as const satisfies Record<string, readonly Layer[]>;
 
-function restore(): ShedConfig {
+function saved(): string | null {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const result = saved === null ? null : parseConfigText(saved);
-    if (result?.ok) return result.config;
+    return localStorage.getItem(STORAGE_KEY);
   } catch {
-    // Storage is blocked. Start from the first preset.
+    return null; // Storage is blocked.
   }
-  return PRESETS[0];
+}
+
+// The saved design, or the first preset when there is none or storage is blocked.
+function restore(): ShedConfig {
+  const text = saved();
+  const result = text === null ? null : parseConfigText(text);
+  return result?.ok ? result.config : PRESETS[0];
 }
 
 function download(filename: string, text: string, type = 'application/json') {
@@ -68,6 +73,10 @@ export function App() {
   const [tab, setTab] = useState<TabId>('3d');
   const [selected, setSelected] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(VIEWS.Framing));
+  // A shared link replaces a design only after asking, unless this browser had none.
+  const [hadDesign] = useState(() => saved() !== null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -102,6 +111,50 @@ export function App() {
       // Storage is blocked. Autosave is off.
     }
   }, [config]);
+
+  useEffect(() => {
+    let current = true;
+    void designToLink(config).then((data) => {
+      if (current) setShareLink(`${window.location.origin}${window.location.pathname}#${LINK_KEY}${data}`);
+    });
+    return () => {
+      current = false;
+    };
+  }, [config]);
+
+  // Open a design from the address: at load, and when a link is pasted into an open page. The
+  // fragment then goes, so a reload keeps the design from storage instead of asking again.
+  useEffect(() => {
+    async function openLink() {
+      const data = linkData(window.location.hash);
+      if (data === null) return;
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      const result = await designFromLink(data);
+      if (!result.ok) {
+        setLoadError({ file: 'the shared link', errors: result.errors });
+        return;
+      }
+      const question = `Open the shared design "${result.config.name}"? It replaces the design in this browser. Save yours first to keep it.`;
+      if (hadDesign && !confirm(question)) return;
+      setConfig(result.config);
+      setRevision((count) => count + 1);
+      setLoadError(null);
+    }
+    void openLink();
+    window.addEventListener('hashchange', openLink);
+    return () => window.removeEventListener('hashchange', openLink);
+  }, [hadDesign]);
+
+  function copyLink(link: string) {
+    navigator.clipboard.writeText(link).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      },
+      // No clipboard access: show the link to copy by hand.
+      () => window.prompt('Copy this link:', link),
+    );
+  }
 
   function edit(next: ShedConfig): string | null {
     const result = shedSchema.safeParse(next);
@@ -159,6 +212,9 @@ export function App() {
           </select>
           <button onClick={() => fileInput.current?.click()}>Open…</button>
           <button onClick={() => download(fileName(config.name, 'shed.json'), serializeConfig(config))}>Save</button>
+          <button title="Copy a link that opens this design" disabled={!shareLink} onClick={() => shareLink && copyLink(shareLink)}>
+            {copied ? 'Link copied' : 'Copy link'}
+          </button>
           <input
             ref={fileInput}
             type="file"
@@ -251,6 +307,7 @@ export function App() {
             onPick={(id) => toggle(markOf.get(id) ?? null)}
             designName={config.name}
             pdfName={fileName(config.name, 'plans.pdf')}
+            shareLink={shareLink}
           />
           {pickInfo && <div className="pick-info sticky">{pickInfo}</div>}
         </section>

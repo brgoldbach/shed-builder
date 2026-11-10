@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { APP_VERSION, parseConfig, parseConfigText, serializeConfig } from '../src/core/config';
 import { PRESETS } from '../src/core/presets';
+import { DESIGNS } from './designs';
 
 describe('parseConfig', () => {
   it('fills every default from a bare file', () => {
@@ -76,7 +77,7 @@ describe('parseConfig', () => {
 });
 
 describe('presets', () => {
-  it.each(PRESETS.map((preset) => [preset.name, preset] as const))(
+  it.each(DESIGNS.map((preset) => [preset.name, preset] as const))(
     '%s survives save and load',
     (_name, preset) => {
       expect(parseConfigText(serializeConfig(preset))).toEqual({ ok: true, config: preset });

@@ -7,8 +7,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- **Hosting:** the README explains how to host the app free on Cloudflare Pages, with a rebuild on
-  each push to `main`. `.nvmrc` pins Node 26 for the host's build.
+- **Share links:** Copy link puts the whole design in a link, with nothing stored on a server.
+  Opening the link loads the design, after asking when the browser already has one.
+- **QR code on the plans:** the PDF plans end with an "Open this design" sheet that prints the
+  design's link as a QR code up to 5 in across, so a phone camera opens the design from a printed
+  set. The drawing sheets are unchanged.
+- **Hosting:** the README explains how to host the app free on Cloudflare, with a rebuild on each
+  push to `main`. `.nvmrc` pins Node 26 for the host's build.
+
+### Removed
+
+- **B and B shed preset:** share its design by link or file instead. The tests keep it as a fixture.
 
 ## [0.3.0] - 2026-11-10
 

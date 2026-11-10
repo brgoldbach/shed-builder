@@ -11,7 +11,14 @@ interface Props {
   onPick: (id: string) => void;
 }
 
-export function FramingView({ drawings, selected, onPick, designName, pdfName }: Props & { designName: string; pdfName: string }) {
+export function FramingView({
+  drawings,
+  selected,
+  onPick,
+  designName,
+  pdfName,
+  shareLink,
+}: Props & { designName: string; pdfName: string; shareLink: string | null }) {
   const [zoomed, setZoomed] = useState<string | null>(null);
   const [paper, setPaper] = useState<keyof typeof PAPERS>('letter');
   const [making, setMaking] = useState(false);
@@ -41,7 +48,7 @@ export function FramingView({ drawings, selected, onPick, designName, pdfName }:
             try {
               // Loaded on demand: the PDF library is large.
               const { downloadPlans } = await import('./pdf');
-              await downloadPlans(drawings, designName, paper, pdfName);
+              await downloadPlans(drawings, designName, paper, pdfName, shareLink);
             } finally {
               setMaking(false);
             }

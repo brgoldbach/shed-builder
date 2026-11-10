@@ -5,13 +5,13 @@ import { naming } from '../src/core/naming';
 import { buildBom, sheetLabel } from '../src/core/out/bom';
 import { buildCutList } from '../src/core/out/cutlist';
 import { checkSpans, spanWarnings } from '../src/core/out/spans';
-import { PRESETS } from '../src/core/presets';
 import { formatInches, formatLength, formatMoney } from '../src/core/units';
+import { DESIGNS } from './designs';
 
 // A change in any preset's cut list, warnings, parts, bill of materials, costs, or span checks fails here
 // until the golden file is reviewed and updated with `npx vitest run -u`.
 describe('preset cut lists', () => {
-  it.each(PRESETS.map((preset) => [preset.name, preset] as const))('%s', async (name, preset) => {
+  it.each(DESIGNS.map((preset) => [preset.name, preset] as const))('%s', async (name, preset) => {
     const model = buildModel(preset);
     const cutList = buildCutList(model.members, naming(preset));
     const lines = cutList.map((line) =>

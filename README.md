@@ -42,8 +42,10 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 ## Hosting
 
 The build is a static site in `dist/`: no server, and each visitor's designs stay in their own
-browser. Cloudflare Pages hosts it free from the private repo, and rebuilds and redeploys on each
-push to `main`.
+browser. Cloudflare hosts it free from the private repo, and rebuilds and redeploys on each push
+to `main`.
+
+The app runs at https://shed-builder.brgoldbach73.workers.dev/.
 
 1. Make a free Cloudflare account, and sign in to https://dash.cloudflare.com.
 2. Open Workers & Pages, then Create application, then Pages, then Connect to Git.
@@ -62,8 +64,10 @@ push to `main`.
 
    Cloudflare installs with `npm ci` from `package-lock.json`, with the Node version in `.nvmrc`.
 5. Select Save and Deploy. The first build takes a minute or two.
-6. In the project, open Settings, then Builds, then Branch control, and set the preview branch to
-   None. Only `main` then builds, so other branches use none of the 500 free builds a month.
+6. If the site address does not open, open the project's Domains settings and turn on its
+   `workers.dev` address.
+7. Turn off preview deployments, so only `main` builds and other branches use none of the 500 free
+   builds a month.
 
 A failed build leaves the last good deployment live. To push without a deployment, put
 `[skip ci]` in the commit message.
@@ -82,8 +86,13 @@ A failed build leaves the last good deployment live. To push without a deploymen
 ## Design files
 
 Save writes the design as a JSON file, and Open loads one. The app also keeps the last design in
-the browser's storage. The `presets/` folder holds the examples that "New from preset" loads,
-among them the 16x16 "B and B shed".
+the browser's storage. The `presets/` folder holds the examples that "New from preset" loads.
+
+Copy link puts the whole design in a link: the part after `#design=` holds it, compressed, with
+only the settings that differ from the defaults. Nothing is stored on a server, and the part after
+`#` never leaves the browser. Opening the link loads the design; when the browser already has one,
+the app asks first. A link is a copy of the design at the time it was made. The PDF plans end with
+an "Open this design" sheet: the same link as a QR code, up to 5 in across, for a phone camera.
 
 | Field | Meaning |
 |---|---|
@@ -105,7 +114,7 @@ in each release. Each release has a `vX.Y.Z` tag on `main`.
 | `src/ui` | React user interface |
 | `src/view3d` | Three.js scene |
 | `presets` | Example designs |
-| `tests` | Unit tests. `tests/golden` holds each preset's expected cut list, BOM, warnings, and span checks. |
+| `tests` | Unit tests. `tests/golden` holds the expected cut list, BOM, costs, warnings, and span checks of each preset and of the designs in `tests/fixtures`. |
 | `setup.sh`, `start.sh` | Set up and start the app |
 | `scripts` | The Node part of the setup |
 | `.nvmrc` | The Node version for hosts and version managers |
