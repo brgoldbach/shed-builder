@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { LUMBER_SIZES } from '../core/catalog';
 import {
   ALONG,
@@ -12,6 +13,7 @@ import { naming } from '../core/naming';
 import { evenPercents, positionFor, roOffset, wallSpan } from '../core/placement';
 import { formatInches, parseLength } from '../core/units';
 import {
+  Card,
   CheckField,
   LengthField,
   NOT_A_LENGTH,
@@ -105,6 +107,7 @@ function uniqueName(name: string, types: readonly OpeningType[]): string {
 /** Opening types: kind, RO, and header details. Renaming a type renames it in the placement rows. */
 export function OpeningTypesEditor({ value, onChange }: SectionProps<ShedConfig>) {
   const types = value.openingTypes;
+  const [added, setAdded] = useState<number | null>(null);
 
   const update =
     (index: number): Edit<OpeningType> =>
@@ -131,6 +134,7 @@ export function OpeningTypesEditor({ value, onChange }: SectionProps<ShedConfig>
       headroom: 12,
     };
     onChange({ ...value, openingTypes: [...types, type] });
+    setAdded(types.length);
   }
 
   return (
@@ -138,6 +142,7 @@ export function OpeningTypesEditor({ value, onChange }: SectionProps<ShedConfig>
       {types.map((type, index) => (
         <TypeCard
           key={index}
+          open={index === added}
           value={type}
           uses={value.openings.filter((row) => row.type === type.name).length}
           onChange={update(index)}
@@ -156,11 +161,12 @@ export function OpeningTypesEditor({ value, onChange }: SectionProps<ShedConfig>
 }
 
 interface TypeCardProps extends SectionProps<OpeningType> {
+  open: boolean;
   uses: number;
   onRemove: () => void;
 }
 
-function TypeCard({ value, uses, onChange, onRemove }: TypeCardProps) {
+function TypeCard({ value, open, uses, onChange, onRemove }: TypeCardProps) {
   const set = setter(value, onChange);
   const sizes = SIZES[value.kind];
   const size = sizes?.find((preset) => preset.width === value.width && preset.height === value.height);
@@ -171,17 +177,22 @@ function TypeCard({ value, uses, onChange, onRemove }: TypeCardProps) {
     onChange({ ...value, kind, width, height, name: hasAutoName ? autoName(kind, width, height) : value.name });
 
   return (
-    <fieldset className="card">
-      <legend>{value.name}</legend>
-      <button
-        className="remove"
-        aria-label={`Remove ${value.name}`}
-        title={uses ? `In use by ${uses} opening row${uses > 1 ? 's' : ''}` : undefined}
-        disabled={uses > 0}
-        onClick={onRemove}
-      >
-        ×
-      </button>
+    <Card
+      title={value.name}
+      brief={`RO ${formatInches(value.width)} × ${formatInches(value.height)}${uses ? '' : ', unused'}`}
+      open={open}
+      actions={
+        <button
+          className="remove"
+          aria-label={`Remove ${value.name}`}
+          title={uses ? `In use by ${uses} opening row${uses > 1 ? 's' : ''}` : undefined}
+          disabled={uses > 0}
+          onClick={onRemove}
+        >
+          ×
+        </button>
+      }
+    >
       <TextField label="Name" value={value.name} onChange={set('name')} />
       <SelectField
         label="Kind"
@@ -226,7 +237,7 @@ function TypeCard({ value, uses, onChange, onRemove }: TypeCardProps) {
       {value.kind === 'overhead' && (
         <LengthField label="Headroom needed" value={value.headroom} onChange={set('headroom')} />
       )}
-    </fieldset>
+    </Card>
   );
 }
 

@@ -25,8 +25,10 @@ import {
   WALLS,
   type ShedConfig,
 } from '../core/config';
+import { useState } from 'react';
 import {
   AutoLengthField,
+  Card,
   CheckField,
   Group,
   LengthField,
@@ -469,6 +471,7 @@ function CatalogSection({ value, onChange }: SectionProps<Catalog>) {
 type Hatch = Roof['loft']['hatches'][number];
 
 function HatchesEditor({ value, onChange, names }: SectionProps<Hatch[]> & { names: Naming }) {
+  const [added, setAdded] = useState<number | null>(null);
   const update =
     (index: number): Edit<Hatch> =>
     (next) =>
@@ -478,24 +481,37 @@ function HatchesEditor({ value, onChange, names }: SectionProps<Hatch[]> & { nam
       {value.map((hatch, index) => {
         const set = setter(hatch, update(index));
         return (
-          <fieldset className="card" key={index}>
-            <legend>Hatch {index + 1}</legend>
-            <button
-              className="remove"
-              aria-label={`Remove hatch ${index + 1}`}
-              onClick={() => onChange(value.filter((_, at) => at !== index))}
-            >
-              ×
-            </button>
+          <Card
+            key={index}
+            title={`Hatch ${index + 1}`}
+            brief={`${formatInches(hatch.width)} × ${formatInches(hatch.depth)}`}
+            open={index === added}
+            actions={
+              <button
+                className="remove"
+                aria-label={`Remove hatch ${index + 1}`}
+                onClick={() => onChange(value.filter((_, at) => at !== index))}
+              >
+                ×
+              </button>
+            }
+          >
             <LengthField label={`From ${names.side('left')} end`} value={hatch.x} onChange={set('x')} />
             <LengthField label={`From ${names.side('front')} wall`} value={hatch.y} onChange={set('y')} />
             <LengthField label="Along the ridge" value={hatch.width} onChange={set('width')} />
             <LengthField label="Across the ridge" value={hatch.depth} onChange={set('depth')} />
-          </fieldset>
+          </Card>
         );
       })}
       <div className="add-row">
-        <button onClick={() => onChange([...value, { x: 24, y: 24, width: 24, depth: 30 }])}>+ Hatch</button>
+        <button
+          onClick={() => {
+            onChange([...value, { x: 24, y: 24, width: 24, depth: 30 }]);
+            setAdded(value.length);
+          }}
+        >
+          + Hatch
+        </button>
       </div>
     </>
   );

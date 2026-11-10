@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { TWO_BY } from '../core/catalog';
 import {
   ATTACHMENTS,
@@ -14,7 +15,8 @@ import {
   type ShedConfig,
 } from '../core/config';
 import { naming, type Naming } from '../core/naming';
-import { CheckField, LengthField, NumberField, SelectField, capitalize, setter, type SectionProps } from './fields';
+import { formatLength } from '../core/units';
+import { Card, CheckField, LengthField, NumberField, SelectField, capitalize, setter, type SectionProps } from './fields';
 
 const FLOOR_LABELS = { none: 'None: posts on piers', slab: 'Slab' };
 const ROOFING_LABELS = { sheathing: 'Sheathing', metal: 'Metal on purlins' };
@@ -28,6 +30,7 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
   const setAll = (next: Addition[]) => onChange({ ...value, additions: next });
   const taken = new Set(additions.flatMap(sidesOf));
   const free = names.sides.find((side) => !taken.has(side));
+  const [added, setAdded] = useState<number | null>(null);
 
   return (
     <>
@@ -37,6 +40,7 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
       {additions.map((addition, index) => (
         <AdditionCard
           key={index}
+          open={index === added}
           value={addition}
           names={names}
           onChange={(next) => setAll(additions.map((other, at) => (at === index ? next : other)))}
@@ -45,23 +49,42 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
       ))}
       {free && (
         <div className="add-row">
-          <button onClick={() => setAll([...additions, newAddition(free)])}>+ Lean-to</button>
+          <button
+            onClick={() => {
+              setAll([...additions, newAddition(free)]);
+              setAdded(additions.length);
+            }}
+          >
+            + Lean-to
+          </button>
         </div>
       )}
     </>
   );
 }
 
-function AdditionCard({ value, names, onChange, onRemove }: SectionProps<Addition> & { names: Naming; onRemove: () => void }) {
+function AdditionCard({
+  value,
+  open,
+  names,
+  onChange,
+  onRemove,
+}: SectionProps<Addition> & { open: boolean; names: Naming; onRemove: () => void }) {
   const set = setter(value, onChange);
   const extension = value.attach === 'extension';
-  const title = `${capitalize(names.side(value.side))} lean-to${value.mirror ? `s, mirrored to the ${names.side(OPPOSITE[value.side])}` : ''}`;
+  const side = capitalize(names.side(value.side));
+  const title = value.mirror ? `${side} and ${names.side(OPPOSITE[value.side])} lean-tos` : `${side} lean-to`;
   return (
-    <fieldset className="card">
-      <legend>{title}</legend>
-      <button className="remove" aria-label={`Remove ${title}`} onClick={onRemove}>
-        ×
-      </button>
+    <Card
+      title={title}
+      brief={`${formatLength(value.depth)} deep, ${value.pitch === 'main' ? 'main pitch' : `${value.pitch}/12`}`}
+      open={open}
+      actions={
+        <button className="remove" aria-label={`Remove ${title}`} onClick={onRemove}>
+          ×
+        </button>
+      }
+    >
       <SelectField label="Side" value={value.side} options={WALLS} describe={(side) => capitalize(names.side(side))} onChange={set('side')} />
       <CheckField label="Mirror to the opposite side" value={value.mirror} onChange={set('mirror')} />
       <SelectField
@@ -110,6 +133,6 @@ function AdditionCard({ value, names, onChange, onRemove }: SectionProps<Additio
       <SelectField label="Beam" value={value.beam} options={TWO_BY} onChange={set('beam')} />
       <SelectField label="Beam plies" value={value.beamPlies} options={[1, 2, 3]} onChange={set('beamPlies')} />
       <SelectField label="Floor" value={value.floor} options={LEAN_TO_FLOORS} describe={(floor) => FLOOR_LABELS[floor]} onChange={set('floor')} />
-    </fieldset>
+    </Card>
   );
 }

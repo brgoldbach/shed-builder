@@ -31,7 +31,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   into groups that fold: Overhangs, Rake ladder, Roofing, Rafter ties, and Collar ties. The loft
   has its own section after Roof. Loft, Knee walls, Rafter ties, and Collar ties have a switch in
   the header and show their fields only when on. Opening types and the header and jack defaults
-  move into the Openings section.
+  move into the Openings section. Opening types, lean-tos, and loft hatches are cards that fold
+  closed to their name and size; a new card opens. A mirrored lean-to is titled "Front and back
+  lean-tos".
 - **One sheet per panel:** each wall elevation shows the wall alone. Each gable end and each knee
   wall has its own sheet, dimensioned from its own bottom plate, so the PDF has a page for each
   panel. The knee-wall sheet shows the loft rim and the deck edge under it.

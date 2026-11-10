@@ -154,10 +154,16 @@ button {
 }
 
 .fold .title {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
+/* A long header cuts the brief before the title. */
 .fold .brief {
+  flex: 0 1000 auto;
   min-width: 0;
   overflow: hidden;
   font-size: 0.85rem;
@@ -222,26 +228,23 @@ button {
 }
 
 .card {
-  position: relative;
   margin: 8px 0;
-  padding: 2px 10px 6px;
+  padding: 2px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
 }
 
-.card legend {
-  padding: 0 4px;
-  font-weight: 600;
+.card[open] {
+  padding-bottom: 6px;
 }
 
 .card .remove {
-  position: absolute;
-  top: -4px;
-  right: 6px;
+  padding: 0 2px;
   border: none;
   background: none;
   color: var(--muted);
   font-size: 1.1rem;
+  line-height: 1;
 }
 
 .add-row {

@@ -25,10 +25,12 @@ interface FoldProps {
   /** A feature switch in the header. While it is off, the fold shows only its header. */
   enabled?: boolean;
   onEnable?: Edit<boolean>;
+  /** Buttons at the right end of the header. */
+  actions?: ReactNode;
   children: ReactNode;
 }
 
-function Fold({ kind, title, brief, open = false, enabled, onEnable, children }: FoldProps & { kind: string }) {
+function Fold({ kind, title, brief, open = false, enabled, onEnable, actions, children }: FoldProps & { kind: string }) {
   // A switch turned on opens the fold, to show the fields it adds.
   const [opened, setOpened] = useState(false);
   const toggle = onEnable && (
@@ -56,6 +58,7 @@ function Fold({ kind, title, brief, open = false, enabled, onEnable, children }:
         <span className="title">{title}</span>
         {brief && <span className="brief">{brief}</span>}
         {toggle}
+        {actions}
       </summary>
       {children}
     </details>
@@ -67,6 +70,9 @@ export const Section = (props: FoldProps) => <Fold kind="section" {...props} />;
 
 /** A group of related fields inside a section that folds closed. */
 export const Group = (props: FoldProps) => <Fold kind="group" {...props} />;
+
+/** One item of a list, such as an opening type, that folds closed. */
+export const Card = (props: FoldProps) => <Fold kind="card" {...props} />;
 
 interface FieldProps<T> {
   label: string;
