@@ -12,6 +12,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   drops its notes column (a tap on a line shows them with the piece), and inputs use 16 px text so
   a phone does not zoom in on a tap. The piece drawing has a close button.
 
+### Removed
+
+- **Framing tab shortcuts:** the row of buttons that jumped to each drawing is gone; the drawings
+  scroll in sheet order.
+
 ### Fixed
 
 - **3D view on a tall screen:** the first view framed the shed as if the view were square, so on a

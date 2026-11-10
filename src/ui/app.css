@@ -567,13 +567,6 @@ button {
   margin-bottom: 8px;
 }
 
-.drawing-index {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-right: auto;
-}
-
 .bom h3 {
   margin: 20px 0 8px;
   font-size: 1rem;

@@ -27,13 +27,6 @@ export function FramingView({
   return (
     <div className="drawings">
       <div className="panel-toolbar">
-        <nav className="drawing-index" aria-label="Drawings">
-          {drawings.map(({ id, title }) => (
-            <button key={id} onClick={() => document.getElementById(`drawing-${id}`)?.scrollIntoView({ block: 'start' })}>
-              {title.replace(', from outside', '')}
-            </button>
-          ))}
-        </nav>
         <select value={paper} aria-label="Paper" onChange={(event) => setPaper(event.target.value as keyof typeof PAPERS)}>
           {Object.entries(PAPERS).map(([key, label]) => (
             <option key={key} value={key}>
@@ -59,7 +52,7 @@ export function FramingView({
         <button onClick={() => window.print()}>Print</button>
       </div>
       {drawings.map((drawing) => (
-        <figure key={drawing.id} id={`drawing-${drawing.id}`} className="drawing">
+        <figure key={drawing.id} className="drawing">
           <figcaption>
             {drawing.title}
             <button onClick={() => setZoomed(drawing.id)}>Zoom</button>
