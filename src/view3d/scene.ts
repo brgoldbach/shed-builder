@@ -292,7 +292,9 @@ export class FramingScene {
   /** Point the camera at the whole frame from the front-left. */
   fit = () => {
     const box = new Box3().setFromObject(this.members).union(new Box3().setFromObject(this.solids));
-    if (box.isEmpty() || this.host.clientWidth === 0) return;
+    if (box.isEmpty() || this.host.clientWidth === 0 || this.host.clientHeight === 0) return;
+    // The first fit can come before the resize observer reports the host: take its shape now.
+    this.matchHost();
     const sphere = box.getBoundingSphere(new Sphere());
     const halfFov = (this.camera.fov * Math.PI) / 360;
     const narrowHalfFov = Math.min(halfFov, Math.atan(Math.tan(halfFov) * this.camera.aspect));
@@ -438,12 +440,16 @@ export class FramingScene {
     this.renderer.render(this.scene, this.camera);
   };
 
-  private resize = () => {
+  private matchHost() {
     const { clientWidth, clientHeight } = this.host;
-    if (clientWidth === 0 || clientHeight === 0) return;
     this.renderer.setSize(clientWidth, clientHeight);
     this.camera.aspect = clientWidth / clientHeight;
     this.camera.updateProjectionMatrix();
+  }
+
+  private resize = () => {
+    if (this.host.clientWidth === 0 || this.host.clientHeight === 0) return;
+    this.matchHost();
     if (!this.fitted) this.fit();
     this.render();
   };

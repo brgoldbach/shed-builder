@@ -3,6 +3,13 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **3D view on a tall screen:** the first view framed the shed as if the view were square, so on a
+  phone it opened cut off at the sides. It now takes the view's shape first.
+
 ## [0.4.0] - 2026-11-10
 
 ### Added
