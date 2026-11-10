@@ -1,5 +1,5 @@
 // Checks Node against package.json, installs the locked dependencies, then runs the tests and a
-// build to prove the install. Run it with `npm run setup` from any shell.
+// build to prove the install. Run it with ./setup.sh, or with `npm run setup` from any shell.
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
@@ -27,4 +27,4 @@ for (const command of ['npm ci', 'npm test', 'npm run build']) {
   console.log(`\n> ${command}`);
   execSync(command, { stdio: 'inherit' });
 }
-console.log('\nSetup is complete. Run "npm run dev", then open http://localhost:5173.');
+console.log('\nSetup is complete. Start the app with ./start.sh, or with "npm run dev" on Windows.');

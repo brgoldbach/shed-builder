@@ -16,14 +16,17 @@ later.
 ```sh
 git clone git@github.com:brgoldbach/shed-builder.git
 cd shed-builder
-npm run setup
-npm run dev
+./setup.sh
+./start.sh
 ```
 
-Then open http://localhost:5173.
+| Script | Result |
+|---|---|
+| `./setup.sh` | Checks that Node.js and npm are installed, and tells you how to install them if not. Then it checks the Node version, installs the locked dependencies with `npm ci`, and runs the tests and a production build. |
+| `./start.sh` | Starts the app at http://localhost:5173, or the next free port when that one is in use, and opens it in the browser. When `package-lock.json` changed since the last install, as after a pull, it runs `npm ci` first. Stop it with Ctrl+C. |
 
-`npm run setup` checks the Node version, installs the locked dependencies with `npm ci`, and runs
-the tests and a production build. It runs in any shell. To set up by hand, run `npm ci`.
+Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Windows, run
+`npm run setup` and `npm run dev`, then open http://localhost:5173.
 
 ## Scripts
 
@@ -74,7 +77,8 @@ in each release. Each release has a `vX.Y.Z` tag on `main`.
 | `src/view3d` | Three.js scene |
 | `presets` | Example designs |
 | `tests` | Unit tests. `tests/golden` holds each preset's expected cut list, BOM, warnings, and span checks. |
-| `scripts` | Setup script |
+| `setup.sh`, `start.sh` | Set up and start the app |
+| `scripts` | The Node part of the setup |
 
 When a change alters a preset's output on purpose, review the golden-file diff, then update the
 files with `npx vitest run -u`.

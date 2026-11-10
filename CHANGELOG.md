@@ -3,6 +3,14 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Setup and start scripts:** `./setup.sh` checks for Node.js and npm, then installs, tests, and
+  builds. `./start.sh` starts the app and opens it in the browser, and reinstalls the
+  dependencies first when a pull changed them.
+
 ## [0.2.0] - 2026-11-10
 
 ### Added

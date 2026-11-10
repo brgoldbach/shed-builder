@@ -14,8 +14,8 @@ describe('changelog', () => {
     ]);
   });
 
-  it('opens with the release in package.json', () => {
-    const first = parseChangelog(changelog).find((block) => block.kind === 'heading');
+  it('opens with the release in package.json, after any unreleased changes', () => {
+    const first = parseChangelog(changelog).find((block) => block.kind === 'heading' && block.level === 2 && block.text !== 'Unreleased');
     expect(first?.kind === 'heading' && first.text.split(' ')[0]).toBe(APP_VERSION);
   });
 });
