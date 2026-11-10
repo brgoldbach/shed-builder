@@ -3,6 +3,13 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Hosting:** the README explains how to host the app free on Cloudflare Pages, with a rebuild on
+  each push to `main`. `.nvmrc` pins Node 26 for the host's build.
+
 ## [0.3.0] - 2026-11-10
 
 ### Added

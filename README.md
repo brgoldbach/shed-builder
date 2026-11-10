@@ -39,6 +39,35 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 | `npm test` | Runs the unit and golden-file tests |
 | `npm run lint` | Runs ESLint |
 
+## Hosting
+
+The build is a static site in `dist/`: no server, and each visitor's designs stay in their own
+browser. Cloudflare Pages hosts it free from the private repo, and rebuilds and redeploys on each
+push to `main`.
+
+1. Make a free Cloudflare account, and sign in to https://dash.cloudflare.com.
+2. Open Workers & Pages, then Create application, then Pages, then Connect to Git.
+3. Add your GitHub account. In the GitHub app install, pick "Only select repositories" and
+   `shed-builder`, so Cloudflare sees only this repo.
+4. Select `shed-builder`, then Begin setup, and enter:
+
+   | Setting | Value |
+   |---|---|
+   | Project name | `shed-builder` (the site address becomes `shed-builder.pages.dev`) |
+   | Production branch | `main` |
+   | Framework preset | None |
+   | Build command | `npm run build` |
+   | Build output directory | `dist` |
+   | Root directory | blank |
+
+   Cloudflare installs with `npm ci` from `package-lock.json`, with the Node version in `.nvmrc`.
+5. Select Save and Deploy. The first build takes a minute or two.
+6. In the project, open Settings, then Builds, then Branch control, and set the preview branch to
+   None. Only `main` then builds, so other branches use none of the 500 free builds a month.
+
+A failed build leaves the last good deployment live. To push without a deployment, put
+`[skip ci]` in the commit message.
+
 ## What it does
 
 | Tab | Content |
@@ -79,6 +108,7 @@ in each release. Each release has a `vX.Y.Z` tag on `main`.
 | `tests` | Unit tests. `tests/golden` holds each preset's expected cut list, BOM, warnings, and span checks. |
 | `setup.sh`, `start.sh` | Set up and start the app |
 | `scripts` | The Node part of the setup |
+| `.nvmrc` | The Node version for hosts and version managers |
 
 When a change alters a preset's output on purpose, review the golden-file diff, then update the
 files with `npx vitest run -u`.
