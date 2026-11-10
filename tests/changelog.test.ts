@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import changelog from '../CHANGELOG.md?raw';
+import { APP_VERSION } from '../src/core/config';
 import { parseChangelog } from '../src/ui/changelog';
 
 describe('changelog', () => {
@@ -10,5 +12,10 @@ describe('changelog', () => {
       { kind: 'heading', level: 3, text: 'Added' },
       { kind: 'list', items: ['**One:** first continued.', 'Two'] },
     ]);
+  });
+
+  it('opens with the release in package.json', () => {
+    const first = parseChangelog(changelog).find((block) => block.kind === 'heading');
+    expect(first?.kind === 'heading' && first.text.split(' ')[0]).toBe(APP_VERSION);
   });
 });
