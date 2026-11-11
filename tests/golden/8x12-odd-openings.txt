@@ -1,4 +1,5 @@
-FD-1      4  6x6 PT          144"  Skid. Both ends cut 45° across the bottom, 1-7/8" up and in, so the shed drags without digging in.
+FD-1      4  6x6 PT          176"  Skid. The outer end cut 45° across the bottom, 1-7/8" up and in, so the shed drags without digging in.
+FD-2      4  6x6 PT       28-1/2"  Skid. The outer end cut 45° across the bottom, 1-7/8" up and in, so the shed drags without digging in.
 FL-1      2  2x6 PT          144"  Rim joist
 FL-2      2  2x6 PT           93"  End joist
 FL-3      8  2x6 PT           93"  Floor joist
@@ -52,6 +53,17 @@ RF-5      8  2x4               5"  Lookout
 RF-6      2  2x6             160"  Fascia
 RF-7      5  2x4              96"  Rafter tie. Ends cut 18.4° to the roof line.
 RF-8      5  2x4              66"  Collar tie. Ends cut 18.4° to the roof line.
+AR-1      5  2x6          73-5/8"  Rafter. Plumb cut 14.0° at the ledger, in a joist hanger. Birdsmouth on the beam: heel line 59-9/16" from the upper end on the top edge; seat 3", heel 3/4". Tail 12-5/8" past the heel line on the top edge, plumb cut.
+AR-2      1  2x6              96"  Fascia
+AR-3      1  2x8              96"  Ledger. Lag-bolt through the sheathing into each main-wall stud.
+AR-4      2  2x8              96"  Beam ply
+AR-5      2  4x4 PT     69-11/16"  Post. Stands on the deck beam.
+AR-6      4  2x4 PT           93"  Deck joist. On the skids.
+AR-7      2  2x4 PT       60-1/2"  Deck rim joist. Closes the end of the deck.
+AR-8      3  2x4 PT           93"  Deck beam ply. On the skids; the posts stand on it.
+AR-9      1  5/4x6 PT     60-1/2"  Deck board. Notch around the posts.
+AR-10    15  5/4x6 PT     60-1/2"  Deck board
+AR-11     1  5/4x6 PT     56-1/2"  Deck board. Cut to fit between the posts.
 RP-1      8  2x6 PT           80"  Deck board
 RP-2      6  2x6 PT           40"  Deck board
 RP-3      6  2x6 PT     41-15/16"  Ramp stringer. Plumb cut 14.0° at the floor framing, lagged to it. Level cut on grade.
@@ -60,16 +72,18 @@ WARNING double door (front 50%): The header goes tight to the top plate, because
 WARNING window 24x36 (front 80%): The framing overlaps a corner or another opening. It is left out: red in 3D and on the drawings.
 WARNING vent (left 2" from left): The framing runs past the wall end. The king and jacks need 3" on each side of the RO. It is left out: red in 3D and on the drawings.
 WARNING vent (right 50%): The header does not fit. RO top 118" plus 10-1/4" of header is above the gable top plate at 107-1/2". It is left out: red in 3D and on the drawings.
-SOLID Roof sheathing, 7/16" OSB x10
+WARNING Right lean-to: The clear height under the beam is 5' 8-11/16", less than 6' 8".
+SOLID Roof sheathing, 7/16" OSB x13
 SOLID Subfloor, 23/32" T&G (3/4") x4
 SOLID Wall sheathing, 7/16" OSB x16
 STOCK 2x6 PT 16' 0" x6
 STOCK 2x6 PT 14' 0" x6
 STOCK 2x6 PT 12' 0" x2
-STOCK 6x6 PT 12' 0" x4
-STOCK 2x6 16' 0" x14
+STOCK 6x6 PT 16' 0" x4
+STOCK 6x6 PT 10' 0" x1
+STOCK 2x6 16' 0" x16
 STOCK 2x6 12' 0" x2
-STOCK 2x6 8' 0" x4
+STOCK 2x6 8' 0" x5
 STOCK 2x6 7' 8-5/8" x38
 STOCK 2x10 14' 0" x1
 STOCK 2x10 8' 0" x1
@@ -78,22 +92,37 @@ STOCK 2x4 16' 0" x8
 STOCK 2x4 12' 0" x2
 STOCK 2x4 8' 0" x5
 STOCK 2x8 14' 0" x1
+STOCK 2x8 8' 0" x3
+STOCK 4x4 PT 12' 0" x1
+STOCK 2x4 PT 16' 0" x3
+STOCK 2x4 PT 14' 0" x1
+STOCK 2x4 PT 7' 8-5/8" x1
+STOCK 5/4x6 PT 16' 0" x5
+STOCK 5/4x6 PT 10' 0" x1
 STOCK 2x8 PT 14' 0" x1
-SHEETS 7/16" OSB, 4×8 x18
+SHEETS 7/16" OSB, 4×8 x19
 SHEETS 23/32" T&G (3/4"), 4×8 x4
-ITEM Hurricane tie, rafter to plate: 14 ea
+ITEM Hurricane tie, rafter to plate: 19 ea
+ITEM Post base, 4x4: 2 ea
+ITEM Post cap, 4x4: 2 ea
+ITEM Joist hanger, 2x6: 5 ea
+ITEM Ledger lag screw, 1/2": 22 ea
 ITEM Ramp lag screw, 1/2": 22 ea
-ITEM Roof area, shingles: 144.1 sq ft
-ITEM Drip edge: 48.3 ft
-COST lumber $1,084.43
-COST sheets $433.00
+ITEM Roof area, shingles: 194.3 sq ft
+ITEM Drip edge: 68.8 ft
+COST lumber $1,402.39
+COST sheets $449.50
 COST concrete $0.00
-COST hardware $38.00
-COST roofing $288.60
-COST total $1,844.03
+COST hardware $113.25
+COST roofing $394.65
+COST total $2,359.79
 SPAN Rafters: 2x4 at 24" o.c. 43-9/16" of 96-1/8" (bending)
 SPAN Floor joists: 2x6 at 16" o.c. 24-11/16" of 111-13/16" (deflection)
 SPAN double door header (front wall): 3-ply 2x10 74" of 220-7/16" (bending)
 SPAN window 24x36 header (back wall): 1-ply 4x6 24" of 121-9/16" (bending)
 SPAN window 24x36 header (back wall): 1-ply 4x6 24" of 121-9/16" (bending)
 SPAN low window header (right wall): flat 2x6 30" of 57-1/2" (bending)
+SPAN Right lean-to rafters: 2x6 at 24" o.c. 54-13/16" of 140-11/16" (bending)
+SPAN Right lean-to beam: 2-ply 2x8 92-1/2" of 177-13/16" (bending)
+SPAN Right lean-to deck joists: 2x4 at 16" o.c. 30-3/16" of 71-1/8" (deflection)
+SPAN Right lean-to deck beam: 3-ply 2x4 30-3/16" of 111-7/16" (deflection)

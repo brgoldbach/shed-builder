@@ -359,21 +359,26 @@ Lean-to concrete joins the shed's lines in `concrete`: a slab joins "Concrete, s
 
 ## 2. Lean-to deck
 
-`floor: 'deck'` adds a deck between the shed wall and the posts. `frameLeanTo` builds it with the
-lean-to. The deck surface is `deck.drop` under the shed floor surface (z = 0).
+`floor: 'deck'` adds a deck between the shed wall and the posts. `frameLeanTo` takes the deck's
+heights from `deckHeights` and builds it with `frameDeck`, both in `src/core/gen/deck.ts`. A deck stands on piers (`deck.support: 'piers'`, the subsections below up to
+[On the shed's foundation](#on-the-sheds-foundation)), or on the shed's own skids or girders
+(`'shed'`).
 
 | Field | Values (default) | Meaning |
 |---|---|---|
 | `deck.joist` | 2x4–2x12 (2x8) | Joists, deck ledger, and deck beam plies. |
 | `deck.oc` | 12, 16, 19.2, 24 (16) | Joist spacing. |
-| `deck.drop` | 0–24 (0) | Shed floor surface to the deck surface. |
+| `deck.boards` | `5/4x6`, `2x6` (`5/4x6`) | Deck boards: 5/4 radius-edge decking, 1 in thick, or 2x6, 1-1/2 in. Both 5-1/2 in wide. |
+| `deck.drop` | 0–24 (0) | Shed floor surface to the deck surface. On the shed's foundation it is a target: see below. |
+| `deck.support` | `piers`, `shed` (`piers`) | `shed`: on the shed's skids or girders. A slab shed's deck stands on piers. |
+| `deck.join` | `continue`, `separate` (`continue`) | A gable-end deck on the shed's foundation: run the shed's skids or girders on out, or give the deck its own in line. |
 
 ### Heights and supports
 
 | Quantity | Formula |
 |---|---|
 | Deck surface | `deckTop = −drop` |
-| Joist and beam tops | `deckJoistTop = deckTop − 1.5`, under 2x6 boards |
+| Joist and beam tops | `deckJoistTop = deckTop − board thickness`: 1 in for 5/4 decking, 1-1/2 in for 2x6 |
 | Joist and beam bottoms | `deckBeamBottom = deckJoistTop − joist depth` |
 | Natural pier top | `natural = grade + pier.aboveGrade` |
 | Pier top | `natural` when the beam bottom is at least `MIN_POST` (12 in) above it; else `deckBeamBottom` |
@@ -412,10 +417,10 @@ Each board piece that crosses the post line meets the posts in one of three ways
 | Posts in the board's width | Board | Note |
 |---|---|---|
 | None | A plain board. | — |
-| The posts reach one edge only | One board with a notch at each post, as deep as the post reaches in. `notchedBoard` gives the outline as a `profile`. | "Notch around the posts." |
+| The posts reach one edge only | One board with a notch at each post, as deep as the post reaches in. `notchedOutline` (`deck.ts`) gives the outline as a `profile`. | "Notch around the posts." |
 | The posts cover the full width, or stand inside it | Pieces cut between the posts. | "Cut to fit between the posts." |
 
-`notchedBoard` drops the points on a straight run, so a notch at a board end leaves no sliver.
+`notchedOutline` drops the points on a straight run, so a notch at a board end leaves no sliver.
 
 ### Example
 
@@ -429,21 +434,48 @@ From `tests/additions.test.ts`: a front lean-to 72 in deep on 4x4 posts, 2x8 joi
 - On a pier foundation with 24 in pier posts, the natural pier tops are at −37-15/32 in. Each deck
   post is then 28-23/32 in long.
 
+### On the shed's foundation
+
+With `deck.support: 'shed'` on a skid or pier shed (`onShed` in `src/core/gen/deck.ts`), the deck
+joists sit on skids or girders at the shed's own height: their top is the shed's joist bottom
+(`supportLines` in `supports.ts`). Set on them, the deck surface is that top plus the deck joist depth
+plus the board: `onSupports`. The deck surface is the lower of that and `−drop`. Where `onSupports`
+is higher, each joist and beam is notched `deckNotch = onSupports − deckTop` up from its bottom at
+each bearing (`onEdge` with `bearings`, in `frameDeck`). A piece that rests on a line all along, the eave
+side's beam or a rim over a line, is ripped by `deckNotch` instead. Notes say "Notch D at each
+bearing." or "Rip to W." A notch deeper than 1/4 of the joist depth, the usual limit at a bearing,
+gets a warning. Example: 2x6 joists and 5/4 boards on the 8x10's 4x6 skids stand 9/32 in above the
+floor; with `drop` 0 the joists are notched 9/32 in, shown rounded to 5/16 in.
+
+A gable-end deck is a box: a rim joist (`rim.deck`) at each end runs from the wall out past the beam,
+and the joists and beam run between them.
+
+| Side | Skids or girders | Joists | Beam and posts |
+|---|---|---|---|
+| Eave (front or back) | The deck's own lines along the wall, the shed's size: one under the post line, the rest no farther apart than the shed's lines (`supportLine` along the wall). Skids get both ends cut. Girders get the shed's piers, posts, and pier spacing. | Out from a ledger on the floor framing, in hangers at both ends, bearing on the lines between. | The flush beam bears on the outer line. The posts stand on it. No lean-to piers. |
+| Gable (left or right), `join: 'continue'` | `frameFloor` runs each shed line under the deck on out to the beam's outer face (`continuedDecks`, `deckReach`). The run's piers spread evenly over its new length. | Along the wall, on the lines, from the wall out to the beam at `deck.oc`, spliced over the lines. No ledger and no hangers. | The beam runs along the wall on the lines, the posts on it. |
+| Gable, `join: 'separate'` | The deck's own lines in line with the shed's (`supportLine` out from the wall): the inner end square against the shed's, the outer end cut. | As above. | As above. |
+
+A gable-end deck with no shed line under it gets its own lines at its two ends, with a warning. The
+boards on a gable end run out from the wall, across the joists, notched around the posts.
+
 ### Facts and outputs
 
-`LeanTo.deck` is `{ joist, plies, joistSpan, beamTributary, seats }`:
+`LeanTo.deck` is `{ joist, plies, joistSpan, beamSpan, beamTributary, seats, hangers, ledgerLags }`:
 
 | Field | Value | Read by |
 |---|---|---|
 | `plies` | Deck beam plies. | `checkSpans` |
-| `joistSpan` | `beamInner − ledgerFace` | `checkSpans`: deck joists at `deck.oc`, 40 psf live + 10 psf dead, L/360 |
-| `beamTributary` | `joistSpan / 2 + (beamOuter − beamInner)` | `checkSpans`: deck beam, "`plies`-ply `joist`" over `postSpacing`, same loads, L/360 |
-| `seats` | The post count when seated, else 0. | `buildBom` |
+| `joistSpan` | The longest bay between bearings: ledger, lines, beam. | `checkSpans`: deck joists at `deck.oc`, 40 psf live + 10 psf dead, L/360 |
+| `beamSpan` | On piers: the post spacing. On a gable end: the longest bay between lines. On an eave side's outer line: 0, no check. | `checkSpans`: deck beam, "`plies`-ply `joist`", same loads, L/360 |
+| `beamTributary` | `joistSpan / 2 + (beamOuter − beamInner)`; on a gable end `oc / 2 + (beamOuter − beamInner)` | `checkSpans` |
+| `seats` | The post count when the beam sits on the piers, else 0. | `buildBom` |
+| `hangers`, `ledgerLags` | 2 per joist with a ledger; 0 on a gable end on the shed's foundation. | `buildBom` |
 
 | BOM item | Quantity |
 |---|---|
-| Joist hanger, `<joist>` | 2 per deck joist. |
-| Deck ledger lag screw, 1/2" | 2 per deck joist. |
+| Joist hanger, `<joist>` | `hangers`. |
+| Deck ledger lag screw, 1/2" | `ledgerLags`. |
 | Beam seat, `<plies>`-ply `<joist>` | `seats`, at the post cap price. Note: "On each pier, under the deck beam." |
 | Post base, Post cap | Deck posts count with the lean-to posts. |
 
@@ -454,6 +486,9 @@ surface, not at grade.
 | Trigger | Warning | Result |
 |---|---|---|
 | `deckBeamBottom < grade` | "The deck framing runs D below grade." | Built. |
+| On the shed's foundation, a notch deeper than 1/4 of the joist depth | "The deck joists are notched D at their bearings, more than 1/4 of their depth. A smaller deck joist needs less." | Built. |
+| 5/4 boards on joists more than 16 in apart (2x6 boards: 24 in) | "5/4x6 deck boards span 16" at most; the joists are N" apart." | Built. |
+| A gable-end deck with no shed line under it | "No shed skids run under the deck. It gets its own at its ends." | Built, with its own lines. |
 
 ### Decisions
 
@@ -462,6 +497,9 @@ surface, not at grade.
 | The deck beam is a flush beam. | The deck is one joist deep plus a board. A skid shed's floor is only about 12 in above grade: 11-23/32 in for the 8x10 preset on 4x6 skids. A beam under the joists would put the deck framing in the ground. |
 | The beam lies on the post line, wide enough for the full post. The piers carry it, and the lean-to posts stand on it over each pier. | Each load runs straight down. |
 | A deck post goes under the beam only when it is at least 12 in long. Else the pier rises or stops to meet the beam. | `MIN_POST` is the shortest post the lean-to builds with no warning. |
+| A deck can stand on the shed's own foundation, continued. On a gable end the user picks a continued run or separate pieces. | The user asked for both. A continued skid makes one sled; separate pieces let the deck come off. |
+| On the shed's foundation the deck keeps the chosen joist size. Its joists are notched at their bearings to reach the drop, with a warning past 1/4 of their depth. | The user asked for a flush or lower deck, with notched joists where needed. |
+| Deck boards default to 5/4 decking. Ramps keep 2x6. | Thinner decking sets the deck lower; a ramp carries heavier loads, such as a mower. |
 
 ### Change it safely
 

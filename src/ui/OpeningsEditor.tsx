@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LUMBER_SIZES } from '../core/catalog';
+import { FRAMING_SIZES } from '../core/catalog';
 import {
   ALONG,
   HEADER_STYLES,
@@ -45,7 +45,7 @@ const GIRDER_LABELS: Record<OpeningType['girder'], string> = {
   flat: 'Flat',
 };
 const ALONG_LABELS: Record<Opening['along'], string> = { percent: '% along wall', left: 'From left', right: 'From right' };
-const HEADER_SIZES = ['default', ...LUMBER_SIZES] as const;
+const HEADER_SIZES = ['default', ...FRAMING_SIZES] as const;
 const JACKS = ['auto', 1, 2, 3] as const;
 
 // Rough openings (RO) from product listings. Check each against the maker's data before framing.

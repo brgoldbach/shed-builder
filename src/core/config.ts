@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { version } from '../../package.json';
-import { DEFAULT_PRICES, LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
+import { DECK_BOARDS, DEFAULT_PRICES, FRAMING_SIZES, LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
 import { formatLength } from './units';
 
 // All lengths are inches.
@@ -35,6 +35,8 @@ export const ROOF_DEAD_LOADS = [10, 15, 20] as const;
 export const LOFT_USES = ['storage', 'sleeping'] as const;
 export const LEAN_TO_POSTS = ['4x4', '6x6'] as const;
 export const LEAN_TO_FLOORS = ['none', 'slab', 'deck'] as const;
+export const DECK_SUPPORTS = ['piers', 'shed'] as const;
+export const DECK_JOINS = ['continue', 'separate'] as const;
 export const RAMP_MATERIALS = ['wood', 'concrete'] as const;
 export const LEAN_TO_ROOFING = ['sheathing', 'metal'] as const;
 export const ATTACHMENTS = ['soffit', 'extension'] as const;
@@ -68,7 +70,7 @@ const foundation = z.strictObject({
       aboveGrade: len(0, 48).default(8),
       post: z.enum(POST_SIZES).default('none'),
       postLength: len(6, 96).default(12),
-      girder: z.enum(LUMBER_SIZES).default('2x8'),
+      girder: z.enum(FRAMING_SIZES).default('2x8'),
       girderPlies: count(1, 3).default(2),
       girderCount: count(2, 6).default(2),
       maxSpacing: len(24, 144).default(72), // between piers along a girder
@@ -113,7 +115,7 @@ const openingType = z.strictObject({
   kind: z.enum(OPENING_KINDS),
   width: len(6, 240),
   height: len(6, 192),
-  header: z.enum(LUMBER_SIZES).optional(), // absent: walls.header. A flat header is the wall stud.
+  header: z.enum(FRAMING_SIZES).optional(), // absent: walls.header. A flat header is the wall stud.
   girder: z.enum(HEADER_STYLES).default('double'),
   plateBelow: z.boolean().default(false),
   plateAbove: z.boolean().default(false),
@@ -248,7 +250,16 @@ const addition = z.strictObject({
     .strictObject({
       joist: twoBy.default('2x8'),
       oc: spacing.default(16),
-      drop: len(0, 24).default(0), // shed floor surface to the deck surface
+      boards: z.enum(DECK_BOARDS).default('5/4x6'),
+      // Shed floor surface to the deck surface. On the shed's foundation the joists are notched at
+      // their bearings when the deck would otherwise stand higher.
+      drop: len(0, 24).default(0),
+      // piers: a flush beam on piers, or on deck posts. shed: on the skids or pier girders the shed
+      // stands on, continued under the deck; a slab shed has its lean-to slab instead.
+      support: z.enum(DECK_SUPPORTS).default('piers'),
+      // On a gable end with shed support: the shed's skids or girders run on out under the deck, or
+      // the deck gets its own in line with them.
+      join: z.enum(DECK_JOINS).default('continue'),
     })
     .prefault({}),
 });

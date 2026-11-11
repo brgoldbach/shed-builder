@@ -378,7 +378,8 @@ is on layer `ramps`.
 
 Shows, in plan:
 
-- Deck ledgers, joists, and beams, and ramp stringers (`DECK_FRAMING`).
+- Deck ledgers, joists, and beams, and ramp stringers (`DECK_FRAMING`), and a deck's own skids and
+  girders. The shed's skids or girders that run on under a deck show on the foundation plan.
 - The `post` members of each assembly that has deck framing: the posts that stand on the deck beam, and any deck posts under it.
 - Concrete ramp panels (layer `ramps`).
 - The dashed footprint.

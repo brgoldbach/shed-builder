@@ -1,4 +1,5 @@
 import {
+  FRAMING_SIZES,
   LUMBER_SIZES,
   SHEETS,
   SHEET_KEYS,
@@ -215,7 +216,7 @@ function FoundationSection({ value, onChange, leanToPiers, leanToSlab }: Section
           {value.pier.post !== 'none' && (
             <LengthField label="Post length" value={value.pier.postLength} onChange={pier('postLength')} />
           )}
-          <SelectField label="Girder" value={value.pier.girder} options={LUMBER_SIZES} onChange={pier('girder')} />
+          <SelectField label="Girder" value={value.pier.girder} options={FRAMING_SIZES} onChange={pier('girder')} />
           <NumberField label="Girder plies" value={value.pier.girderPlies} onChange={pier('girderPlies')} />
           <NumberField label="Girder count" value={value.pier.girderCount} onChange={pier('girderCount')} />
           <LengthField label="Max pier spacing" value={value.pier.maxSpacing} onChange={pier('maxSpacing')} />

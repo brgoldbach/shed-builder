@@ -549,7 +549,11 @@ The positions input has `key={value.along}`, so a change of reference drops its 
 5. Full wall length off sets `length: 96`. Length and Center (% from left corner) then show.
 6. Main roof pitch (Main roof plane for an extension) off sets `pitch: 3`. Pitch then shows.
 7. Roofing Metal on purlins shows Purlins and Purlin spacing.
-8. Floor Deck shows Deck joists, Deck joist spacing, Deck below the shed floor, and a hint.
+8. Floor Deck shows Deck joists, Deck joist spacing, Deck boards (5/4 decking or 2x6), Deck below
+   the shed floor, and a hint. On a skid or pier shed it shows
+   Deck support: piers under a beam, or the shed's skids or girders, continued. On the shed's
+   foundation a gable-end lean-to shows At the gable end (run the shed's on out, or own pieces in
+   line), and the hint gives the joist notch, or the deck surface against the shed floor.
 
 `shedSchema.superRefine` rejects two lean-tos on one side. It also rejects an extension on an eave
 the roof does not slope down to, and an extension that is not full length. A Side or Attachment

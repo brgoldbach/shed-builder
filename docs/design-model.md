@@ -502,7 +502,7 @@ before tax and delivery. The user checks them against a local yard.
 
 | Group | Unit | Defaults |
 |---|---|---|
-| `lumber` | per linear foot, untreated | `1x4` 0.45, `2x4` 0.45, `2x6` 0.75, `2x8` 1.05, `2x10` 1.50, `2x12` 2.00, `4x4` 1.40, `4x6` 2.10, `6x6` 3.50 |
+| `lumber` | per linear foot, untreated | `1x4` 0.45, `2x4` 0.45, `2x6` 0.75, `2x8` 1.05, `2x10` 1.50, `2x12` 2.00, `4x4` 1.40, `4x6` 2.10, `6x6` 3.50, `5/4x6` 0.40 |
 | `treatedMarkup` | percent added for PT lumber | 50 (range 0–500) |
 | `sheets` | each | `osb-7/16` 16.50, `ply-15/32` 28, `ply-19/32` 35, `tg-23/32` 34 |
 | `concrete` | `bag` each (80 lb), `readyMix` per cu yd delivered, `formTube` each | 6, 165, 16 |
@@ -519,6 +519,10 @@ key fails.
   `DEFAULT_PRICES` without other changes.
 - A changed default price or stock list changes every compact file that relied on it (6.4).
 - A new lumber size goes in `LUMBER_SIZES`, `LUMBER`, `DEFAULT_STOCK`, and `DEFAULT_PRICES.lumber`.
+  `5/4x6` decking is in `LUMBER_SIZES` for the cut list, BOM, and prices; `FRAMING_SIZES` leaves it
+  out of the header and girder choices. `DECK_BOARDS` lists the deck board choices. Its price,
+  $0.40/ft untreated or $0.60/ft treated, comes from $6.68 (Home Depot) and $7.25 (Northside Material
+  Brokers) for a 12 ft PT board, November 2026.
   Each table is a `Record<LumberSize, …>`, so the type check fails until each table has the size.
 - `bendingValue` reads thickness and width from the size name, for example `2x8`. A new size name
   must keep the `<thickness>x<width>` form.
@@ -640,6 +644,8 @@ The input must be a valid config. `shedSchema.parse` throws otherwise.
 | `additions[].center` | `length` is not `full`. | A full-length lean-to has no center to set. |
 | `additions[].drop` | `attach` is not `extension`. | `drop` lowers the ledger. An extension has no ledger. |
 | `additions[].deck` | `floor` is `deck`. | |
+| `additions[].deck.support` | `onShed` is true. | A deck that is not on the shed's foundation stands on piers, the default. |
+| `additions[].deck.join` | `onShed`, and the lean-to or its mirror is on a gable end. | Only a gable-end deck continues the shed's runs. |
 | `ramps[].wall`, `along`, `at`, `width` | `opening` is null, or `rampPlace` finds it `lost`. | A ramp that follows an opening takes its place and width from it. A lost ramp stands at its own place. |
 | `ramps[].opening` | `opening` is not null. | A lost ramp keeps its link, so its warning stays. |
 | `ramps[].margin` | `opening` resolves to an opening. | |

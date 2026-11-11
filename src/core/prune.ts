@@ -1,4 +1,5 @@
-import { shedSchema, type ShedConfig } from './config';
+import { OPPOSITE, shedSchema, type ShedConfig } from './config';
+import { onShed } from './gen/deck';
 import { rampPlace } from './gen/ramps';
 
 const LADDER = 1.5; // the shortest rake overhang that frames a rake ladder, as in gen/roof.ts
@@ -53,14 +54,25 @@ export function pruneConfig(config: ShedConfig): ShedConfig {
         kneeWalls: roof.kneeWalls.enabled ? roof.kneeWalls : { enabled: false },
       }),
     },
-    additions: additions.map((addition) =>
-      omit(addition, [
+    additions: additions.map((addition) => {
+      const kept = omit(addition, [
         ...(addition.roofing === 'metal' ? [] : ['purlin' as const, 'purlinSpacing' as const]),
         ...(addition.length === 'full' ? ['center' as const] : []),
         ...(addition.attach === 'extension' ? ['drop' as const] : []),
         ...(addition.floor === 'deck' ? [] : ['deck' as const]),
-      ]),
-    ),
+      ]);
+      if (addition.floor !== 'deck') return kept;
+      // Only a deck on the shed's foundation has a support other than piers, a slab shed's
+      // included, and only a gable-end one has a join.
+      const shed = onShed(config, addition);
+      const sides = addition.mirror ? [addition.side, OPPOSITE[addition.side]] : [addition.side];
+      const gable = sides.some((side) => side === 'left' || side === 'right');
+      const deck = omit(addition.deck, [
+        ...(shed ? [] : (['support'] as const)),
+        ...(shed && gable ? [] : (['join'] as const)),
+      ]);
+      return { ...kept, deck };
+    }),
     // A ramp that follows an opening takes its place and width from it. One whose opening is gone
     // keeps its own place, and its link for the warning.
     ramps: config.ramps.map((ramp) =>

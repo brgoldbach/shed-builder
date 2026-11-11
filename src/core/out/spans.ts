@@ -100,7 +100,8 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
   if (has('joist.floor')) {
     // Clear span between the skid or girder lines under the joists.
     const lines = mergeRanges(
-      model.members.filter(({ role }) => role === 'skid' || role === 'girder').map((member) => extentOf([member], 1)),
+      // The shed's own lines: a lean-to deck's skids and girders are its own.
+      model.members.filter(({ role, assembly }) => (role === 'skid' || role === 'girder') && assembly === 'foundation').map((member) => extentOf([member], 1)),
     );
     const span = Math.max(...lines.slice(1).map(([low], index) => low - lines[index][1]));
     joists('Floor joists', floor.joist, floor.oc, span, FLOOR, 1, `${FLOOR.live} psf live + ${FLOOR.dead} psf dead, L/${FLOOR.limit}`);
@@ -186,13 +187,15 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
       const deckFeet = deck.beamTributary / 12;
       const deckLoad = { total: (FLOOR.live + FLOOR.dead) * deckFeet, live: FLOOR.live * deckFeet, floorLive: true };
       const { thick: ply, width: deckDepth } = LUMBER[deck.joist];
-      beam(`${name} deck beam`, `${deck.plies}-ply ${deck.joist}`, deck.joist, deck.plies * ply, deckDepth, postSpacing, deckLoad, FLOOR.limit, `${floorBasis} over ${formatLength(deck.beamTributary)}, L/${FLOOR.limit}`);
+      if (deck.beamSpan > 0) {
+        beam(`${name} deck beam`, `${deck.plies}-ply ${deck.joist}`, deck.joist, deck.plies * ply, deckDepth, deck.beamSpan, deckLoad, FLOOR.limit, `${floorBasis} over ${formatLength(deck.beamTributary)}, L/${FLOOR.limit}`);
+      }
     }
   }
 
   if (foundation.type === 'pier') {
     const { pier } = foundation;
-    const girders = model.members.filter(({ role }) => role === 'girder');
+    const girders = model.members.filter(({ role, assembly }) => role === 'girder' && assembly === 'foundation');
     const lines = mergeRanges(girders.map((member) => extentOf([member], 1)));
     const centers = lines.map(([low, high]) => (low + high) / 2);
     const piers = [...new Set(model.solids.flatMap(({ id, shape }) => (shape.kind === 'cylinder' && id.startsWith('FD') ? [Math.round(shape.base[0] * 16) / 16] : [])))].sort(

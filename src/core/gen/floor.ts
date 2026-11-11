@@ -1,14 +1,16 @@
 import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
-import { corners, type Assembly, type Member, type Point, type Role, type Solid, type Vec3 } from '../member';
-import { formatInches } from '../units';
+import { corners, type Assembly, type Member, type Role, type Solid, type Vec3 } from '../member';
+import { continuedDecks } from './deck';
 import { idMaker, planeMember } from './section';
+import { skidOutline, supportLines } from './supports';
 import { splitPlate } from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
 const X: Vec3 = [1, 0, 0];
 const Y: Vec3 = [0, 1, 0];
 const UP: Vec3 = [0, 0, 1];
+const NEAR = 0.01;
 
 /**
  * Foundation and floor framing. The floor surface (subfloor or slab top) is z = 0, so everything
@@ -97,34 +99,30 @@ export function frameFloor(config: ShedConfig): { members: Member[]; solids: Sol
     }
   }
 
-  // Skids or girders run left to right under the joists: evenly spaced, the outer two flush with
-  // the floor edges.
-  const lines = (count: number, across: number) =>
-    Array.from({ length: count }, (_, index) => across / 2 + (index * (width - across)) / (count - 1));
+  // Skids or girders run left to right under the joists. Under a gable-end deck that continues
+  // them, a run goes on out to the deck's outer edge; the deck joists there give more splice points.
+  const lines = supportLines(config)!;
+  const decks = continuedDecks(config);
+  const runOf = (y: number): [number, number] => {
+    const reach = (side: 'left' | 'right') =>
+      Math.max(0, ...decks.filter((deck) => deck.side === side && y > deck.ys[0] - NEAR && y < deck.ys[1] + NEAR).map(({ reach }) => reach));
+    return [0 - reach('left'), length + reach('right')];
+  };
+  const deckCenters = decks.flatMap(({ side, reach, oc }) =>
+    Array.from({ length: Math.floor(reach / oc) }, (_, index) => (side === 'left' ? -(index + 1) * oc : length + (index + 1) * oc)),
+  );
 
   if (foundation.type === 'skid') {
-    const { size, count } = foundation.skid;
-    // On edge: the wider face stands.
-    const { width: height, thick: across } = LUMBER[size];
-    // Each end of a skid run is cut 45° across its bottom third, as on a sled runner, so the shed
-    // rides up over the ground when it is dragged. A splice in a long run stays square.
-    const cut = Math.round((height / 3) * 8) / 8;
-    const [bottom, top] = [joistBottom - height, joistBottom];
-    for (const y of lines(count, across)) {
-      for (const [from, to] of splitPlate([0, length], maxStock(size), centers)) {
-        const [start, end] = [from === 0, to === length];
-        const point = (along: number, z: number): Point => [along, z];
-        const outline = [
-          ...(start ? [point(from, bottom + cut), point(from + cut, bottom)] : [point(from, bottom)]),
-          ...(end ? [point(to - cut, bottom), point(to, bottom + cut)] : [point(to, bottom)]),
-          point(to, top),
-          point(from, top),
-        ];
-        const ends = start && end ? 'Both ends' : start || end ? 'The outer end' : null;
-        const note = ends && `${ends} cut 45° across the bottom, ${formatInches(cut)} up and in, so the shed drags without digging in.`;
+    const { size } = foundation.skid;
+    // On edge: the wider face stands. A splice in a long run stays square.
+    const height = LUMBER[size].width;
+    for (const y of lines.ys) {
+      const [x0, x1] = runOf(y);
+      for (const [from, to] of splitPlate([x0, x1], maxStock(size), [...centers, ...deckCenters])) {
+        const { outline, note } = skidOutline(from, to, joistBottom - height, height, from === x0, to === x1);
         // The plane's run is along x, so the skid extrudes along x × up, toward -y, from its far face.
         const base = { id: foundationIds('SK'), assembly: 'foundation', role: 'skid', size, ...(note && { note }) } as const;
-        members.push({ ...planeMember(base, { origin: [0, y + across / 2, 0], h: X }, outline, [1, 0], across), treated: true });
+        members.push({ ...planeMember(base, { origin: [0, y + lines.across / 2, 0], h: X }, outline, [1, 0], lines.across), treated: true });
       }
     }
     return { members, solids };
@@ -136,15 +134,19 @@ export function frameFloor(config: ShedConfig): { members: Member[]; solids: Sol
   const girderWidth = pier.girderPlies * plyThick;
   const girderBottom = joistBottom - girderDepth;
   const radius = pier.diameter / 2;
-  const bays = Math.ceil((length - 2 * radius) / pier.maxSpacing);
-  const pierXs = Array.from({ length: bays + 1 }, (_, index) => radius + (index * (length - 2 * radius)) / bays);
+  // Along each run: one pier flush with each end, the rest evenly spaced at most maxSpacing.
+  const piersOver = ([x0, x1]: [number, number]) => {
+    const bays = Math.ceil((x1 - x0 - 2 * radius) / pier.maxSpacing);
+    return Array.from({ length: bays + 1 }, (_, index) => x0 + radius + (index * (x1 - x0 - 2 * radius)) / bays);
+  };
   const postLength = pier.post === 'none' ? 0 : pier.postLength;
   const postSide = pier.post === 'none' ? 0 : LUMBER[pier.post].width;
   const pierTop = girderBottom - postLength;
-  // The widest of girder, post, and pier sets the line spacing, so nothing passes the floor edge.
-  for (const y of lines(pier.girderCount, Math.max(girderWidth, postSide, pier.diameter))) {
+  for (const y of lines.ys) {
+    const run = runOf(y);
+    const pierXs = piersOver(run);
     for (let ply = 0; ply < pier.girderPlies; ply++) {
-      for (const [from, to] of splitPlate([0, length], maxStock(pier.girder), pierXs)) {
+      for (const [from, to] of splitPlate(run, maxStock(pier.girder), pierXs)) {
         const origin: Vec3 = [from, y - girderWidth / 2 + ply * plyThick, girderBottom];
         members.push(board('foundation', foundationIds('GD'), 'girder', pier.girder, true, to - from, origin, { length: X, width: UP, thick: Y }));
       }

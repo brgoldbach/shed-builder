@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { TWO_BY } from '../core/catalog';
+import { DECK_BOARDS, TWO_BY } from '../core/catalog';
 import {
   ATTACHMENTS,
+  DECK_JOINS,
+  DECK_SUPPORTS,
   FASCIA,
   LEAN_TO_FLOORS,
   LEAN_TO_POSTS,
@@ -14,12 +16,15 @@ import {
   type Addition,
   type ShedConfig,
 } from '../core/config';
+import { deckHeights, onShed } from '../core/gen/deck';
+import { supportLines } from '../core/gen/supports';
 import { naming, type Naming } from '../core/naming';
-import { formatLength } from '../core/units';
+import { formatInches, formatLength } from '../core/units';
 import { Card, CheckField, Group, LengthField, NumberField, SelectField, capitalize, setter, type SectionProps } from './fields';
 
 const FLOOR_LABELS = { none: 'None: posts on piers', slab: 'Slab', deck: 'Deck: posts on piers' };
 const FLOOR_BRIEFS = { none: 'None', slab: 'Slab', deck: 'Deck' };
+const BOARD_LABELS = { '5/4x6': '5/4x6 decking, 1 in thick', '2x6': '2x6, 1-1/2 in thick' };
 const ROOFING_LABELS = { sheathing: 'Sheathing', metal: 'Metal on purlins' };
 const ATTACH_LABELS = { soffit: 'Below the main eave', extension: 'Extends the main roof' };
 const sidesOf = ({ side, mirror }: Addition) => (mirror ? [side, OPPOSITE[side]] : [side]);
@@ -43,6 +48,7 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
           key={index}
           open={index === added}
           value={addition}
+          config={value}
           names={names}
           onChange={(next) => setAll(additions.map((other, at) => (at === index ? next : other)))}
           onRemove={() => setAll(additions.filter((_, at) => at !== index))}
@@ -67,12 +73,24 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
 function AdditionCard({
   value,
   open,
+  config,
   names,
   onChange,
   onRemove,
-}: SectionProps<Addition> & { open: boolean; names: Naming; onRemove: () => void }) {
+}: SectionProps<Addition> & { open: boolean; config: ShedConfig; names: Naming; onRemove: () => void }) {
   const set = setter(value, onChange);
   const deck = setter(value.deck, set('deck'));
+  const supports = supportLines(config);
+  const shed = onShed(config, value);
+  const lines = supports?.kind === 'skid' ? 'skids' : 'girders and piers';
+  const gable = [value.side, ...(value.mirror ? [OPPOSITE[value.side]] : [])].some((side) => side === 'left' || side === 'right');
+  // On the shed's skids or girders: the joist notch that sets the deck, or the deck height.
+  const deckHeight = () => {
+    const heights = deckHeights(config, { ...value, floor: 'deck' })!;
+    const target = value.deck.drop > 0 ? `${formatInches(value.deck.drop)} below` : 'flush with';
+    if (heights.notch > 0.01) return `The joists are notched ${formatInches(heights.notch)} at their bearings to set the deck ${target} the shed floor.`;
+    return Math.abs(heights.top) < 0.01 ? 'The deck is level with the shed floor.' : `The deck is ${formatInches(-heights.top)} below the shed floor.`;
+  };
   const extension = value.attach === 'extension';
   const side = capitalize(names.side(value.side));
   const title = value.mirror ? `${side} and ${names.side(OPPOSITE[value.side])} lean-tos` : `${side} lean-to`;
@@ -143,14 +161,37 @@ function AdditionCard({
         <SelectField label="Beam" value={value.beam} options={TWO_BY} onChange={set('beam')} />
         <SelectField label="Beam plies" value={value.beamPlies} options={[1, 2, 3]} onChange={set('beamPlies')} />
       </Group>
-      <Group title="Floor" brief={value.floor === 'deck' ? `Deck, ${value.deck.joist} at ${value.deck.oc}"` : FLOOR_BRIEFS[value.floor]}>
+      <Group title="Floor" brief={value.floor === 'deck' ? `Deck, ${value.deck.joist} at ${value.deck.oc}", on ${shed ? `the shed's ${supports?.kind === 'skid' ? 'skids' : 'girders'}` : 'piers'}` : FLOOR_BRIEFS[value.floor]}>
         <SelectField label="Floor" value={value.floor} options={LEAN_TO_FLOORS} describe={(floor) => FLOOR_LABELS[floor]} onChange={set('floor')} />
         {value.floor === 'deck' && (
           <>
             <SelectField label="Deck joists" value={value.deck.joist} options={TWO_BY} onChange={deck('joist')} />
             <SelectField label="Deck joist spacing" value={value.deck.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={deck('oc')} />
+            <SelectField label="Deck boards" value={value.deck.boards} options={DECK_BOARDS} describe={(boards) => BOARD_LABELS[boards]} onChange={deck('boards')} />
+            {supports && (
+              <SelectField
+                label="Deck support"
+                value={value.deck.support}
+                options={DECK_SUPPORTS}
+                describe={(support) => (support === 'piers' ? 'Piers under a beam' : `The shed's ${lines}, continued`)}
+                onChange={deck('support')}
+              />
+            )}
+            {shed && gable && (
+              <SelectField
+                label="At the gable end"
+                value={value.deck.join}
+                options={DECK_JOINS}
+                describe={(join) => (join === 'continue' ? `Run the shed's ${lines} on out` : `Own ${lines}, in line`)}
+                onChange={deck('join')}
+              />
+            )}
             <LengthField label="Deck below the shed floor" value={value.deck.drop} onChange={deck('drop')} />
-            <p className="muted hint">2x6 deck boards along the wall, on joists from a ledger on the shed's floor framing to a beam on the piers. The posts stand on the beam.</p>
+            <p className="muted hint">
+              {shed && supports
+                ? `Joists on the ${lines}. ${deckHeight()} The posts stand on the deck beam.`
+                : "Joists from a ledger on the shed's floor framing to a beam on the piers. The posts stand on the beam."}
+            </p>
           </>
         )}
       </Group>

@@ -310,7 +310,7 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   single(loft.joist, count('tail.loft') * (hung ? 2 : 1) + (hung ? 2 * count('joist.loft') : 0));
   // Below-soffit lean-to rafters hang from their ledgers. Deck joists hang at both ends.
   leanTos.filter(({ extension }) => !extension).forEach(({ rafters }) => rafters.forEach(({ size }) => single(size, 1)));
-  model.members.filter(({ role }) => role === 'joist.deck').forEach(({ size }) => single(size, 2));
+  for (const { deck } of model.leanTos) if (deck) single(deck.joist, deck.hangers);
   for (const [size, quantity] of singles) add(`Joist hanger, ${size}`, quantity, price.joistHanger);
   add(`Joist hanger, double ${loft.joist}`, count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0), price.doubleHanger);
   add(
@@ -319,7 +319,7 @@ function hardware(config: ShedConfig, model: Model): Line[] {
     price.lag,
     'Two at each main-wall stud behind a lean-to ledger.',
   );
-  add('Deck ledger lag screw, 1/2"', 2 * count('joist.deck'), price.lag, 'Two at each deck joist, into the floor framing.');
+  add('Deck ledger lag screw, 1/2"', model.leanTos.reduce((sum, { deck }) => sum + (deck?.ledgerLags ?? 0), 0), price.lag, 'Two at each deck joist, into the floor framing.');
   for (const { deck } of model.leanTos) {
     if (deck) add(`Beam seat, ${deck.plies}-ply ${deck.joist}`, deck.seats, price.postCap, 'On each pier, under the deck beam.');
   }

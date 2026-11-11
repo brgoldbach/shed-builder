@@ -21,6 +21,7 @@
     { "type": "vent", "wall": "right", "sill": 104, "at": [50] }
   ],
   "roof": { "pitch": 4, "rafter": "2x4", "oc": 24 },
+  "additions": [{ "side": "right", "depth": 60, "floor": "deck", "deck": { "support": "shed", "joist": "2x4" } }],
   "ramps": [
     { "opening": { "row": 0, "index": 0 }, "margin": 3 },
     { "wall": "back", "along": "right", "at": 30, "width": 40, "slope": 3, "stringer": "2x8", "oc": 12 }

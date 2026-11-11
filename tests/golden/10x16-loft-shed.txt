@@ -102,12 +102,12 @@ AB-1      9  2x6        85-15/16"  Rafter. Plumb cut 14.0° at the ledger, in a 
 AB-2      1  2x6             192"  Fascia
 AB-3      1  2x8             192"  Ledger. Lag-bolt through the sheathing into each main-wall stud.
 AB-4      2  2x8             192"  Beam ply
-AB-5      3  4x4 PT           91"  Post. Stands on the deck beam, over the pier.
+AB-5      3  4x4 PT       90-1/2"  Post. Stands on the deck beam, over the pier.
 AB-6      1  2x6 PT          192"  Deck ledger. Lag-bolt into the floor framing, two at each joist.
 AB-7     13  2x6 PT       66-1/2"  Deck joist. Joist hangers at both ends.
 AB-8      3  2x6 PT          192"  Deck beam ply. Bears on the piers; the posts stand on it.
-AB-9     11  2x6 PT          192"  Deck board
-AB-10     2  2x6 PT          192"  Deck board. Notch around the posts.
+AB-9     11  5/4x6 PT        192"  Deck board
+AB-10     2  5/4x6 PT        192"  Deck board. Notch around the posts.
 RP-1      8  2x6 PT           50"  Deck board
 RP-2      4  2x6 PT     41-15/16"  Ramp stringer. Plumb cut 14.0° at the floor framing, lagged to it. Level cut on grade.
 SOLID Loft deck, 23/32" T&G (3/4") x6
@@ -115,7 +115,7 @@ SOLID Pier, 10" diameter x3
 SOLID Roof sheathing, 7/16" OSB x23
 SOLID Subfloor, 23/32" T&G (3/4") x7
 SOLID Wall sheathing, 7/16" OSB x32
-STOCK 2x6 PT 16' 0" x36
+STOCK 2x6 PT 16' 0" x23
 STOCK 2x6 PT 7' 8-5/8" x1
 STOCK 4x6 PT 16' 0" x3
 STOCK 2x4 16' 0" x36
@@ -131,6 +131,7 @@ STOCK 2x10 8' 0" x1
 STOCK 1x4 16' 0" x13
 STOCK 1x4 12' 0" x1
 STOCK 4x4 PT 8' 0" x3
+STOCK 5/4x6 PT 16' 0" x13
 SHEETS 7/16" OSB, 4×8 x42
 SHEETS 23/32" T&G (3/4"), 4×8 x9
 ITEM Concrete, 3 piers: 0.21 cu yd
@@ -146,12 +147,12 @@ ITEM Ramp lag screw, 1/2": 8 ea
 ITEM Roof area, shingles: 116.9 sq ft
 ITEM Roof area, metal panels: 300.3 sq ft
 ITEM Drip edge: 99.9 ft
-COST lumber $1,999.84
+COST lumber $1,890.64
 COST sheets $999.00
 COST concrete $108.00
 COST hardware $291.75
 COST roofing $850.73
-COST total $4,249.32
+COST total $4,140.12
 SPAN Rafters: 2x6 at 16" o.c. 56-11/16" of 172-1/4" (bending)
 SPAN Floor joists: 2x6 at 16" o.c. 54-3/4" of 111-13/16" (deflection)
 SPAN Loft joists: 2x6 at 16" o.c. 110" of 123-1/16" (deflection)

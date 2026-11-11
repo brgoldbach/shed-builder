@@ -87,6 +87,7 @@ export const ROLES = {
   blocking: 'Blocking',
   'ledger.deck': 'Deck ledger',
   'joist.deck': 'Deck joist',
+  'rim.deck': 'Deck rim joist',
   'beam.deck': 'Deck beam ply',
   decking: 'Deck board',
   stringer: 'Ramp stringer',

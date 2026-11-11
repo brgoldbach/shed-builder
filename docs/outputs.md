@@ -343,9 +343,9 @@ for 2 pieces.
 
 `DEFAULT_PRICES.lumber`, dollars per linear foot, untreated:
 
-| 1x4 | 2x4 | 2x6 | 2x8 | 2x10 | 2x12 | 4x4 | 4x6 | 6x6 |
-|---|---|---|---|---|---|---|---|---|
-| 0.45 | 0.45 | 0.75 | 1.05 | 1.50 | 2.00 | 1.40 | 2.10 | 3.50 |
+| 1x4 | 2x4 | 2x6 | 2x8 | 2x10 | 2x12 | 4x4 | 4x6 | 6x6 | 5/4x6 |
+|---|---|---|---|---|---|---|---|---|---|
+| 0.45 | 0.45 | 0.75 | 1.05 | 1.50 | 2.00 | 1.40 | 2.10 | 3.50 | 0.40 |
 
 - `treatedMarkup`: 50 %, range 0 to 500 %.
 - `cost.basis` reads `$0.75/ft` for untreated, and `$3.15/ft, untreated +50%` for PT.
@@ -532,7 +532,7 @@ has the unit `ea`, and a cost of quantity × unit price, basis `$X.XX each`.
 | Joist hanger, {size} | See 5.3. One line for each size. | `joistHanger`, $1.60 |
 | Joist hanger, double {loft joist} | `header.loft` count, plus `trimmer.loft` and `edge.loft` counts for a hung loft | `doubleHanger`, $3.00 |
 | Ledger lag screw, 1/2" | Σ `leanTo.lags` | `lag`, $1.25 |
-| Deck ledger lag screw, 1/2" | 2 × `joist.deck` count | `lag`, $1.25 |
+| Deck ledger lag screw, 1/2" | Σ `deck.ledgerLags`: 2 per joist with a ledger | `lag`, $1.25 |
 | Beam seat, {plies}-ply {joist} | `deck.seats` of each lean-to with a deck: one at each pier under the beam, none where deck posts carry it | `postCap`, $9.00 |
 | Ramp lag screw, 1/2" | 2 × `stringer` count | `lag`, $1.25 |
 
@@ -553,7 +553,7 @@ has the unit `ea`, and a cost of quantity × unit price, basis `$X.XX each`.
 | `joist.loft` | 2 in a hung loft, between the ledgers. 0 when the joists sit on the plates. | `roof.loft.joist` |
 | `tail.loft` | 1, at the hatch header. 2 in a hung loft: also at the ledger. | `roof.loft.joist` |
 | Soffit lean-to rafter | 1, at the ledger | The rafter's size |
-| `joist.deck` | 2, at the ledger and at the beam | The joist's size |
+| `joist.deck` | `deck.hangers`: 2 per joist, at the ledger and the beam; none on a gable end on the shed's foundation, where the joists sit on the skids or girders | The joist's size |
 
 Hangers of the same size add up to one line.
 
@@ -818,7 +818,7 @@ girder. `PLY` = 1-1/2 in.
 | `{Side} lean-to rafters` | `joistSpan` | `leanTo.rafterSpan`: horizontal, from the ledger face, or the wall's outside face for an extension, to the inner end of the beam seat | Roof + roof dead, at `addition.oc` | Roof | L/180 |
 | `{Side} lean-to beam` | beam | `postSpacing`: post center to post center | Roof + roof dead over `beamTributary` | Roof | L/240 |
 | `{Side} lean-to deck joists` | `joistSpan` | `deck.joistSpan`: ledger face to the beam's inner face | `FLOOR`, at `addition.deck.oc` | 1.0 | L/360 |
-| `{Side} lean-to deck beam`, `deck.plies` plies of the deck joist size | beam | `postSpacing` | `FLOOR` over `deck.beamTributary` | 1.0 | L/360 |
+| `{Side} lean-to deck beam`, `deck.plies` plies of the deck joist size | beam | `deck.beamSpan`; no check when 0, on an eave side's outer skid or girder | `FLOOR` over `deck.beamTributary` | 1.0 | L/360 |
 | `Front girder`, `Inner girder`, `Back girder`, on a pier foundation | beam | The largest center-to-center gap between foundation piers along x | Floor tributary, plus the eave wall load on the outer lines | 1.0 | L/360 |
 
 Joists, rafters, and headers use clear spans. Lean-to beams, deck beams, and girders use the

@@ -82,6 +82,8 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/core/gen/roof.ts` | Rafters, ridge, fascia, rake ladders, purlins, gable-end framing and gable openings. Calls `attic.ts`. |
 | `src/core/gen/attic.ts` | Rafter and collar ties, loft floor and hatches, knee walls. |
 | `src/core/gen/additions.ts` | Lean-tos: ledger or roof extension, rafters, beam, posts, piers, slab, or deck. |
+| `src/core/gen/deck.ts` | Lean-to decks: `deckHeights`, `frameDeck` (ledger, joists, beam, rims, boards, and a deck's own skids or girders), and the facts the floor shares: `onShed`, `deckReach`, `continuedDecks`. |
+| `src/core/gen/supports.ts` | The skid or girder lines a floor stands on (`supportLines`), and the skid end cut (`skidOutline`). |
 | `src/core/gen/ramps.ts` | Ramps: `rampPlace` (its wall and edges, from its opening or its own position); wood stringers and boards, or a concrete wedge as a panel solid. The foot is `belowGrade` under grade. `withoutOpeningRow` removes an opening row and keeps each ramp in place. |
 | `src/core/gen/sheathing.ts` | Wall, roof, and floor sheets, cut around openings. |
 | `src/core/gen/finishes.ts` | 3D look only: siding, roofing, trim, doors, windows. It does not change framing, cut list, or BOM. |
@@ -242,7 +244,8 @@ The gate before each commit: `npm test`, `npm run lint`, and `npm run build`.
 ## Span checks
 
 `checkSpans` checks rafters, floor joists, loft joists, opening headers, pier girders, lean-to
-rafters and beams, and lean-to deck joists and beams. It does not check studs, the ridge board,
+rafters and beams, and lean-to deck joists and beams. Girder checks cover the shed's own girders.
+It does not check studs, the ridge board, a deck's own skids and girders,
 rafter and collar ties, skids, loft ledgers, posts, ramps, lean-to loads on the main-wall headers and
 girders, the deck ledger's load on the floor framing, pier bearing on soil, wind, uplift, wall
 bracing, or connections.

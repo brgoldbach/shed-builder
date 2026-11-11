@@ -231,7 +231,8 @@ main shed, in that order.
 | `joist.floor` | Floor joist | `floor` | `J` | `frameFloor` |
 | `blocking` | Blocking | `floor` | `B` | `frameFloor` |
 
-The roles `ledger`, `beam`, the deck roles, and `stringer` belong to lean-tos and ramps. To add a
+The roles `ledger`, `beam`, the deck roles (`ledger.deck`, `joist.deck`, `rim.deck`, `beam.deck`,
+`decking`), and `stringer` belong to lean-tos and ramps. To add a
 role, follow "Add a member role" in DEVELOPER.md.
 
 ## 2. Coordinates and planes
@@ -447,7 +448,12 @@ land on the same x.
 2. Center skid i on `y = across / 2 + i * (width - across) / (count - 1)`. The outer skids are
    flush with the floor edges.
 3. Put the skid top at `joistBottom`, under the joists and rims.
-4. Split each skid run with `splitPlate([0, length], maxStock(size), joist centers)`.
+4. Split each skid run with `splitPlate([x0, x1], maxStock(size), joist centers)`. The run is
+   `[0, length]`, longer where a gable-end deck continues it (`continuedDecks` in `deck.ts`): out to
+   that deck's beam, with its joist centers as more splice points. `supportLines` (`supports.ts`)
+   gives the line positions, width, and top, which the lean-to decks share.
+5. `skidOutline` (`supports.ts`) cuts each outer end of a run, so a continued run has its cut at the
+   deck end.
 5. Cut each run end (a piece end at x = 0 or x = `length`) 45° across the bottom. The cut is
    `cut = round(height / 3 * 8) / 8`: one third of the height, to the nearest 1/8 in. It runs
    `cut` up the end and `cut` in along the bottom.
@@ -479,7 +485,7 @@ a long run stays square.
 |---|---|
 | `radius` | `diameter / 2` |
 | `bays` | `ceil((length - 2 * radius) / maxSpacing)` |
-| Pier x | `radius + i * (length - 2 * radius) / bays`, i = 0 to `bays`. The end piers are flush with the floor ends. |
+| Pier x | `x0 + radius + i * (x1 - x0 - 2 * radius) / bays`, i = 0 to `bays`, over the line's run `[x0, x1]`: the floor's length, or longer under a continued gable-end deck. The end piers are flush with the run's ends. |
 | `girderWidth` | `girderPlies * LUMBER[girder].thick` |
 | `girderBottom` | `joistBottom - LUMBER[girder].width` |
 | `postLength` | `pier.postLength`, or 0 with no post |

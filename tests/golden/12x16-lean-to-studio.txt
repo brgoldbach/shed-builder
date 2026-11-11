@@ -56,49 +56,73 @@ RF-3      2  2x8         189-3/4"  Fly rafter. No birdsmouth. Both ends square c
 RF-4     14  2x4           6-1/2"  Lookout
 RF-5      9  2x4             184"  Purlin
 RF-6      9  2x4              24"  Purlin
+AB-1      9  2x6          84-1/8"  Rafter. Plumb cut 9.5° at the ledger, in a joist hanger. Birdsmouth on the beam: heel line 70-3/4" from the upper end on the top edge; seat 3", heel 1/2". Tail 12-7/16" past the heel line on the top edge, plumb cut.
+AB-2      1  2x6             192"  Fascia
+AB-3      2  2x10 PT         192"  Girder ply
+AB-4      1  2x8             192"  Ledger. Lag-bolt through the sheathing into each main-wall stud.
+AB-5      2  2x8             192"  Beam ply
+AB-6      3  4x4 PT      91-7/16"  Post. Stands on the deck beam.
+AB-7     10  6x6 PT           18"  Post. Under the deck girder.
+AB-8      1  2x6 PT          192"  Deck ledger. Lag-bolt into the floor framing, two at each joist.
+AB-9     13  2x6 PT       66-1/2"  Deck joist. Joist hangers at both ends; bears on the girders between.
+AB-10     3  2x6 PT          192"  Deck beam ply. On the outer girder; the posts stand on it.
+AB-11    11  5/4x6 PT        192"  Deck board
+AB-12     2  5/4x6 PT        192"  Deck board. Notch around the posts.
 RP-1     23  2x6 PT           50"  Deck board
 RP-2      4  2x6 PT    131-11/16"  Ramp stringer. Plumb cut 18.4° at the floor framing, lagged to it. Level cut on grade.
-SOLID Pier, 12" diameter x15
+SOLID Pier, 12" diameter x25
+SOLID Roof sheathing, 7/16" OSB x5
 SOLID Subfloor, 23/32" T&G (3/4") x7
 SOLID Wall sheathing, 7/16" OSB x34
 STOCK 2x8 PT 16' 0" x2
 STOCK 2x8 PT 12' 0" x13
-STOCK 2x10 PT 16' 0" x3
-STOCK 6x6 PT 8' 0" x3
-STOCK 2x6 16' 0" x22
-STOCK 2x6 14' 0" x7
+STOCK 2x10 PT 16' 0" x5
+STOCK 6x6 PT 8' 0" x5
+STOCK 2x6 16' 0" x23
+STOCK 2x6 14' 0" x8
 STOCK 2x6 12' 0" x2
 STOCK 2x6 9' 8-5/8" x25
-STOCK 2x6 7' 8-5/8" x1
-STOCK 2x8 16' 0" x16
+STOCK 2x6 7' 8-5/8" x8
+STOCK 2x8 16' 0" x19
 STOCK 2x8 14' 0" x1
 STOCK 2x4 16' 0" x9
 STOCK 2x4 7' 8-5/8" x3
-STOCK 2x6 PT 16' 0" x4
-STOCK 2x6 PT 14' 0" x6
-STOCK 2x6 PT 7' 8-5/8" x1
-SHEETS 7/16" OSB, 4×8 x27
+STOCK 4x4 PT 8' 0" x3
+STOCK 2x6 PT 16' 0" x14
+STOCK 2x6 PT 14' 0" x4
+STOCK 2x6 PT 8' 8-5/8" x1
+STOCK 5/4x6 PT 16' 0" x13
+SHEETS 7/16" OSB, 4×8 x32
 SHEETS 23/32" T&G (3/4"), 4×8 x7
-ITEM Concrete, 15 piers: 1.6 cu yd
-ITEM Form tube, 12": 15 ea
-ITEM Hurricane tie, rafter to plate: 26 ea
-ITEM Post base, 6x6: 15 ea
-ITEM Post cap, 6x6: 15 ea
+ITEM Concrete, 25 piers: 2.67 cu yd
+ITEM Form tube, 12": 25 ea
+ITEM Hurricane tie, rafter to plate: 35 ea
+ITEM Post base, 6x6: 25 ea
+ITEM Post cap, 6x6: 25 ea
+ITEM Post base, 4x4: 3 ea
+ITEM Post cap, 4x4: 3 ea
+ITEM Joist hanger, 2x6: 35 ea
+ITEM Ledger lag screw, 1/2": 22 ea
+ITEM Deck ledger lag screw, 1/2": 26 ea
 ITEM Ramp lag screw, 1/2": 8 ea
+ITEM Roof area, shingles: 115 sq ft
 ITEM Roof area, metal panels: 274.1 sq ft
-ITEM Drip edge: 66.3 ft
-COST lumber $1,607.52
-COST sheets $683.50
-COST concrete $504.00
-COST hardware $299.50
-COST roofing $579.13
-COST total $3,673.64
+ITEM Drip edge: 96.7 ft
+COST lumber $2,201.77
+COST sheets $766.00
+COST concrete $840.55
+COST hardware $656.25
+COST roofing $797.23
+COST total $5,261.79
 SPAN Rafters: 2x8 at 16" o.c. 133" of 218-3/16" (bending)
 SPAN Floor joists: 2x8 at 16" o.c. 64-1/2" of 147-3/8" (deflection)
 SPAN window 36x48 header (front wall): 2-ply 2x8 36" of 106-7/16" (bending)
 SPAN window 36x48 header (front wall): 2-ply 2x8 36" of 106-7/16" (bending)
 SPAN transom header (front wall): 2-ply 2x8 48" of 111-1/4" (bending)
 SPAN door 36 header (right wall): 2-ply 2x8 38" of 179-7/8" (bending)
+SPAN Back lean-to rafters: 2x6 at 24" o.c. 66-13/16" of 140-11/16" (bending)
+SPAN Back lean-to beam: 2-ply 2x8 94-1/4" of 166-1/4" (bending)
+SPAN Back lean-to deck joists: 2x6 at 16" o.c. 33-5/8" of 111-13/16" (deflection)
 SPAN Front girder: 1-ply 2x10 45" of 57" (shear)
 SPAN Inner girder: 1-ply 2x10 45" of 84-3/4" (bending)
 SPAN Back girder: 1-ply 2x10 45" of 61-1/2" (shear)

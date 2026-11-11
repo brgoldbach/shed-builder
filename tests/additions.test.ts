@@ -178,7 +178,7 @@ describe('lean-to left out', () => {
 describe('lean-to deck', () => {
   // Front, 72 in deep on 4x4 posts centered 70-1/4 out. 2x8 joists under 2x6 boards, level with the
   // floor. Out from the front wall is -y. Grade is at the skid bottoms, -11-23/32.
-  const config = withLeanTo({ side: 'front', depth: 72, floor: 'deck' });
+  const config = withLeanTo({ side: 'front', depth: 72, floor: 'deck', deck: { boards: '2x6' } });
   const deckModel = buildModel(config);
   const deck = deckModel.members.filter(({ assembly }) => assembly === 'addition.front');
   const range = (members: Member[], axis: number) => {
@@ -226,6 +226,19 @@ describe('lean-to deck', () => {
     expect([outer.length, inner.length]).toEqual([120, 120]);
   });
 
+  it('uses 1 in thick 5/4 decking by default, its top level with the floor', () => {
+    const thin = withLeanTo({ side: 'front', depth: 72, floor: 'deck' });
+    const boards = ofRole(buildModel(thin).members, 'decking');
+    expect(new Set(boards.map(({ size }) => size))).toEqual(new Set(['5/4x6']));
+    expect(range(boards, 2)).toEqual([-1, 0]);
+    expect(range(ofRole(buildModel(thin).members, 'joist.deck'), 2)).toEqual([-8.25, -1]);
+  });
+
+  it('warns when the boards span farther than they may', () => {
+    const wide = withLeanTo({ side: 'front', depth: 72, floor: 'deck', deck: { oc: 24 } });
+    expect(buildModel(wide).warnings).toContainEqual({ source: 'Front lean-to', message: '5/4x6 deck boards span 16" at most; the joists are 24" apart.' });
+  });
+
   it('measures headroom from the deck', () => {
     expect(deckModel.warnings.find(({ message }) => message.startsWith('The clear height'))?.message).toBe(
       'The clear height under the beam is 4\' 11-9/16", less than 6\' 8".',
@@ -241,5 +254,79 @@ describe('lean-to deck', () => {
     expect(quantity('Joist hanger, 2x8')).toBe(18);
     expect(quantity('Deck ledger lag screw, 1/2"')).toBe(18);
     expect(quantity('Beam seat, 3-ply 2x8')).toBe(3);
+  });
+});
+
+describe('lean-to deck on the shed\'s foundation', () => {
+  // The 8x10 on three 4x6 skids, 46-1/4 in apart: their tops are the joist bottoms, -6-7/32. With
+  // 2x6 deck joists and 5/4 boards the deck would be 5-1/2 + 1 over them, 9/32 in above the floor:
+  // the joists are notched 9/32 in at their bearings to set it flush.
+  const onSkids = (addition: object) => withLeanTo({ depth: 72, floor: 'deck', ...addition, deck: { support: 'shed', joist: '2x6', ...('deck' in addition ? (addition.deck as object) : {}) } });
+  const deckOf = (config: ReturnType<typeof withLeanTo>, side: string) => buildModel(config).members.filter(({ assembly }) => assembly === `addition.${side}`);
+  const range = (members: Member[], axis: number) => {
+    const values = members.flatMap((member) => corners(member).map((point) => point[axis]));
+    return [Math.min(...values), Math.max(...values)];
+  };
+
+  it('on an eave side, runs new skids along the wall, the outer one under the beam', () => {
+    const config = onSkids({ side: 'front' });
+    const deck = deckOf(config, 'front');
+    // 70-1/4 to the post line at 46-1/4 or less apart: two lines, at 35-1/8 and 70-1/4 out.
+    const skids = ofRole(deck, 'skid');
+    expect(skids.map((skid) => (range([skid], 1)[0] + range([skid], 1)[1]) / 2)).toEqual([-35.125, -70.25]);
+    expect(skids.every(({ length, note }) => length === 120 && note?.startsWith('Both ends cut 45°'))).toBe(true);
+    // The beam rests on the outer skid all along: ripped to 5-7/32 in, its top at the joist tops.
+    expect(range(ofRole(deck, 'beam.deck'), 2)).toEqual([-6.21875, -1]);
+    expect(ofRole(deck, 'beam.deck')[0].note).toContain('Rip to');
+    expect(ofRole(deck, 'joist.deck')[0].note).toContain('Notch 5/16" at each bearing.');
+    expect(range(ofRole(deck, 'post'), 2)[0]).toBe(-1);
+    const model = buildModel(config);
+    expect(model.solids.filter(({ label }) => label.startsWith('Pier'))).toEqual([]);
+    expect(range(ofRole(deck, 'decking'), 2)[1]).toBe(0);
+  });
+
+  it('on a gable end, runs the shed\'s skids on out under the deck, with joists along the wall', () => {
+    const config = onSkids({ side: 'left' });
+    // The beam's outer face is 72 - 1-3/4 + 2-1/4 = 72-1/2 out: each skid runs from there to 120.
+    const skids = buildModel(config).members.filter(({ role, assembly }) => role === 'skid' && assembly === 'foundation');
+    expect(range(skids, 0)).toEqual([-72.5, 120]);
+    expect(ofRole(deckOf(config, 'left'), 'skid')).toEqual([]);
+    // Between rim joists at each end: 96 - 2 x 1-1/2.
+    const joists = ofRole(deckOf(config, 'left'), 'joist.deck');
+    expect(joists.every(({ length, note }) => length === 93 && note?.startsWith('On the skids.'))).toBe(true);
+    const rims = ofRole(deckOf(config, 'left'), 'rim.deck');
+    expect(rims.map(({ length }) => length)).toEqual([72.5, 72.5]);
+  });
+
+  it('warns when the notch is deeper than 1/4 of the joist', () => {
+    // 2x8 joists: 7-1/4 + 1 over the skids is 2-1/32 in above the floor, more than 7-1/4 / 4.
+    const deep = onSkids({ side: 'front', deck: { joist: '2x8' } });
+    expect(buildModel(deep).warnings.map(({ message }) => message)).toContainEqual(expect.stringContaining('more than 1/4 of their depth'));
+  });
+
+  it('on a gable end, gives the deck its own skids in line when chosen', () => {
+    const config = onSkids({ side: 'left', deck: { join: 'separate' } });
+    const shedSkids = buildModel(config).members.filter(({ role, assembly }) => role === 'skid' && assembly === 'foundation');
+    expect(range(shedSkids, 0)).toEqual([0, 120]);
+    const own = ofRole(deckOf(config, 'left'), 'skid');
+    expect(own).toHaveLength(3);
+    expect(range(own, 0)).toEqual([-72.5, 0]);
+    // The inner end butts the shed's skid square; the outer end is cut.
+    expect(own.every(({ note }) => note?.startsWith('The outer end cut 45°'))).toBe(true);
+  });
+
+  it('on a pier shed, frames girders on piers like the shed\'s', () => {
+    const config = shedSchema.parse({ ...onSkids({ side: 'front' }), foundation: { type: 'pier' } });
+    const deck = deckOf(config, 'front');
+    // Two girder lines 86 in apart: one line, under the beam, with 3 piers along 120 in.
+    expect(ofRole(deck, 'girder').map(({ length }) => length)).toEqual([120, 120]);
+    expect(buildModel(config).solids.filter(({ id }) => id.startsWith('AF-PR'))).toHaveLength(3);
+  });
+
+  it('counts no ledger or hangers on a gable end, where the joists sit on the skids', () => {
+    const config = onSkids({ side: 'left' });
+    const { hardware } = buildBom(config, buildModel(config), new Map());
+    expect(hardware.find(({ item }) => item === 'Deck ledger lag screw, 1/2"')).toBeUndefined();
+    expect(hardware.find(({ item }) => item.startsWith('Beam seat'))).toBeUndefined();
   });
 });

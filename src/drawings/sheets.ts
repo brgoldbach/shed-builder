@@ -189,7 +189,10 @@ const DECK_FRAMING = new Set<Role>(['ledger.deck', 'joist.deck', 'beam.deck', 's
 
 // Lean-to decks and ramps in plan, without their boards, with the posts the deck beams bolt to.
 function deckPlan({ config, model, names, marks }: Context): Drawing | null {
-  const framing = model.members.filter((member) => DECK_FRAMING.has(member.role));
+  // A deck's own skids or girders show here; the shed's, continued under a deck, on the foundation plan.
+  const framing = model.members.filter(
+    ({ role, assembly }) => DECK_FRAMING.has(role) || ((role === 'skid' || role === 'girder') && assembly.startsWith('addition')),
+  );
   const concrete = model.solids.filter(({ layer }) => layer === 'ramps');
   if (framing.length === 0 && concrete.length === 0) return null;
   const view = planView(config);
@@ -204,7 +207,7 @@ function deckPlan({ config, model, names, marks }: Context): Drawing | null {
   const notes = [
     ...model.leanTos.flatMap(({ side, addition, deck }) =>
       deck
-        ? [`${capitalize(names.side(side))} lean-to deck: PT ${deck.joist} joists at ${addition.deck.oc}" o.c. in hangers, 2x6 deck boards.`]
+        ? [`${capitalize(names.side(side))} lean-to deck: PT ${deck.joist} joists at ${addition.deck.oc}" o.c., 2x6 deck boards, on ${addition.deck.support === 'shed' && config.foundation.type !== 'slab' ? "the shed's foundation" : 'piers'}.`]
         : [],
     ),
     ...config.ramps.map((ramp, index) => {

@@ -21,12 +21,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   when the opening changes, to another wall too. Or place it freely by wall, position, and width.
   The cut list, BOM, 3D, and a new "Decks and ramps" sheet show it. A ramp with too little rise is
   left out in red.
-- **Lean-to deck:** a third lean-to floor choice. PT 2x6 deck boards, notched around the posts, on
+- **Lean-to deck:** a third lean-to floor choice. PT deck boards, notched around the posts, on
   joists that hang from a ledger on the shed's floor framing and from a flush beam on the post line.
   The beam bears on the piers, which rise to meet it, or on deck posts where the floor is high. The
   lean-to posts stand on the beam over each pier, so each load runs straight down. Set the joist
-  size, spacing, and a drop below the shed floor. Span checks cover the deck joists and beam, and
-  the BOM counts the hangers, ledger lags, and beam seats.
+  size, spacing, boards, and a drop below the shed floor. The boards are 5/4 decking, 1 in thick, by
+  default, or 2x6; a warning names boards on joists farther apart than they span. Span checks cover
+  the deck joists and beam, and the BOM counts the hangers, ledger lags, and beam seats. A new
+  5/4x6 size and price are under Lumber catalog.
+- **Deck on the shed's foundation:** a deck can stand on the shed's own skids or pier girders
+  instead of piers. On an eave side the deck gets skids or girders of its own along the wall, the
+  outer one under the beam. On a gable end the shed's skids or girders run on out under the deck,
+  or the deck gets its own in line with them: your choice. The joists sit on them, notched at their
+  bearings where that sets the deck to the drop you choose, flush with the floor by default; a
+  warning names a notch deeper than 1/4 of the joist. A gable-end deck is boxed with a rim joist at
+  each end.
 - **Lean-to piers on other foundations:** on a skid or slab shed, the Foundation section now shows
   the pier settings that lean-to posts use, and the slab thickness for a lean-to slab.
 
