@@ -1,0 +1,119 @@
+FW-1      1  2x4 PT          137"  Mud sill
+FW-2      1  2x4             137"  Top plate
+FW-3      1  2x4             144"  Cap plate
+FW-4      2  2x4          92-5/8"  Corner stud
+FW-5      8  2x4          92-5/8"  Stud
+BW-1      1  2x4 PT          137"  Mud sill
+BW-2      1  2x4             137"  Top plate
+BW-3      1  2x4             144"  Cap plate
+BW-4      2  2x4          92-5/8"  Corner stud
+BW-5      8  2x4          92-5/8"  Stud
+LW-1      1  2x4 PT          144"  Mud sill. After anchoring, cut out door 36 (left 50%) from 53" to 91" from the left end, viewed from outside.
+LW-2      1  2x4             144"  Top plate
+LW-3      1  2x4             137"  Cap plate
+LW-4      6  2x4          92-5/8"  Corner stud
+LW-5      6  2x4          92-5/8"  Stud
+LW-6      2  2x4          92-5/8"  King stud
+LW-7      2  2x4          80-3/4"  Jack stud
+LW-8      2  2x8              41"  Header
+LW-9      2  2x4           4-5/8"  Cripple
+RW-1      1  2x4 PT          144"  Mud sill
+RW-2      1  2x4             144"  Top plate
+RW-3      1  2x4             137"  Cap plate
+RW-4      6  2x4          92-5/8"  Corner stud
+RW-5      8  2x4          92-5/8"  Stud
+GL-1      2  2x4          73-3/8"  Gable top plate. Level cut on the wall plate. Plumb cut 22.6° at the ridge post.
+GL-2      2  2x4          23-7/8"  Gable stud. Top cut 22.6°.
+GL-3      2  2x4          17-1/4"  Gable stud. Top cut 22.6°.
+GL-4      2  2x4         10-9/16"  Gable stud. Top cut 22.6°.
+GL-5      2  2x4           3-7/8"  Gable stud. Top cut 22.6°.
+GL-6      1  2x4        26-15/16"  Ridge post. Square cut.
+GR-1      2  2x4          73-3/8"  Gable top plate. Level cut on the wall plate. Plumb cut 22.6° at the ridge post.
+GR-2      2  2x4          23-7/8"  Gable stud. Top cut 22.6°.
+GR-3      2  2x4          17-1/4"  Gable stud. Top cut 22.6°.
+GR-4      2  2x4         10-9/16"  Gable stud. Top cut 22.6°.
+GR-5      2  2x4           3-7/8"  Gable stud. Top cut 22.6°.
+GR-6      1  2x4        26-15/16"  Ridge post. Square cut.
+RF-1      1  2x8             144"  Ridge board
+RF-2      7  2x6          92-1/2"  Rafter. Plumb cut 22.6° at the ridge. Birdsmouth: heel line 77-3/16" from the ridge long point on the top edge; seat 3-1/2", heel 1-7/16". Tail 13" past the heel line on the top edge, plumb cut.
+RF-3      7  2x6          79-1/2"  Rafter. Plumb cut 22.6° at the ridge. Birdsmouth: heel line 77-3/16" from the ridge long point on the top edge; seat 3-1/2", heel 1-7/16". No tail: plumb cut at the wall line, under the lean-to rafter beside it.
+RF-4      2  2x6         93-5/16"  Fly rafter. No birdsmouth. Plumb cut 22.6° at the ridge. Tail 13" past the heel line on the top edge, plumb cut.
+RF-5      2  2x6         80-5/16"  Fly rafter. No birdsmouth. Plumb cut 22.6° at the ridge. No tail: plumb cut at the wall line, under the lean-to rafter beside it.
+RF-6      2  2x4         92-7/16"  Ladder rail. Plumb cut 22.6° at the ridge. Tail 13" past the heel line on the top edge, plumb cut. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
+RF-7      2  2x4         79-7/16"  Ladder rail. Plumb cut 22.6° at the ridge. No tail: plumb cut at the wall line, under the lean-to rafter beside it. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
+RF-8     12  2x4               5"  Lookout
+RF-9      4  2x4               5"  Lookout. Plumb, at the peak, against the block on the other slope.
+RF-10     1  2x6             160"  Fascia
+RF-11     5  2x4             144"  Rafter tie. Square ends.
+RF-12     5  2x4         56-3/16"  Collar tie. Ends cut 22.6° to the roof line.
+RF-13    10  1x4             160"  Purlin
+AF-1      7  2x6        145-5/16"  Rafter. Laps the main rafter 24" in from the wall line, nailed to it; upper end plumb cut 22.6°. Birdsmouths on the main wall (heel at its outside face, seat 3-1/2") and on the beam: heel line 129-3/4" from the upper end on the top edge; seat 3", heel 1-1/4". Tail 13-1/4" past the heel line on the top edge, plumb cut.
+AF-2      1  2x6             144"  Fascia
+AF-3      7  1x4             144"  Purlin
+AF-4      2  2x8             144"  Beam ply
+AF-5      3  4x4 PT       41-3/4"  Post
+AL-1      5  2x6        71-15/16"  Rafter. Plumb cut 9.5° at the ledger, in a joist hanger. Birdsmouth on the beam: heel line 58-5/8" from the upper end on the top edge; seat 3", heel 1/2". Tail 12-7/16" past the heel line on the top edge, plumb cut.
+AL-2      1  2x6              96"  Fascia
+AL-3      1  2x8              96"  Ledger. Lag-bolt through the sheathing into each main-wall stud.
+AL-4      2  2x8              96"  Beam ply
+AL-5      2  4x4 PT       73-1/2"  Post
+AR-1      7  2x6        108-7/16"  Rafter. Plumb cut 9.5° at the ledger, in a joist hanger. Birdsmouth on the beam: heel line 94-7/8" from the upper end on the top edge; seat 4-1/2", heel 3/4". Tail 12-11/16" past the heel line on the top edge, plumb cut.
+AR-2      1  2x6             144"  Fascia
+AR-3      1  2x8             144"  Ledger. Lag-bolt through the sheathing into each main-wall stud.
+AR-4      3  2x10            144"  Beam ply
+AR-5      3  6x6 PT     57-13/16"  Post
+WARNING Front lean-to: The clear height under the beam is 4' 1-3/4", less than 6' 8".
+WARNING Right lean-to: The clear height under the beam is 4' 9-13/16", less than 6' 8".
+SOLID Anchor bolt, 1/2" x13
+SOLID Pier, 10" diameter x5
+SOLID Roof sheathing, 7/16" OSB x9
+SOLID Slab x2
+SOLID Thickened edge x4
+SOLID Wall sheathing, 7/16" OSB x20
+STOCK 2x4 16' 0" x10
+STOCK 2x4 12' 0" x9
+STOCK 2x4 9' 8-5/8" x1
+STOCK 2x4 7' 8-5/8" x48
+STOCK 2x4 PT 12' 0" x4
+STOCK 2x8 12' 0" x4
+STOCK 2x8 8' 0" x4
+STOCK 2x6 16' 0" x8
+STOCK 2x6 14' 0" x9
+STOCK 2x6 12' 0" x4
+STOCK 2x6 8' 0" x1
+STOCK 2x6 7' 8-5/8" x8
+STOCK 1x4 16' 0" x10
+STOCK 1x4 12' 0" x7
+STOCK 4x4 PT 16' 0" x1
+STOCK 4x4 PT 8' 0" x1
+STOCK 2x10 12' 0" x3
+STOCK 6x6 PT 16' 0" x1
+SHEETS 7/16" OSB, 4×8 x21
+ITEM Concrete, slab: 4.05 cu yd
+ITEM Concrete, 5 piers: 0.37 cu yd
+ITEM Form tube, 10": 5 ea
+ITEM Anchor bolt, 1/2", with nut and washer: 13 ea
+ITEM Hurricane tie, rafter to plate: 40 ea
+ITEM Post base, 4x4: 5 ea
+ITEM Post cap, 4x4: 5 ea
+ITEM Post base, 6x6: 3 ea
+ITEM Post cap, 6x6: 3 ea
+ITEM Joist hanger, 2x6: 12 ea
+ITEM Ledger lag screw, 1/2": 42 ea
+ITEM Roof area, shingles: 159.9 sq ft
+ITEM Roof area, metal panels: 308.2 sq ft
+ITEM Drip edge: 124.3 ft
+COST lumber $985.11
+COST sheets $346.50
+COST concrete $850.25
+COST hardware $278.20
+COST roofing $965.65
+COST total $3,425.71
+SPAN Rafters: 2x6 at 24" o.c. 67-3/4" of 140-11/16" (bending)
+SPAN door 36 header (left wall): 2-ply 2x8 38" of 203-5/8" (bending)
+SPAN Front lean-to rafters: 2x6 at 24" o.c. 92-3/4" of 140-11/16" (bending)
+SPAN Front lean-to beam: 2-ply 2x8 70-1/4" of 147-1/2" (bending)
+SPAN Left lean-to rafters: 2x6 at 24" o.c. 54-13/16" of 140-11/16" (bending)
+SPAN Left lean-to beam: 2-ply 2x8 92-1/2" of 177-13/16" (bending)
+SPAN Right lean-to rafters: 2x6 at 24" o.c. 89-1/16" of 140-11/16" (bending)
+SPAN Right lean-to beam: 3-ply 2x10 69-1/4" of 221-9/16" (bending)

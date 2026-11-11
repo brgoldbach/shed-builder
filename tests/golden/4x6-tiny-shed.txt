@@ -1,0 +1,54 @@
+FD-1      2  4x4 PT           72"  Skid. Both ends cut 45° across the bottom, 1-1/8" up and in, so the shed drags without digging in.
+FL-1      2  2x4 PT           72"  Rim joist
+FL-2      2  2x4 PT           45"  End joist
+FL-3      2  2x4 PT           45"  Floor joist
+FW-1      1  2x4              72"  Bottom plate. After anchoring, cut out door 28 (front 50%) from 22" to 50" from the left end, viewed from outside.
+FW-2      1  2x4              72"  Top plate
+FW-3      6  2x4              63"  Corner stud
+FW-4      2  2x4              63"  Stud
+FW-5      2  2x4              63"  King stud
+FW-6      2  2x4          54-1/2"  Jack stud
+FW-7      2  2x4              31"  Header
+FW-8      2  2x4               5"  Cripple
+BW-1      1  2x4              72"  Bottom plate
+BW-2      1  2x4              72"  Top plate
+BW-3      6  2x4         70-7/16"  Corner stud
+BW-4      4  2x4         70-7/16"  Stud
+LW-1      1  2x4              41"  Bottom plate
+LW-2      1  2x4              41"  Top plate
+LW-3      2  2x4              63"  Corner stud
+LW-4      2  2x4              63"  Stud
+RW-1      1  2x4              41"  Bottom plate
+RW-2      1  2x4              41"  Top plate
+RW-3      2  2x4              63"  Corner stud
+RW-4      2  2x4              63"  Stud
+GL-1      1  2x4         41-9/16"  Gable top plate. Level cut on the wall plate. Plumb cut 9.5° at the high wall.
+GL-2      1  2x4           3-3/8"  Gable stud. Top cut 9.5°.
+GR-1      1  2x4         41-9/16"  Gable top plate. Level cut on the wall plate. Plumb cut 9.5° at the high wall.
+GR-2      1  2x4           3-3/8"  Gable stud. Top cut 9.5°.
+RF-1      4  2x4         61-7/16"  Rafter. Birdsmouths on the top edge, 6-1/16" and 51-3/16" from its low end; each seat 3-1/2", heel 9/16". Both ends plumb cut 9.5°.
+RF-2      2  2x4         61-7/16"  Fly rafter. No birdsmouth. Both ends plumb cut 9.5°.
+RF-3      2  2x4         61-7/16"  Ladder rail. Both ends plumb cut 9.5°. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
+RF-4      2  2x6              80"  Fascia
+RF-5      4  1x4              80"  Purlin
+SOLID Subfloor, 19/32" plywood (5/8") x1
+STOCK 2x4 PT 16' 0" x1
+STOCK 2x4 PT 12' 0" x1
+STOCK 4x4 PT 14' 0" x1
+STOCK 2x4 16' 0" x16
+STOCK 2x4 7' 8-5/8" x1
+STOCK 2x6 14' 0" x1
+STOCK 1x4 8' 0" x4
+SHEETS 19/32" plywood (5/8"), 4×8 x1
+ITEM Hurricane tie, rafter to plate: 8 ea
+ITEM Roof area, metal panels: 35.5 sq ft
+ITEM Drip edge: 24 ft
+COST lumber $191.87
+COST sheets $35.00
+COST concrete $0.00
+COST hardware $6.00
+COST roofing $98.13
+COST total $331.00
+SPAN Rafters: 2x4 at 24" o.c. 41" of 94-3/4" (bending)
+SPAN Floor joists: 2x4 at 24" o.c. 41" of 60-5/8" (deflection)
+SPAN door 28 header (front wall): 2-ply 2x4 28" of 102-5/16" (deflection)

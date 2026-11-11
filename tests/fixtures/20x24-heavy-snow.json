@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "name": "20x24 heavy snow",
+  "width": 240,
+  "length": 288,
+  "studHeight": 104.625,
+  "foundation": { "type": "skid", "skid": { "size": "6x6", "count": 6 } },
+  "floor": { "joist": "2x8", "oc": 12, "blocking": true },
+  "walls": { "corner": "two-stud", "through": "eaves", "header": "2x10" },
+  "openingTypes": [
+    { "name": "overhead 8x7", "kind": "overhead", "width": 96, "height": 84, "header": "2x12" },
+    { "name": "window 36x24", "kind": "window", "width": 36, "height": 24 }
+  ],
+  "openings": [
+    { "type": "overhead 8x7", "wall": "front", "at": [50] },
+    { "type": "window 36x24", "wall": "left", "sill": 48, "at": [30, 70] }
+  ],
+  "roof": {
+    "pitch": 8,
+    "rafter": "2x8",
+    "oc": 16,
+    "ridge": "2x10",
+    "eaveOverhang": 24,
+    "rakeOverhang": 0,
+    "rafterTies": { "every": 2, "height": 12 }
+  },
+  "loads": { "roof": 70, "roofDead": 20 },
+  "catalog": { "species": "dfl", "maxLength": 144 }
+}

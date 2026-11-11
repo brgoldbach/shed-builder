@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "name": "10x16 loft shed",
+  "width": 120,
+  "length": 192,
+  "foundation": { "type": "skid", "skid": { "size": "4x6", "count": 3 } },
+  "floor": { "blocking": true },
+  "openingTypes": [
+    { "name": "door 36", "kind": "door", "width": 38, "height": 82.25 },
+    { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 },
+    { "name": "gable window", "kind": "window", "width": 24, "height": 24, "girder": "flat", "plateBelow": true }
+  ],
+  "openings": [
+    { "type": "door 36", "wall": "front", "at": [30] },
+    { "type": "window 24x36", "wall": "front", "sill": 46.25, "at": [70] },
+    { "type": "window 24x36", "wall": "back", "sill": 46.25, "at": [50] },
+    { "type": "gable window", "wall": "left", "sill": 120, "at": [50] },
+    { "type": "gable window", "wall": "right", "sill": 120, "at": [50] }
+  ],
+  "roof": {
+    "pitch": 12,
+    "rafter": "2x6",
+    "ridge": "2x10",
+    "oc": 16,
+    "roofing": "metal-over-sheathing",
+    "gablePanel": true,
+    "rakeLadder": { "fasciaLookouts": true },
+    "loft": {
+      "enabled": true,
+      "support": "hung",
+      "open": { "end": "right", "length": 48 },
+      "hatches": [
+        { "x": 24, "y": 36, "width": 24, "depth": 30 },
+        { "x": 100, "y": 36, "width": 22.5, "depth": 30 }
+      ]
+    },
+    "kneeWalls": { "enabled": true, "height": 36 }
+  },
+  "finishes": { "siding": "t1-11" },
+  "loads": { "loft": "sleeping" }
+}

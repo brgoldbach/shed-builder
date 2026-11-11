@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "name": "12x12 with lean-tos",
+  "width": 144,
+  "length": 144,
+  "foundation": { "type": "slab" },
+  "walls": { "mudSill": "none" },
+  "openingTypes": [{ "name": "door 36", "kind": "door", "width": 38, "height": 82.25 }],
+  "openings": [{ "type": "door 36", "wall": "left", "at": [50] }],
+  "roof": {
+    "pitch": 5,
+    "oc": 24,
+    "roofing": "metal",
+    "rakeLadder": { "ridgeExtends": false }
+  },
+  "additions": [
+    { "side": "front", "attach": "extension", "depth": 96, "pitch": "main", "roofing": "metal" },
+    { "side": "left", "depth": 60, "length": 96, "center": 50, "pitch": 2 },
+    { "side": "right", "depth": 96, "pitch": 2, "drop": 6, "post": "6x6", "maxSpacing": 72, "beam": "2x10", "beamPlies": 3, "floor": "slab" }
+  ]
+}

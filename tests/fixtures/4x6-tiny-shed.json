@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "4x6 tiny shed",
+  "width": 48,
+  "length": 72,
+  "studHeight": "custom",
+  "wallHeight": 66,
+  "foundation": { "type": "skid", "skid": { "size": "4x4", "count": 2 } },
+  "floor": { "joist": "2x4", "oc": 24, "subfloor": "ply-19/32" },
+  "walls": { "capPlate": false, "sheathing": "none" },
+  "openingTypes": [{ "name": "door 28", "kind": "door", "width": 28, "height": 56, "header": "2x4" }],
+  "openings": [{ "type": "door 28", "wall": "front", "at": [50] }],
+  "roof": { "style": "lean-to", "pitch": 2, "rafter": "2x4", "eaveOverhang": 6, "rakeOverhang": 4, "roofing": "metal" },
+  "finishes": { "siding": "t1-11" },
+  "catalog": { "species": "hf" }
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "name": "12x16 lean-to studio",
+  "width": 144,
+  "length": 192,
+  "studHeight": "custom",
+  "wallHeight": 120,
+  "foundation": {
+    "type": "pier",
+    "pier": { "diameter": 12, "post": "6x6", "postLength": 18, "girder": "2x10", "girderPlies": 1, "girderCount": 3, "maxSpacing": 48 }
+  },
+  "floor": { "joist": "2x8" },
+  "walls": { "stud": "2x6", "oc": 24, "corner": "three-stud" },
+  "openingTypes": [
+    { "name": "door 36", "kind": "door", "width": 38, "height": 82.25 },
+    { "name": "window 36x48", "kind": "window", "width": 36, "height": 48 },
+    { "name": "transom", "kind": "window", "width": 48, "height": 16 }
+  ],
+  "openings": [
+    { "type": "window 36x48", "wall": "front", "sill": 30, "at": [25, 75] },
+    { "type": "transom", "wall": "front", "sill": 92, "at": [50] },
+    { "type": "door 36", "wall": "right", "along": "right", "at": [24] }
+  ],
+  "roof": {
+    "style": "lean-to",
+    "pitch": 4,
+    "rafter": "2x8",
+    "oc": 16,
+    "eaveOverhang": 18,
+    "tailCut": "square",
+    "fascia": "none",
+    "roofing": "metal",
+    "purlin": "2x4",
+    "rakeLadder": { "onEndRafter": true },
+    "highSide": "front"
+  },
+  "finishes": { "siding": "board-batten", "roofColor": "#2f4a3a" }
+}
