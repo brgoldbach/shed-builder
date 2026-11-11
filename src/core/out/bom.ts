@@ -288,13 +288,11 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   add('Anchor bolt, 1/2", with nut and washer', model.solids.filter(({ label }) => label.startsWith('Anchor bolt')).length, price.anchorBolt);
   const seats = config.roof.style === 'lean-to' ? 2 : 1;
   const rafters = (assembly: string) => model.members.filter((member) => member.role === 'rafter' && member.assembly === assembly);
-  // A lean-to rafter seats on its beam, and an extension rafter on the main wall too.
-  const leanTos = model.leanTos.map(({ side, addition }) => ({ rafters: rafters(`addition.${side}`), extension: addition.attach === 'extension' }));
   add(
     'Hurricane tie, rafter to plate',
-    rafters('roof').length * seats + leanTos.reduce((sum, { rafters, extension }) => sum + rafters.length * (extension ? 2 : 1), 0),
+    rafters('roof').length * seats + model.leanTos.reduce((sum, leanTo) => sum + rafters(`addition.${leanTo.side}`).length * leanTo.seats, 0),
     price.hurricaneTie,
-    `One at each rafter seat: ${seats} per main rafter${leanTos.length ? '; per lean-to rafter, 1 on its beam and 1 on the main wall for an extension' : ''}.`,
+    `One at each rafter seat: ${seats} per main rafter${model.leanTos.length ? '; per lean-to rafter, 1 on its beam, and 1 on the main wall where an extension rafter has a birdsmouth there' : ''}.`,
   );
   for (const [size, posts] of Map.groupBy(model.members.filter(({ role }) => role === 'post'), ({ size }) => size)) {
     add(`Post base, ${size}`, posts.length, price.postBase, 'Set in the pier, or anchored to the slab or a deck beam.');
@@ -309,7 +307,7 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   const single = (size: string, quantity: number) => singles.set(size, (singles.get(size) ?? 0) + quantity);
   single(loft.joist, count('tail.loft') * (hung ? 2 : 1) + (hung ? 2 * count('joist.loft') : 0));
   // Below-soffit lean-to rafters hang from their ledgers. Deck joists hang at both ends.
-  leanTos.filter(({ extension }) => !extension).forEach(({ rafters }) => rafters.forEach(({ size }) => single(size, 1)));
+  for (const { side, addition } of model.leanTos) if (addition.attach !== 'extension') rafters(`addition.${side}`).forEach(({ size }) => single(size, 1));
   for (const { deck } of model.leanTos) if (deck) single(deck.joist, deck.hangers);
   for (const [size, quantity] of singles) add(`Joist hanger, ${size}`, quantity, price.joistHanger);
   add(`Joist hanger, double ${loft.joist}`, count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0), price.doubleHanger);

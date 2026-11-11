@@ -26,8 +26,10 @@ in the browser, in a file, or in a link: there is no server.
 | `src/ui/OpeningsEditor.tsx` | `OpeningTypesEditor` (types) and `OpeningRowsEditor` (placement rows). |
 | `src/ui/AdditionsEditor.tsx` | Lean-to cards. |
 | `src/ui/RampsEditor.tsx` | Ramp cards and the Follows choice. |
-| `src/ui/View3D.tsx` | The React host of `FramingScene`, the toolbar slot, and the Fit view button. |
+| `src/ui/View3D.tsx` | The React host of `FramingScene`, the toolbar slot, and the Fit view and Download 3D buttons. |
 | `src/view3d/scene.ts` | `FramingScene`: meshes, materials, canvas textures, red loops, pick, camera fit, disposal. |
+| `src/view3d/export.ts` | `toGlb`: the shown pieces as binary glTF. Loaded on demand. |
+| `src/ui/download.ts` | `download`: saves text or bytes as a file. |
 | `src/ui/FramingView.tsx`, `DrawingSvg.tsx`, `pdf.ts` | The Framing tab. See [drawings.md](drawings.md). |
 | `src/ui/CutListTable.tsx` | The cut list table and `stockLabel`. |
 | `src/ui/BomView.tsx` | The BOM tab. |
@@ -104,9 +106,11 @@ Each value is a `useMemo`, except where the table says "each render".
 7. React renders again. Each `useMemo` with a changed input runs again. The effects autosave the
    design and rebuild the share link.
 
-Every `onChange` has the type `Edit<T>`: it returns the error message, or `null`. `ParsedInput`
-shows the message. `SelectField`, `SelectInput`, `CheckField`, the fold switches, and the list
-buttons drop it.
+Every `onChange` has the type `Edit<T>`: it returns the error message, or `null`. `ParsedInput`,
+`SelectField`, `SelectInput`, and `CheckField` show the message in `<small class="error">` after
+the input, and set `aria-invalid`. A rejected select or checkbox snaps back to the design's value.
+Its message stays until the next change of that input. The fold switches and the list buttons drop
+the message.
 
 ### `edit` and `replace`
 
@@ -269,7 +273,7 @@ The compact form and the link format are in [design-model.md](design-model.md).
    `8x10-gable-on-skids.shed.json`.
 
 The same `fileName` and `download` make `*.cutlist.csv` and `*.bom.csv` (type `text/csv`), and
-`fileName` names `*.plans.pdf`.
+the 3D model `*.glb`. `fileName` also names `*.plans.pdf`. `download` is in `src/ui/download.ts`.
 
 ### Open and drag and drop
 
@@ -410,9 +414,9 @@ On a gambrel, the Roof section shows these fields in place of Pitch:
 A hint follows the break: `The break is R in from the wall, H above the floor at the rafter tops.
 Plywood gussets join the rafters there.` Without a ridge board it ends `there and at the peak.` `R` and `H` come from `gambrelBreak(value)` in `roof.ts`. `R` is
 the run after the 1 ft limit at the ridge line (`formatInches`). `H` is the rafter-top height at the
-break (`formatLength`). A pitch edit that breaks the lower-pitch rule shows `The lower pitch must be
-steeper than the upper pitch` under the field. A Style choice of Gambrel that breaks the rule snaps
-back with no message, because a select does not show `edit`'s message.
+break (`formatLength`). A pitch edit that breaks the lower-pitch rule shows `The lower pitch (L/12) must
+be steeper than the upper pitch (U/12)` under the field. A Style choice of Gambrel that breaks the
+rule snaps back, with the same message under the select.
 
 A switch of Wall height to Custom sets `wallHeight` to `wallTops(value).left` in the same edit, so
 the walls do not move.
@@ -672,7 +676,25 @@ passes it, and it renders on demand only: there is no animation loop.
 | Pick | `onPick` | Stores it in the `pick` ref, so the scene always calls the newest callback. |
 
 `View3D` renders `.canvas-host` for the canvas, then `.view-toolbar` with the `toolbar` prop and the
-Fit view button, then its children (`PieceInfo` in `.pick-info`).
+Fit view and Download 3D buttons, then its children (`PieceInfo` in `.pick-info`).
+
+### Download 3D
+
+1. The button takes `pieces()` from the scene: the meshes of `members`, `solids`, and `finishes`,
+   so only the shown layers.
+2. It loads `src/view3d/export.ts` on demand. The chunk holds `GLTFExporter`, about 37 kB.
+3. `toGlb` copies each mesh with its geometry, position, and rotation. A member's copy takes
+   `userData.base`, so a selected piece keeps its lumber color. Edge lines and red loops stay out.
+4. The copies go in one group per layer, named by `userData.layer`, under the root `Shed`.
+5. The root scales by 0.0254 and turns −90° about x, because glTF is in meters with y up.
+6. `GLTFExporter` writes binary glTF with translation, rotation, and scale on each node (`trs`).
+   Finish textures go in as PNG, with `KHR_texture_transform` and `EXT_materials_bump`.
+7. `download(glbName, glb, 'model/gltf-binary')` saves it. `App` passes `glbName` as
+   `fileName(config.name, 'glb')`.
+
+The button reads `Making 3D…` and is disabled until the file is ready. The 12x16 gambrel barn gives
+380 pieces in 8 layer groups (838 KB) in the Framing view, and 459 pieces with 6 textures (1.1 MB)
+in the Finished view.
 
 ### Scene setup
 
@@ -683,7 +705,7 @@ Fit view button, then its children (`PieceInfo` in `.pick-info`).
 | Controls | `OrbitControls`. Each `change` event renders. |
 | Lights | `HemisphereLight(0xffffff, 0x8a7a66, 2)`, and `DirectionalLight(0xffffff, 2)` at (−2, −3, 4). |
 | Grid | `GridHelper(1200, 100, 0x8a8a84, 0x8a8a84)`: 100 ft with 1 ft squares. It turns π/2 about x into the xy plane, at 25 % opacity. |
-| Groups | `members` (pickable), `solids`, `finishes`, `missing`. |
+| Groups | `members` (pickable), `solids`, `finishes`, `missing`. Each mesh has a `name`: the member or solid id, or the finish look. Its `userData.layer` is its 3D layer. |
 | Resize | A `ResizeObserver` on the host. |
 
 ### Geometry
@@ -1127,3 +1149,4 @@ Both are POSIX `sh`, with `set -eu`, and `cd` to the repo first.
 |---|---|
 | `tests/history.test.ts` | Undo and redo steps, both ends, the loss of redo steps on a new edit, and the 100-step limit. |
 | `tests/changelog.test.ts` | The changelog parser, and that the newest release equals `APP_VERSION`. |
+| `tests/export.test.ts` | `toGlb`: the GLB header, the root's scale and turn, one group per layer, piece names and positions, no edge lines, and the unselected material. Node has no `FileReader`, so the test stubs one. |

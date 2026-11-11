@@ -17,6 +17,7 @@ import { ChangelogDialog } from './ChangelogDialog';
 import { CutListTable } from './CutListTable';
 import { SpanTable } from './SpanTable';
 import { DesignForm } from './DesignForm';
+import { download } from './download';
 import { FramingView } from './FramingView';
 import { record, redo, startHistory, undo, type UndoHistory } from './history';
 import { PieceInfo } from './PieceInfo';
@@ -66,15 +67,6 @@ function restore(): ShedConfig {
   const text = saved();
   const result = text === null ? null : parseConfigText(text);
   return result?.ok ? result.config : PRESETS[0];
-}
-
-function download(filename: string, text: string, type = 'application/json') {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url));
 }
 
 // A change that leaves the design as it was is not an undo step.
@@ -321,6 +313,7 @@ export function App() {
             missing={shownMissing}
             trimColor={hidden.has('siding') ? null : config.finishes.trimColor}
             front={config.front}
+            glbName={fileName(config.name, 'glb')}
             toolbar={
               <div className={layersOpen ? 'layer-toggles open' : 'layer-toggles'}>
                 {(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((name) => (

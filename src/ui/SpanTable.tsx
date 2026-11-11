@@ -19,8 +19,8 @@ export function SpanTable({ checks, species }: { checks: readonly SpanCheck[]; s
           </tr>
         </thead>
         <tbody>
-          {checks.map(({ member, lumber, span, allowed, governs, basis }) => (
-            <tr key={member} className={allowed !== null && span > allowed ? 'over' : undefined} title={basis}>
+          {checks.map(({ member, lumber, span, allowed, governs, basis }, index) => (
+            <tr key={index} className={allowed !== null && span > allowed ? 'over' : undefined} title={basis}>
               <td>
                 {member}
                 <div className="note">{basis}</div>

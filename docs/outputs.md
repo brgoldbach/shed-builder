@@ -530,7 +530,7 @@ has the unit `ea`, and a cost of quantity × unit price, basis `$X.XX each`.
 | Item | Quantity | Price key, default |
 |---|---|---|
 | Anchor bolt, 1/2", with nut and washer | Solids whose label starts with `Anchor bolt` | `anchorBolt`, $2.50 |
-| Hurricane tie, rafter to plate | Main `rafter` members × seats, plus lean-to rafters × (2 for an extension, else 1) | `hurricaneTie`, $0.75 |
+| Hurricane tie, rafter to plate | Main `rafter` members × seats, plus lean-to rafters × `leanTo.seats` | `hurricaneTie`, $0.75 |
 | Post base, {size} | Members with role `post`, by size | `postBase`, $9.00 |
 | Post cap, {size} | Members with role `post`, by size | `postCap`, $9.00 |
 | Joist hanger, {size} | See 5.3. One line for each size. | `joistHanger`, $1.60 |
@@ -543,7 +543,7 @@ has the unit `ea`, and a cost of quantity × unit price, basis `$X.XX each`.
 ### 5.2 How each count works, and why
 
 - **Anchor bolts.** `frameWalls` places them only on a slab. They go on each sill's centerline, in each part of the sill clear of doorways. `foundation.slab.anchorSpacing` and `anchorEndDistance` set their positions. The BOM counts those solids. The 12x20 garage preset gives 17.
-- **Hurricane ties.** One goes at each rafter seat, the rafter-to-plate connection. A main rafter on a gable roof has 1 seat: it runs from one eave wall to the ridge. A main rafter on a lean-to (single-slope) roof has 2 seats: the front and back walls. A gambrel's lower rafter has 1 seat; its upper rafter (`rafter.upper`) has none. A soffit lean-to rafter has 1 seat, on its beam, because its high end hangs from the ledger. An extension lean-to rafter has 2 seats: its beam and the main wall. Fly rafters (`rafter.fly`) have no seat. The line note states the rule. Examples: the 8x10 gable has 6 rafter pairs, so 12 ties; the 10x12 lean-to roof has 10 rafters × 2, so 20 ties.
+- **Hurricane ties.** One goes at each rafter seat, the rafter-to-plate connection. A main rafter on a gable roof has 1 seat: it runs from one eave wall to the ridge. A main rafter on a lean-to (single-slope) roof has 2 seats: the front and back walls. A gambrel's lower rafter has 1 seat; its upper rafter (`rafter.upper`) has none. A soffit lean-to rafter has 1 seat, on its beam, because its high end hangs from the ledger. An extension lean-to rafter has 2 seats, its beam and the main wall, when it has a birdsmouth on the main wall. Under a steeper main eave, as a gambrel's, it passes over the plate with no birdsmouth: 1 seat. It laps the main rafter and is nailed to it, and that rafter's tie holds the plate. `frameAdditions` sets `leanTo.seats`. Fly rafters (`rafter.fly`) have no seat. The line note states the rule. Examples: the 8x10 gable has 6 rafter pairs, so 12 ties; the 10x12 lean-to roof has 10 rafters × 2, so 20 ties.
 - **Post bases and caps.** Each post, foundation or lean-to, takes one base and one cap. A lean-to post over a deck stands on the deck beam, so its base is on the beam. A deck post stands on a pier under the beam. The base note reads "Set in the pier, or anchored to the slab or a deck beam." The cap note reads "To the girder or beam."
 - **Ledger lags.** `frameAdditions` finds the vertical studs of `wall.{side}` and `gable.{side}` behind the ledger: within the lean-to's length and across the ledger's depth. It sets `lags` to 2 for each stud. An extension lean-to has no ledger, so its `lags` is 0.
 - **Deck ledger lags.** Two go at each deck joist, through the ledger into the floor framing. The cut-list note on the deck ledger says the same.

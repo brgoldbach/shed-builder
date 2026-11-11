@@ -388,7 +388,11 @@ export const shedSchema = z.strictObject({
   const downhill = (side: string) => (ridged(config.roof) ? side === 'front' || side === 'back' : side === lowSide);
   const { roof } = config;
   if (roof.style === 'gambrel' && roof.gambrel.lowerPitch <= roof.pitch) {
-    context.addIssue({ code: 'custom', message: 'The lower pitch must be steeper than the upper pitch', path: ['roof', 'gambrel', 'lowerPitch'] });
+    context.addIssue({
+      code: 'custom',
+      message: `The lower pitch (${roof.gambrel.lowerPitch}/12) must be steeper than the upper pitch (${roof.pitch}/12)`,
+      path: ['roof', 'gambrel', 'lowerPitch'],
+    });
   }
   config.additions.forEach(({ side, mirror, attach, length }, index) => {
     const own = mirror ? [side, OPPOSITE[side]] : [side];

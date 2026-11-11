@@ -147,7 +147,7 @@ a warning. `additions[].center` is always a percent, so its own range is 0–100
 
 | Rule | Path and message | Reason |
 |---|---|---|
-| On a gambrel, `gambrel.lowerPitch` is more than `pitch`. | `roof.gambrel.lowerPitch`: `The lower pitch must be steeper than the upper pitch` | A `Profile` takes the lowest slope line at each point. That holds only when the lower slope is the steeper one. |
+| On a gambrel, `gambrel.lowerPitch` is more than `pitch`. | `roof.gambrel.lowerPitch`: `The lower pitch (L/12) must be steeper than the upper pitch (U/12)` | A `Profile` takes the lowest slope line at each point. That holds only when the lower slope is the steeper one. |
 | One lean-to per side. A lean-to with `mirror` takes `side` and `OPPOSITE[side]`. | `additions.N.side`: `One lean-to per side` | Each side has one lean-to assembly, for example `addition.front` with mark prefix `AF`. |
 | An extension (`attach: 'extension'`) needs a downhill eave on each side it takes. On a gable or gambrel roof (`ridged`), that is `front` or `back`. On a lean-to roof, it is the side opposite `highSide`. | `additions.N.attach`: `A roof extension needs an eave the roof slopes down to` | Extension rafters lap the main rafters at a downhill eave, in place of the main eave overhang. |
 | An extension has `length: 'full'`. | `additions.N.length`: `A roof extension runs the full wall length` | It replaces the eave overhang along the whole wall. |

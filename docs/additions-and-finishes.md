@@ -345,6 +345,7 @@ these facts. `buildBom` reads them, and counts the rafters, posts, and deck jois
 | `postSpacing` | `(run − post) / (count − 1)` | `checkSpans`: beam and deck beam span |
 | `beamTributary` | Soffit: `(line − start) / 2 + (tail − line)`. Extension: `line / 2 + (tail − line)`. | `checkSpans`: beam, `beamPlies`-ply, roof live and dead load, L/240 |
 | `lags` | 2 per stud behind the ledger; 0 for an extension. | `buildBom`: "Ledger lag screw, 1/2"" |
+| `seats` | Rafter seats per rafter: 1 on the beam, plus 1 for an extension rafter with a birdsmouth on the main wall. | `buildBom`: "Hurricane tie, rafter to plate" |
 | `deck` | See section 2, or `null`. | `checkSpans`, `buildBom` |
 
 Example (`tests/additions.test.ts`): the 8x10 front lean-to's rafter span is

@@ -26,6 +26,7 @@ export interface LeanTo {
   postSpacing: number; // post center to post center
   beamTributary: number; // horizontal roof carried per unit length of beam
   lags: number; // two at each main-wall stud behind the ledger
+  seats: number; // per rafter: 1 on the beam, and 1 on the main wall for an extension rafter with a birdsmouth there
   deck: DeckFacts | null;
 }
 
@@ -170,6 +171,7 @@ function frameLeanTo(
   let starts: number[];
   let outline: Point[];
   let note: string;
+  let seats = 1;
   const toBeam: Point[] = [
     [start, top(start)],
     [tail, top(tail)],
@@ -209,6 +211,7 @@ function frameLeanTo(
       note = `${laps} No birdsmouth on the main wall${gap > NEAR ? `: block under it, ${formatInches(gap)} at the wall's outside face` : ''}. Birdsmouth ${beamText}`;
       if (gap > NEAR) warn(`The lean-to rafters pass ${formatInches(gap)} over the main wall's plate. Block under each one.`);
     } else {
+      seats = 2;
       outline = [...toBeam, [0, bottom(0)], [0, eave.plate], ...(seatEnd > start ? ([[seatEnd, eave.plate], [start, bottom(start)]] as Point[]) : ([[start, eave.plate]] as Point[]))];
       note = `${laps} Birdsmouths on the main wall (heel at its outside face, seat ${formatInches(Math.min(-seatEnd, -start))}) and ${beamText}`;
     }
@@ -348,6 +351,7 @@ function frameLeanTo(
     postSpacing: (run - post) / (count - 1),
     beamTributary: (line - (extension ? 0 : start)) / 2 + (tail - line),
     lags: extension ? 0 : 2 * studs.length,
+    seats,
     deck,
   });
 }

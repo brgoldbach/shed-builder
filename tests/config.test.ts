@@ -33,7 +33,7 @@ describe('parseConfig', () => {
 
   it('takes a gambrel only with a lower slope steeper than the upper one', () => {
     const gambrel = (lowerPitch: number) => parseConfig({ schemaVersion: 1, roof: { style: 'gambrel', pitch: 12, gambrel: { lowerPitch } } });
-    expect(gambrel(12)).toEqual({ ok: false, errors: ['roof.gambrel.lowerPitch: The lower pitch must be steeper than the upper pitch'] });
+    expect(gambrel(12)).toEqual({ ok: false, errors: ['roof.gambrel.lowerPitch: The lower pitch (12/12) must be steeper than the upper pitch (12/12)'] });
     expect(gambrel(14).ok).toBe(true);
   });
 

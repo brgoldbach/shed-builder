@@ -137,6 +137,9 @@ describe('roof extension', () => {
     // At 3/12 the 2x6 underside passes over the plate: 5-1/2 / cos 59.0° - 20/12 x 2-1/8 - 5-1/2 / cos 14.0°.
     const gap = 5.5 / Math.cos(Math.atan(20 / 12)) - (20 / 12) * 2.125 - 5.5 / Math.cos(Math.atan(0.25));
     expect(gambrel(3).warnings.map(({ message }) => message)).toContain(`The lean-to rafters pass ${formatInches(gap)} over the main wall's plate. Block under each one.`);
+    // With no birdsmouth on the main wall, a rafter seats only on its beam: one tie each.
+    expect(gambrel(3).leanTos[0].seats).toBe(1);
+    expect(gambrel('main').leanTos[0].seats).toBe(2);
   });
 
   it('extends only a downhill eave, the full length', () => {

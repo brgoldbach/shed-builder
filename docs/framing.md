@@ -1040,7 +1040,7 @@ planes, the rafter spans, the gussets, the loft deck, and the facts that lean-to
 | `additions[]` with `attach: 'extension'` | | | `extensionSides`: the eaves that a lean-to roof extension takes over. |
 
 A gambrel's `lowerPitch` must be more than `pitch`. Else the schema gives the error `The lower pitch
-must be steeper than the upper pitch` at `roof.gambrel.lowerPitch`.
+(L/12) must be steeper than the upper pitch (U/12)` at `roof.gambrel.lowerPitch`.
 
 ### 7.2 Gable, gambrel, and lean-to
 

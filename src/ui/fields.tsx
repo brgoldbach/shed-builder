@@ -192,7 +192,7 @@ interface SelectProps<T> extends FieldProps<T> {
   disabled?: boolean;
 }
 
-/** Select without a visible label. */
+/** Select without a visible label. A rejected choice snaps back, with its error after the select. */
 export function SelectInput<T extends string | number>({
   label,
   value,
@@ -201,20 +201,25 @@ export function SelectInput<T extends string | number>({
   disabled,
   onChange,
 }: SelectProps<T>) {
+  const [error, setError] = useState<string | null>(null);
   return (
-    <select
-      aria-label={label}
-      title={label}
-      value={String(value)}
-      disabled={disabled}
-      onChange={(event) => onChange(options.find((option) => String(option) === event.target.value)!)}
-    >
-      {options.map((option) => (
-        <option key={String(option)} value={String(option)}>
-          {describe(option)}
-        </option>
-      ))}
-    </select>
+    <>
+      <select
+        aria-label={label}
+        title={label}
+        value={String(value)}
+        disabled={disabled}
+        aria-invalid={error !== null}
+        onChange={(event) => setError(onChange(options.find((option) => String(option) === event.target.value)!))}
+      >
+        {options.map((option) => (
+          <option key={String(option)} value={String(option)}>
+            {describe(option)}
+          </option>
+        ))}
+      </select>
+      {error && <small className="error">{error}</small>}
+    </>
   );
 }
 
@@ -245,10 +250,12 @@ export function ColorField({ label, value, onChange }: FieldProps<string>) {
 }
 
 export function CheckField({ label, value, onChange }: FieldProps<boolean>) {
+  const [error, setError] = useState<string | null>(null);
   return (
     <label className="field">
       <span>{label}</span>
-      <input type="checkbox" checked={value} onChange={(event) => onChange(event.target.checked)} />
+      <input type="checkbox" checked={value} aria-invalid={error !== null} onChange={(event) => setError(onChange(event.target.checked))} />
+      {error && <small className="error">{error}</small>}
     </label>
   );
 }

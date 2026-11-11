@@ -107,6 +107,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/ui/history.ts` | The undo history: `record`, `undo`, `redo`, 100 steps. |
 | `src/ui/pdf.ts` | The PDF plan set. Loaded only on demand, with jsPDF, svg2pdf.js, and qrcode-generator. |
 | `src/view3d/scene.ts` | `FramingScene`: meshes, finish textures, picking, camera fit. |
+| `src/view3d/export.ts` | `toGlb`: the shown 3D pieces as a binary glTF file. Loaded only on demand. |
 
 ## Build order
 

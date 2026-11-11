@@ -33,7 +33,7 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { LUMBER } from '../core/catalog';
 import { DEPTH, WAVE, type Corrugated, type FinishPart, type Look } from '../core/gen/finishes';
-import type { Member, Panel, Role, Solid, Vec3 } from '../core/member';
+import { layerOf, type Member, type Panel, type Role, type Solid, type Vec3 } from '../core/member';
 
 const CLICK_SLOP = 4; // px of pointer travel that still counts as a click, not an orbit
 // From the user's front-left corner, above. A gable front is the model's -x end, with +y on its left.
@@ -279,13 +279,24 @@ export class FramingScene {
     }
     this.trim?.dispose();
     this.trim = trimColor ? new MeshStandardMaterial({ color: trimColor, roughness: 0.8 }) : null;
-    for (const solid of solids) this.solids.add(this.solidMesh(solid));
-    for (const part of finishes) this.finishes.add(this.finishMesh(part));
+    for (const solid of solids) {
+      const mesh = this.solidMesh(solid);
+      mesh.name = solid.id;
+      mesh.userData = { layer: solid.layer };
+      this.solids.add(mesh);
+    }
+    for (const part of finishes) {
+      const mesh = this.finishMesh(part);
+      mesh.name = part.look;
+      mesh.userData = { layer: part.layer };
+      this.finishes.add(mesh);
+    }
     for (const member of members) {
       const geometry = member.profile ? profileGeometry(member) : boxGeometry(member);
       const mesh = new Mesh(geometry, this.baseMaterial(member));
       placeMesh(mesh, member);
-      mesh.userData = { id: member.id, base: mesh.material };
+      mesh.name = member.id;
+      mesh.userData = { id: member.id, base: mesh.material, layer: layerOf(member) };
       mesh.add(new LineSegments(new EdgesGeometry(geometry), this.materials.edges));
       this.members.add(mesh);
     }
@@ -299,6 +310,11 @@ export class FramingScene {
     if (this.viewFrom === VIEW_FROM[front]) return;
     this.viewFrom = VIEW_FROM[front];
     this.fit();
+  }
+
+  /** The shown framing, sheet goods, and finishes, for `toGlb`. */
+  pieces(): Mesh[] {
+    return [this.members, this.solids, this.finishes].flatMap((group) => group.children as Mesh[]);
   }
 
   setSelection(ids: ReadonlySet<string>) {

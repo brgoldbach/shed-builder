@@ -3,6 +3,22 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Download 3D:** the 3D tab saves the shown layers as a glTF model (`.glb`) in meters, for
+  Blender or another 3D program. Each piece keeps its id and color, in one group per layer.
+
+### Fixed
+
+- A select or checkbox that the design rejects now shows the reason under it. Before, it snapped
+  back with no message: for example, a switch to Gambrel with a pitch as steep as the lower pitch.
+  That message now gives both pitches.
+- The BOM counts one hurricane tie, not two, for a lean-to extension rafter that passes over the
+  main wall's plate with no birdsmouth there.
+- Two openings of one type in one wall no longer give the span-check rows the same React key.
+
 ## [0.7.0] - 2026-11-11
 
 ### Added
