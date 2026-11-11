@@ -368,8 +368,8 @@ In order, top to bottom:
 | Floor | `FloorSection` | Foundation is not a slab. | `{joist} at {oc}" o.c.` |
 | Walls | `WallsSection` | Always. | `{stud} at {oc}" o.c.` |
 | Openings | `OpeningsSection` | Always. | Count of positions in enabled rows |
-| Roof | `RoofSection` | Always. | `{Style}, {pitch}/12, {rafter} at {oc}" o.c.` |
-| Loft | `LoftSection` | Gable roof. Has a switch. | `{joist} at {oc}" o.c.`, and `, knee walls` |
+| Roof | `RoofSection` | Always. | `{Style}, {pitch}/12, {rafter} at {oc}" o.c.`. Gambrel: `Gambrel, {lowerPitch}/12 and {pitch}/12, {rafter} at {oc}" o.c.` |
+| Loft | `LoftSection` | Gable or gambrel roof. Has a switch. | `{joist} at {oc}" o.c.`, and `, knee walls` on a gable roof with knee walls on |
 | Lean-tos | `AdditionsEditor` | Always. | Count of lean-tos |
 | Ramps | `RampsEditor` | Always. | Count of ramps |
 | Finishes | `FinishesSection` | Always. | `{siding}, shingles` or `{siding}, metal roof` |
@@ -380,20 +380,39 @@ A count brief is `None` at 0, else for example `1 lean-to` or `3 lean-tos` (`cou
 
 ### Section contents
 
+"Ridged" below means a gable or gambrel roof: `ridged(roof)` in `config.ts`. A gambrel takes no knee
+walls, because its steep lower slope gives the headroom.
+
 | Section | Fields and groups, with their conditions |
 |---|---|
 | Shed | Name. Front of the shed (Eave wall, Gable end). Width and Length: the labels follow the front. Wall height: 8, 9, or 10 ft precut (92-5/8, 104-5/8, 116-5/8 in) or Custom. Floor to top of plates (Custom only). A hint with the wall top and the stud length. |
 | Foundation | Type. Skid: size, count. Pier: diameter, depth below grade, height above grade, post, post length (post not `none`), girder, plies, count, max pier spacing. Slab: thickness, thickened edge (with edge width and depth), anchor bolt spacing, bolt to plate end. Groups Lean-to piers and Lean-to slab, below. |
 | Floor | Joist, o.c., Pressure treated, Mid-span blocking, Subfloor. |
-| Walls | Stud, o.c., Mud sill (slab only), Cap plate, Corner, Corner posts on (gable roof only), Sheathing. |
+| Walls | Stud, o.c., Mud sill (slab only), Cap plate, Corner, Corner posts on (gable or gambrel roof), Sheathing. |
 | Openings | `OpeningRowsEditor`. Group Opening types (`OpeningTypesEditor`), open when there is no type. Group Header and jack defaults: Default header, 2 jacks when RO over, Rough sill plies. |
-| Roof | Style, High side (lean-to roof), Pitch, Rafter, o.c., Ridge board (gable), Build the gable ends as panels. Group Overhangs. Group Rake ladder, when the rake overhang is 1-1/2 in or more. Group Roofing, with purlins when the roofing is metal. Group Rafter ties (gable, no loft; switch). Group Collar ties (gable; switch). With a loft, a hint replaces Rafter ties: "The loft joists tie the rafters." |
-| Loft | Joist, o.c., Joist support, Deck, Open end, Open length (open end not `none`). Group Knee walls (switch). Group Hatches (`HatchesEditor`). |
+| Roof | Style (Gable, Gambrel, Lean-to), High side (lean-to roof), Pitch, Rafter, o.c., Ridge board (`hasRidgeBoard`), Build the gable ends as panels. Group Overhangs. Group Rake ladder, when the rake overhang is 1-1/2 in or more, with Ridge runs out to the fly rafters (`hasRidgeBoard`). Group Roofing, with purlins when the roofing is metal. Group Rafter ties (ridged, no loft; switch). Group Collar ties (ridged; switch). With a loft, a hint replaces Rafter ties: "The loft joists tie the rafters." See the gambrel fields below. |
+| Loft | Joist, o.c., Joist support, Deck, Open end, Open length (open end not `none`). Group Knee walls (gable roof only; switch). Group Hatches (`HatchesEditor`). |
 | Finishes | A hint: 3D only. Siding, Siding color (siding not `none`), Trim, Roof, and Door colors. Longest metal panel and Metal past the eaves, when the main roof or a lean-to has metal. |
 | Loads and species | Lumber (species), Roof load, Roof dead load, Loft use (loft on). Hints on snow load and the span method. |
 | Lumber catalog | Saw kerf, Longest stock, Longest one-piece stock. A `LengthListField` of stock lengths for each size: clear it to restore the default list. `PriceGroup`s: Lumber (with Treated markup %), Sheet, Concrete, Hardware, Roofing. |
 
 Side words in labels come from `naming(value)`, so a gable front renames them.
+
+On a gambrel, the Roof section shows these fields in place of Pitch:
+
+| Field | Config |
+|---|---|
+| Lower pitch (in / 12) | `gambrel.lowerPitch` (`NumberField`) |
+| Upper pitch (in / 12) | `pitch`: the Pitch field, relabeled |
+| Break, in from the wall | `gambrel.breakRun` (`AutoLengthField`: `auto` or a length) |
+| Ridge board, after the hint | `gambrel.ridgeBoard` (`CheckField`). Off hides the Ridge board size and the rake ladder's Ridge runs out to the fly rafters. |
+
+A hint follows the break: `The break is R in from the wall, H above the floor at the rafter tops.
+Plywood gussets join the rafters there.` Without a ridge board it ends `there and at the peak.` `R` and `H` come from `gambrelBreak(value)` in `roof.ts`. `R` is
+the run after the 1 ft limit at the ridge line (`formatInches`). `H` is the rafter-top height at the
+break (`formatLength`). A pitch edit that breaks the lower-pitch rule shows `The lower pitch must be
+steeper than the upper pitch` under the field. A Style choice of Gambrel that breaks the rule snaps
+back with no message, because a select does not show `edit`'s message.
 
 A switch of Wall height to Custom sets `wallHeight` to `wallTops(value).left` in the same edit, so
 the walls do not move.

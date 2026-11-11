@@ -1,5 +1,5 @@
 import { LUMBER, stockFor, type LumberSize, type TwoBy } from '../catalog';
-import { WALLS, type Opening, type OpeningType, type ShedConfig } from '../config';
+import { ridged, WALLS, type Opening, type OpeningType, type ShedConfig } from '../config';
 import { ASSEMBLIES, LEFT_OUT, type Assembly, type Member, type Role, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
 import { openingLabel, roOffset } from '../placement';
@@ -53,9 +53,9 @@ const isEave = (wall: Wall) => wall === 'front' || wall === 'back';
 /**
  * Whether a wall runs through to the building corners and carries the corner posts. The other two
  * walls fit between. A gable roof's end walls run through by default, so each gable end is one
- * full-width frame. A lean-to's end walls stop below the high wall, so its eave walls run through.
+ * full-width frame. A gambrel's do the same. A lean-to's end walls stop below the high wall, so its eave walls run through.
  */
-const isThrough = ({ roof, walls }: ShedConfig, wall: Wall) => isEave(wall) !== (roof.style === 'gable' && walls.through === 'ends');
+const isThrough = ({ roof, walls }: ShedConfig, wall: Wall) => isEave(wall) !== (ridged(roof) && walls.through === 'ends');
 
 /** An end-wall row with its sill at or above the wall top: framed in the gable, not the wall. */
 export const inGable = (config: ShedConfig, row: Opening) => !isEave(row.wall) && row.sill >= wallTops(config)[row.wall] - NEAR;

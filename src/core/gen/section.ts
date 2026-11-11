@@ -33,9 +33,50 @@ export const degrees = (pitch: Pitch) => `${pitch.degrees.toFixed(1)}°`;
 export interface Slope {
   pitch: Pitch;
   depth: number;
-  seat: number;
+  seat: number; // 0 on a slope with no birdsmouth
   bottom: (y: number) => number;
   top: (y: number) => number;
+}
+
+export const pitchOf = (perTwelve: number): Pitch => {
+  const angle = Math.atan(perTwelve / 12);
+  return { rise: perTwelve / 12, cos: Math.cos(angle), sin: Math.sin(angle), degrees: (angle * 180) / Math.PI };
+};
+
+/**
+ * One side of a roof in the drawn section: its slopes from the eave up, one for a gable or a
+ * lean-to, a gambrel's lower and upper slopes. The profile is convex, so at each y the rafters
+ * follow the lowest line.
+ */
+export interface Profile {
+  slopes: readonly Slope[];
+  top: (y: number) => number;
+  bottom: (y: number) => number;
+  /** The y where the top line, from the eave, rises to z. */
+  reachTop: (z: number) => number;
+  /** The y where the bottom line, from the eave, rises to z. */
+  reachBottom: (z: number) => number;
+  /** The slopes the top line follows from `from` to `to`. */
+  along: (from: number, to: number) => Slope[];
+}
+
+export function profileOf(slopes: readonly Slope[]): Profile {
+  // The top line follows slope i from its crossing with slope i - 1 to its crossing with slope i + 1.
+  const kinks = slopes.slice(1).map((slope, index) => crossing(slopes[index].top, slope.top)[0]);
+  return {
+    slopes,
+    top: (y) => Math.min(...slopes.map((slope) => slope.top(y))),
+    bottom: (y) => Math.min(...slopes.map((slope) => slope.bottom(y))),
+    reachTop: (z) => Math.max(...slopes.map((slope) => (z - slope.top(0)) / slope.pitch.rise)),
+    reachBottom: (z) => Math.max(...slopes.map((slope) => slope.seat + (z - slope.bottom(slope.seat)) / slope.pitch.rise)),
+    along: (from, to) => slopes.filter((_, index) => (index === 0 || to > kinks[index - 1]) && (index === slopes.length - 1 || from < kinks[index])),
+  };
+}
+
+/** Where two straight lines z = line(y) cross. */
+export function crossing(first: (y: number) => number, second: (y: number) => number): Point {
+  const y = (second(0) - first(0)) / (first(1) - first(0) - (second(1) - second(0)));
+  return [y, first(y)];
 }
 
 /**

@@ -48,8 +48,8 @@ and the build order. All lengths are inches.
 | Fact | Type | Content | Read by |
 |---|---|---|---|
 | `soffit` | `Soffit` | `under(wall, u, x)`: the height of the main roof's underside `x` out from the wall's framing face, at `u` along it. It is `null` past the roof edge. `breaks(wall)`: the `x` values where `under` changes course, nearest first. | `frameAdditions` (soffit attach) |
-| `eave` | `{ top, plate, bearing }` | At a downhill eave's wall: the rafter top over the framing face, the bearing plate's top, and the bearing depth. The bearing depth is the wall stud depth, or the knee-wall stud depth when knee walls raise the roof. | `frameAdditions` (extension) |
-| `planes` | `RoofPlane[]` | One per roof side: the rafter-top plane where the sheets lie. `frameAdditions` adds one per lean-to. | `frameSheathing`, `buildFinishes`, the BOM roofing lines |
+| `eave` | `{ top, plate, bearing, pitch, lap }` | At a downhill eave's wall: the rafter top over the framing face, the bearing plate's top, and the bearing depth. The bearing depth is the wall stud depth, or the knee-wall stud depth when knee walls raise the roof. `pitch`: the eave pitch per 12, `eavePitch(roof)`: a gambrel's lower pitch, else `roof.pitch`. `lap`: how far in from the framing face the main rafter sides are clear. On a gambrel it is `run − 12 × cos(lower)`, where the gussets start; else `Infinity`. `run` is the break's run in from the framing face (`gambrelBreak`). | `frameAdditions` (extension; `pitch` for any lean-to) |
+| `planes` | `RoofPlane[]` | One per roof side, or two per side on a gambrel (lower, then upper): the rafter-top plane where the sheets lie. `frameAdditions` adds one per lean-to. | `frameSheathing`, `buildFinishes`, the BOM roofing lines |
 
 `Soffit.under` by wall:
 
@@ -61,7 +61,9 @@ and the build order. All lengths are inches.
 | Any | Past the last break | `null` |
 
 `rake` is `roof.rakeOverhang`, or 0 when the overhang is less than 1-1/2 in. The breaks are
-`[0, eave, eave + fasciaThick]` on an eave wall, and `[0, rake]` on a gable end.
+`[0, eave, eave + fasciaThick]` on an eave wall, and `[0, rake]` on a gable end. `under` reads the
+profile's underside, so on a gambrel it follows the lower slope at an eave wall and both slopes
+across a gable end.
 
 `RoofPlane` fields:
 
@@ -69,9 +71,18 @@ and the build order. All lengths are inches.
 |---|---|
 | `assembly` | Whose rafters carry the plane: `roof`, or `addition.<side>`. |
 | `origin`, `u`, `v` | The low corner; `u` along the eave, `v` up the slope. `u × v` points out of the roof. |
-| `length`, `width` | Along `u`; along `v`, from over the fascia up to the ridge line or the high edge. |
+| `length`, `width` | Along `u`; along `v`, from over the fascia, or from the break, up to the break, the ridge line, or the high edge. |
 | `eaves` | The number of edges along `u` that take drip edge. |
 | `sheathed` | `false`: metal roofing on purlins, with no sheets. Main roof: `roof.roofing !== 'metal'`. Lean-to: `roofing !== 'metal'`. |
+| `ridge` | Its upper edge is on the ridge line. `true` on a gable plane and a gambrel's upper plane. `false` on a gambrel's lower plane, a lean-to main roof, and a lean-to. |
+| `breakEdge` | Its edge on a gambrel's break: `high` on a lower plane, `low` on an upper plane. Else `null`. |
+
+A gambrel plane pair, per side:
+
+| Plane | `origin` | `width` | `eaves` |
+|---|---|---|---|
+| Lower | Over the fascia, or at the wall line on an extended side. | Up the lower slope to the break. | 1, or 0 on an extended side |
+| Upper | At the break, on the top line. `v` at the upper pitch. | `(width / 2 − run) / cos(upper)`: up to the ridge line. | 0 |
 
 ## 1. Lean-tos
 
@@ -96,7 +107,7 @@ and stands on its own posts. The roof attaches to the shed in one of two ways:
 | `depth` | 24–240 (96) | Main wall framing face to the outside of the posts. |
 | `length` | `'full'` or 24–480 (`'full'`) | Along the main wall. |
 | `center` | 0–100 % (50) | Center along the wall from its left corner. Partial length only. |
-| `pitch` | `'main'` or 1–12 (3) | Rise per 12 of run. `main`: `roof.pitch`. |
+| `pitch` | `'main'` or 1–12 (3) | Rise per 12 of run. `main`: the main roof's eave pitch, `eave.pitch`. On a gambrel, that is the lower pitch. |
 | `drop` | 0–48 (0) | Ledger below the highest height that clears the main roof. Soffit only. |
 | `rafter` | 2x4–2x12 (2x6) | Rafter size. |
 | `oc` | 12, 16, 19.2, 24 (24) | Rafter spacing. The soffit layout reads it. An extension's rafters follow the main rafters, but `checkSpans` still reads `oc` for them. |
@@ -117,7 +128,7 @@ Other config that a lean-to reads:
 | Field | Use |
 |---|---|
 | `walls.sheathing` | `wallSheet`. The roof ledger stands on the wall sheet face. The deck ledger and ramps bear on the floor framing, which the wall sheathing does not cover. |
-| `roof.pitch`, `roof.sheathing` | `pitch: 'main'`; the roof sheet in the clearance and on the lean-to roof. |
+| `roof.sheathing` | The roof sheet in the clearance and on the lean-to roof. |
 | `foundation.pier.diameter`, `.depth`, `.aboveGrade` | Lean-to piers, on every foundation type. |
 | `foundation.slab.thickness` | A lean-to slab, on every foundation type. |
 | `catalog` | Stock lengths for the splices. |
@@ -127,7 +138,7 @@ Other config that a lean-to reads:
 | Rule | Message | Path |
 |---|---|---|
 | One lean-to per side. Mirror copies count. The assembly is `addition.<side>`, one per side. | One lean-to per side | `additions.i.side` |
-| An extension needs a side the roof slopes down to: either eave of a gable roof, or the low eave of a lean-to roof. | A roof extension needs an eave the roof slopes down to | `additions.i.attach` |
+| An extension needs a side the roof slopes down to: either eave of a gable or gambrel roof, or the low eave of a lean-to roof. | A roof extension needs an eave the roof slopes down to | `additions.i.attach` |
 | An extension runs the full wall length. | A roof extension runs the full wall length | `additions.i.length` |
 
 `extensionSides(additions)` gives the model sides whose eave an extension takes over, mirror copies
@@ -182,10 +193,14 @@ deeper than 11-1/4 in gets a 2x12 and a warning.
 Extension (`attach: 'extension'`):
 
 1. The rafter top passes through `eave.top` over the wall's framing face: `anchorX = 0`,
-   `anchorZ = eave.top`. At the main pitch, the lean-to roof is the main roof plane.
-2. The upper end `start` is inside the wall line. In the main plane it is `−LAP`, 24 in. At a broken
-   pitch it is `−eave.bearing`, the bearing wall's inside face.
+   `anchorZ = eave.top`. At the eave pitch, `eave.pitch`, the lean-to roof is the main roof plane.
+2. The upper end `start` is inside the wall line. In the main plane it is `−min(LAP, eave.lap)`:
+   24 in, or less on a gambrel, where the lap stops at the gussets. At a broken pitch it is
+   `−eave.bearing`, the bearing wall's inside face.
 3. There is no ledger.
+
+Example (`tests/additions.test.ts`): the 8x10 preset as a 2x6 gambrel has its break 24 in from the
+wall. In the main plane the lap is 24 − 12 × cos 59.0° = 17-13/16 in.
 
 ### Beam, seat, and posts
 
@@ -221,10 +236,24 @@ goes up the heel to `beamTop`, and runs in along the seat.
 |---|---|---|
 | Layout | The o.c. rule over `[u0, u1]` at `oc`. | One rafter beside each main `rafter` (`roof` assembly): on its −x face, or the +x face for the rafter at x = 0. The other face carries the ties. |
 | Upper end | Plumb cut at `start`, in a joist hanger on the ledger. | Plumb cut at `start`, nailed to the main rafter. |
-| Main-wall birdsmouth | None. | Heel at the wall's framing face (x = 0), from `bottom(0)` up to `eave.plate`. The seat runs in on the plate to `seatEnd`, where the underside meets the plate top. It stops at `start` when it would pass the upper end. |
+| Main-wall birdsmouth | None. | Heel at the wall's framing face (x = 0), from `bottom(0)` up to `eave.plate`. The seat runs in on the plate to `seatEnd`, where the underside meets the plate top. It stops at `start` when it would pass the upper end. None when the underside passes over the plate (below). |
 | Note | "Plumb cut θ at the ledger, in a joist hanger. Birdsmouth on the beam: …" | "Laps the main rafter L in from the wall line, nailed to it; upper end plumb cut θ. Birdsmouths on the main wall (heel at its outside face, seat S) and on the beam: …" |
 
-`seatEnd = (eave.top − plumb − eave.plate) / rise`. It is negative: inside the wall line.
+`seatEnd = (eave.top − plumb − eave.plate) / rise`. It is negative, inside the wall line, unless
+the underside passes over the plate.
+
+The underside can pass over the main wall's plate under a steep main eave, such as a gambrel's,
+at a shallower lean-to pitch. `gap = rise × seatEnd` is the underside's height over the plate at the
+framing face. When `gap > −0.01`, the rafter has no main-wall birdsmouth. Its outline runs from the
+beam part to a plumb upper end.
+
+| `gap` | Note |
+|---|---|
+| −0.01 to 0.01 | "Laps the main rafter L in from the wall line, nailed to it; upper end plumb cut θ. No birdsmouth on the main wall. Birdsmouth on the beam: …" |
+| Over 0.01 | "Laps the main rafter L in from the wall line, nailed to it; upper end plumb cut θ. No birdsmouth on the main wall: block under it, G at the wall's outside face. Birdsmouth on the beam: …", and a warning. |
+
+Example (`tests/golden/12x16-gambrel-barn.txt`): the back extension, at 4/12 under the 20/12 lower
+slope, passes 1-3/8 in over the plate.
 
 The beam part of each note gives four values:
 
@@ -237,12 +266,14 @@ The beam part of each note gives four values:
 
 In the extension note, `L = −start` and `S = min(−seatEnd, −start)`.
 
-An extension gives two more warnings:
+An extension gives three more warnings:
 
 - The main-wall notch is deeper than the 1/3 limit. The warning asks for a rafter no deeper than
   the main rafters.
 - A steeper lean-to pitch lifts the upper ends above the main roof plane by
-  `stand = (rise − roof.pitch / 12) × (−start)`. Over 1/8 in, a warning says to trim them flush.
+  `stand = (rise − eave.pitch / 12) × (−start)`. Over 1/8 in, a warning says to trim them flush.
+- The underside passes over the main wall's plate: `gap` over 0.01 in. The warning says to block
+  under each rafter.
 
 `frameRoof` changes the main roof on each side in `extensionSides`:
 
@@ -340,6 +371,8 @@ Lean-to concrete joins the shed's lines in `concrete`: a slab joins "Concrete, s
 | The ledger is at least as deep as the rafter's plumb end. | The hanger then takes the full plumb cut. |
 | Extension rafters sit beside the main rafters, on the face away from the ties. | They lap the main rafter with no clash with the ties. |
 | An extension laps 24 in in the main plane, but only to the bearing wall's inside face at a broken pitch. | At a broken pitch the two top lines meet only at the wall line, and the gap grows inward. The `stand` warning gives that gap at the upper end. |
+| On a gambrel, the lap stops where the gussets start. | The gussets cover the main rafter's sides from there to the break. |
+| An extension rafter that passes over the main wall's plate gets no birdsmouth there, and a warning to block under it. | A birdsmouth there would need a negative seat. |
 | A birdsmouth seat is never deeper than 1/3 of the rafter. | The same rule as the main roof's seats. |
 | Lean-to piers and a lean-to slab use the main foundation's pier and slab settings, on every foundation type. | One set of pier and slab settings for the design. The form shows them on a skid or slab shed too. |
 
@@ -352,10 +385,12 @@ Lean-to concrete joins the shed's lines in `concrete`: a slab joins "Concrete, s
   `frameRoof`, and `frameLeanTo` adds the lap. Change both together.
 - Call `leaveOut` before any member of the copy, then `return`.
 - A new field that applies only with one choice needs a rule in `pruneConfig`.
-- Tests: `tests/additions.test.ts` holds hand-checked values for the 8x10 preset. The fixtures
+- Tests: `tests/additions.test.ts` holds hand-checked values for the 8x10 preset, and the 8x10 as a
+  gambrel (the lap stops at the gussets; the block over the plate). The fixtures
   `12x12-with-lean-tos` (extension, partial length, slab, metal, 6x6 posts, 3-ply beam),
-  `16x16-b-and-b-shed` (mirror, metal), and `10x16-loft-shed` (deck) cover the rest. Review the
-  golden diffs before an update.
+  `16x16-b-and-b-shed` (mirror, metal), `10x16-loft-shed` (deck), and `12x16-gambrel-barn`
+  (extension blocked over the plate, gable-end lean-to on a slab) cover the rest. Review the golden
+  diffs before an update.
 
 ## 2. Lean-to deck
 
@@ -772,7 +807,8 @@ loop inside the convex, counterclockwise region, one region edge at a time (`cli
 `buildBom` (`sheetGroups`) counts sheets by sheet key. It cuts each panel from the rectangle around
 it, then packs the rectangles onto 48 × 96 sheets by shelves, with `catalog.kerf` (`packSheets`).
 It lists the uses by the label text before the first comma: "Wall sheathing", "Roof sheathing",
-"Subfloor", "Loft deck". Each group gives the count, the uses, the waste, and the cost.
+"Subfloor", "Loft deck", and "Break gusset" and "Peak gusset" for a gambrel's gussets from `frameRoof`. Each group gives the
+count, the uses, the waste, and the cost.
 
 ### Decisions
 
@@ -798,7 +834,7 @@ It lists the uses by the label text before the first comma: "Wall sheathing", "R
 `buildFinishes(config, model)` returns `FinishPart[]` for the 3D view only. It reads the config and
 the model and writes nothing back. The cut list, BOM, drawings, and span checks never read the
 parts. The user decided that finishes are for looks and need not be engineered. The parts are
-simple shapes, with no fasteners, flashing, or furring.
+simple shapes, with no fasteners or furring. The only flashing is at a gambrel's break.
 
 Finishes do not read the lean-tos or ramps. In 3D the siding takes the same space as a lean-to
 ledger, a deck ledger, or the top of a ramp stringer.
@@ -818,7 +854,7 @@ ledger, a deck ledger, or the top of a ramp stringer.
 | `metalOverhang` | 0–12 (2) | Metal roofing past the eave. |
 
 Other config it reads: `walls.sheathing`, `walls.stud`, `roof.sheathing`, `roof.roofing`
-(`shingles`, `metal`, `metal-over-sheathing`), `roof.purlin`, `roof.style`, `roof.pitch`, each
+(`shingles`, `metal`, `metal-over-sheathing`), `roof.purlin`, `roof.pitch`, each
 lean-to's `purlin`, and each opening type's `kind`. `pruneConfig` drops `sidingColor` with no
 siding, and `panelLength` and `metalOverhang` when no roof is metal.
 
@@ -874,14 +910,22 @@ Metal: `Corrugated` panels.
 Example (`tests/finishes.test.ts`): a 136 in plane with `panelLength` 48 gets five 26 in panels and
 one 16 in panel across. Up the slope it gets a 48 in panel, then the rest from 6 in below its top.
 
-Ridge cap, on a gable main roof only:
+Ridge cap, on the planes with `ridge`: a gable roof's two planes, a gambrel's two upper planes.
 
-- Metal: one vented cap along the ridge, above the panel crests. Its flanges reach 8 in down each
-  slope, its risers stand at 3 in, and its peak is 1-1/4 in up. It is 1/8 in thick. A dark vent gap
-  shows on each riser.
+- Metal: one vented cap along the ridge, above the panel crests, on the first plane with `ridge`.
+  Its flanges reach 8 in down each slope, its risers stand at 3 in, and its peak is 1-1/4 in up. It
+  is 1/8 in thick. A dark vent gap shows on each riser. Its slope is `roof.pitch`: the upper pitch
+  on a gambrel.
 - Shingles: a 6 in strip, 1/4 in thick, at the top of each plane.
 
-Lean-tos and lean-to main roofs get no ridge cap.
+Lean-tos, lean-to main roofs, and a gambrel's lower planes get no ridge cap.
+
+Break flashing, on each plane with `breakEdge`:
+
+- A `plain` strip in `roofColor`, 1/16 in thick, across the full plane `length`.
+- It covers the plane's top 4 in (`FLASH`) on a `high` edge, and its bottom 4 in on a `low` edge.
+- It lies on top of the roofing: on the metal crests (`DEPTH`, 1/2 in), or on the shingles (0.3 in).
+- It is 3D only. The BOM has no line for it.
 
 ### Doors and windows
 
@@ -917,7 +961,8 @@ name counts as `custom`.
 - A new look needs a `Look` value, a `TILES` entry when it repeats, and a `drawLook` case in
   `scene.ts`.
 - A new finish field needs a prune rule when it applies only with some choice.
-- Tests: `tests/finishes.test.ts` counts the parts of the 8x10 preset and of a metal roof.
+- Tests: `tests/finishes.test.ts` counts the parts of the 8x10 preset and of a metal roof. It also
+  checks the break flashing and the cap order on a metal gambrel.
 
 ## 6. Warnings and left-out parts
 
@@ -935,6 +980,7 @@ No warning stops the build. Sheathing and finishes give no warnings.
 | Lean-to | Clear height under the beam under 80 in. | The clear height under the beam is H, less than 6' 8". | Built. |
 | Lean-to, extension | The main-wall notch is deeper than the 1/3 limit. | The birdsmouth on the main wall cuts deeper than 1/3 of the R rafter. Use a rafter no deeper than the main rafters. | Built. |
 | Lean-to, extension | The upper ends stand over 1/8 in above the main roof plane. | At the steeper pitch the lean-to rafters stand S over the main roof plane at their upper ends. Trim them flush. | Built. |
+| Lean-to, extension | At the framing face, the underside is more than 0.01 in over the main wall's plate (`gap`). | The lean-to rafters pass G over the main wall's plate. Block under each one. | Built, with no main-wall birdsmouth. |
 | Lean-to deck | The deck beam bottom is under grade. | The deck framing runs D below grade. | Built. |
 | Ramp N | The opening it follows is gone. | The opening it follows is gone. It stands at its own position. | Built at its own `wall`, `along`, `at`, and `width`. |
 | Ramp N, wood | `rise < 1.5 / cos + 0.01` | The floor is R above the ramp's foot, too low for stringers under the boards. + `LEFT_OUT` | Left out: red outline at floor level, 24 in deep. |

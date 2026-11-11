@@ -397,6 +397,10 @@ The BOM tab, Lumber section:
 Each panel comes from the rectangle around it. Holes and angled edges do not reduce the material, and
 `waste` counts them as used.
 
+A gambrel's gussets are `ply-15/32` panels with the use `Break gusset`, and without a ridge board
+`Peak gusset`. They pack with any other 15/32 in plywood. Example
+(`tests/golden/12x16-gambrel-barn.txt`, no ridge board): 32 break and 16 peak gussets.
+
 ### 3.2 `packSheets`
 
 `packSheets` fills 96 × 48 in sheets (`SHEET_LENGTH`, `SHEET_WIDTH`) with shelves. A shelf is a strip
@@ -526,7 +530,7 @@ has the unit `ea`, and a cost of quantity × unit price, basis `$X.XX each`.
 | Item | Quantity | Price key, default |
 |---|---|---|
 | Anchor bolt, 1/2", with nut and washer | Solids whose label starts with `Anchor bolt` | `anchorBolt`, $2.50 |
-| Hurricane tie, rafter to plate | Main rafters × seats, plus lean-to rafters × (2 for an extension, else 1) | `hurricaneTie`, $0.75 |
+| Hurricane tie, rafter to plate | Main `rafter` members × seats, plus lean-to rafters × (2 for an extension, else 1) | `hurricaneTie`, $0.75 |
 | Post base, {size} | Members with role `post`, by size | `postBase`, $9.00 |
 | Post cap, {size} | Members with role `post`, by size | `postCap`, $9.00 |
 | Joist hanger, {size} | See 5.3. One line for each size. | `joistHanger`, $1.60 |
@@ -539,7 +543,7 @@ has the unit `ea`, and a cost of quantity × unit price, basis `$X.XX each`.
 ### 5.2 How each count works, and why
 
 - **Anchor bolts.** `frameWalls` places them only on a slab. They go on each sill's centerline, in each part of the sill clear of doorways. `foundation.slab.anchorSpacing` and `anchorEndDistance` set their positions. The BOM counts those solids. The 12x20 garage preset gives 17.
-- **Hurricane ties.** One goes at each rafter seat, the rafter-to-plate connection. A main rafter on a gable roof has 1 seat: it runs from one eave wall to the ridge. A main rafter on a lean-to (single-slope) roof has 2 seats: the front and back walls. A soffit lean-to rafter has 1 seat, on its beam, because its high end hangs from the ledger. An extension lean-to rafter has 2 seats: its beam and the main wall. Fly rafters (`rafter.fly`) have no seat. The line note states the rule. Examples: the 8x10 gable has 6 rafter pairs, so 12 ties; the 10x12 lean-to roof has 10 rafters × 2, so 20 ties.
+- **Hurricane ties.** One goes at each rafter seat, the rafter-to-plate connection. A main rafter on a gable roof has 1 seat: it runs from one eave wall to the ridge. A main rafter on a lean-to (single-slope) roof has 2 seats: the front and back walls. A gambrel's lower rafter has 1 seat; its upper rafter (`rafter.upper`) has none. A soffit lean-to rafter has 1 seat, on its beam, because its high end hangs from the ledger. An extension lean-to rafter has 2 seats: its beam and the main wall. Fly rafters (`rafter.fly`) have no seat. The line note states the rule. Examples: the 8x10 gable has 6 rafter pairs, so 12 ties; the 10x12 lean-to roof has 10 rafters × 2, so 20 ties.
 - **Post bases and caps.** Each post, foundation or lean-to, takes one base and one cap. A lean-to post over a deck stands on the deck beam, so its base is on the beam. A deck post stands on a pier under the beam. The base note reads "Set in the pier, or anchored to the slab or a deck beam." The cap note reads "To the girder or beam."
 - **Ledger lags.** `frameAdditions` finds the vertical studs of `wall.{side}` and `gable.{side}` behind the ledger: within the lean-to's length and across the ledger's depth. It sets `lags` to 2 for each stud. An extension lean-to has no ledger, so its `lags` is 0.
 - **Deck ledger lags.** Two go at each deck joist, through the ledger into the floor framing. The cut-list note on the deck ledger says the same.
@@ -586,7 +590,7 @@ planes, it gives no lines.
 |---|---|
 | `assembly` | `roof` for the main roof; `addition.<side>` for a lean-to |
 | `length` | Along the eave, rake edge to rake edge, in |
-| `width` | Up the slope, from over the fascia to the ridge line or the high edge, in |
+| `width` | Up the slope, from over the fascia or the break, to the break, the ridge line, or the high edge, in |
 | `eaves` | The number of edges along `length` that take drip edge |
 | `sheathed` | false: metal roofing on purlins, with no sheathing |
 
@@ -603,10 +607,13 @@ Steps:
 | Plane | `eaves` |
 |---|---|
 | Main gable plane | 1. 0 when an extension lean-to takes over that eave. |
+| Main gambrel lower plane | 1. 0 when an extension lean-to takes over that eave. |
+| Main gambrel upper plane | 0. |
 | Main single-slope plane | 2: the low eave and the high edge. 1 when an extension lean-to takes over the low eave. |
 | Lean-to plane | 1: its low eave. |
 
-Each plane counts two rakes. The ridge takes no drip edge.
+Each plane counts two rakes. A gambrel has two planes per side, so each rake counts in two
+segments: lower and upper. The ridge and the break take no drip edge.
 
 | Price key | Default |
 |---|---|
@@ -698,7 +705,7 @@ AWC Span Tables for Joists and Rafters 2021, with NDS 2018 design values for No.
 
 | Field | Content |
 |---|---|
-| `member` | The checked member, for example `Rafters` or `door 36 header (front wall)` |
+| `member` | The checked member, for example `Rafters`, `Lower rafters`, or `door 36 header (front wall)` |
 | `lumber` | `2x6 at 16" o.c.`, `2-ply 2x8`, or `flat 2x4` |
 | `span` | Measured span, in |
 | `allowed` | Allowed span, in. `null` when the size has no design values. |
@@ -811,7 +818,7 @@ girder. `PLY` = 1-1/2 in.
 
 | `member` | Method | Span | Load | Cd | Limit |
 |---|---|---|---|---|---|
-| `Rafters` | `joistSpan` | `model.rafterSpan`: horizontal clear span from the inner end of the seat to the ridge board face (gable), or between the two seats (single slope) | Roof + roof dead, at `roof.oc` | Roof | L/180 |
+| `Rafters`; on a gambrel `Lower rafters` and `Upper rafters` | `joistSpan` | One check per `model.rafterSpans` entry, horizontal clear spans. `Rafters`: from the inner end of the seat to the ridge board face (gable), or between the two seats (single slope). `Lower rafters`: from the inner end of the seat to the break. `Upper rafters`: from the break to the ridge board face. | Roof + roof dead, at `roof.oc` | Roof | L/180 |
 | `Floor joists`, when a `joist.floor` exists | `joistSpan` | The largest clear gap between skid and girder lines | `FLOOR` | 1.0 | L/360 |
 | `Loft joists`, when the loft is on and a `joist.loft` exists | `joistSpan` | width − 2 × (stud depth + 1-1/2 in for a hung loft): between the eave-wall plates, or between the ledgers | `LOFT[loads.loft]` | 1.0 | L/240 or L/360 |
 | `{name} header ({side} wall)`, for each opening in `model.openings` | beam | The RO width: `right − left` | `eaveLoad` (8.7) | 1.0 with a loft share, else roof | L/360 with a loft share, else L/240 |
@@ -823,6 +830,10 @@ girder. `PLY` = 1-1/2 in.
 
 Joists, rafters, and headers use clear spans. Lean-to beams, deck beams, and girders use the
 center-to-center spacing of their posts or piers.
+
+Example (`tests/golden/12x16-gambrel-barn.txt`, 2x6, break 36 in from the wall): `Lower rafters`
+span 36 − 2-1/8 = 33-7/8 in. `Upper rafters` span 72 − 36 = 36 in, to the ridge line: it has no
+ridge board. With a ridge board the span stops at its face, 3/4 in sooner.
 
 Floor joist span:
 
@@ -930,9 +941,9 @@ species, the roof load, the roof dead load, and the loft use.
 
 | Area | Not checked |
 |---|---|
-| Members | Studs; the ridge board; rafter and collar ties; skids; loft ledgers; loft edge joists, trimmers, hatch headers, and tail joists; posts; ramps; purlins, lookouts, fascia, rim joists, blocking, and deck boards |
+| Members | Studs; the ridge board; rafter and collar ties; a gambrel's gussets; skids; loft ledgers; loft edge joists, trimmers, hatch headers, and tail joists; posts; ramps; purlins, lookouts, fascia, rim joists, blocking, and deck boards |
 | Foundation | Pier bearing on soil |
-| Loads | Wind, seismic, and uplift; point loads; drift and unbalanced snow; lean-to loads on main-wall headers and girders; deck loads on the shed floor framing. The checks use uniform gravity loads on simple spans only. |
+| Loads | Wind, seismic, and uplift; point loads; drift and unbalanced snow; the thrust at a gambrel's break; lean-to loads on main-wall headers and girders; deck loads on the shed floor framing. The checks use uniform gravity loads on simple spans only. |
 | Strength | Shear in joists and rafters, as in the AWC tables; bearing length; notches; lateral stability |
 | Factors | Wet service, temperature, incising, flat use, and beam stability factors. PT members outdoors use dry-service values. |
 | Other | Wall bracing; connections (the BOM counts hardware, it does not size it); grades other than No. 2; `1x4` and `6x6` (no design values); local code requirements |

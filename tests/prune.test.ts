@@ -100,6 +100,15 @@ const MESSY: [string, ShedConfig][] = [
       ],
     }),
   ],
+  [
+    'a gambrel loft with knee wall settings',
+    parse({ ...bAndB, roof: { ...bAndB.roof, style: 'gambrel', pitch: 6, gambrel: { lowerPitch: 18, breakRun: 30 } } }),
+  ],
+  ['a gable with gambrel settings', parse({ ...gableSkid, roof: { ...gableSkid.roof, gambrel: { lowerPitch: 30, breakRun: 20 } } })],
+  [
+    'a gambrel without a ridge board, with ridge settings',
+    parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', ridge: '2x10', rakeLadder: { ridgeExtends: false }, gambrel: { ridgeBoard: false } } }),
+  ],
 ];
 
 describe('pruning unused settings', () => {
@@ -118,6 +127,17 @@ describe('pruning unused settings', () => {
     expect(pruned.floor).toEqual(defaults.floor);
     expect(pruned.roof.loft).toEqual(defaults.roof.loft);
     expect(pruned.openingTypes.map(({ name }) => name)).not.toContain('unplaced');
+  });
+
+  it('keeps the gambrel settings only on a gambrel, which takes no knee walls', () => {
+    const defaults = shedSchema.parse({ schemaVersion: 1 });
+    const gambrel = pruneConfig(MESSY[4][1]).roof;
+    expect(gambrel.gambrel).toEqual({ lowerPitch: 18, breakRun: 30, ridgeBoard: true });
+    expect(gambrel.kneeWalls).toEqual(defaults.roof.kneeWalls);
+    expect(pruneConfig(MESSY[5][1]).roof.gambrel).toEqual(defaults.roof.gambrel);
+    // Without a ridge board, the ridge size and the ridge-extends choice go back to their defaults.
+    const peaked = pruneConfig(MESSY[6][1]).roof;
+    expect([peaked.ridge, peaked.rakeLadder.ridgeExtends]).toEqual([defaults.roof.ridge, defaults.roof.rakeLadder.ridgeExtends]);
   });
 
   it("keeps the pier settings a lean-to's posts stand on", () => {

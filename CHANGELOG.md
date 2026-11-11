@@ -3,6 +3,30 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Gambrel roof:** a third roof style, the barn roof. Each side has a steep lower slope from the
+  eave wall to a break and a shallow upper slope from the break to the ridge. Set the lower pitch
+  (20/12 by default), the upper pitch, and the break's distance in from the wall (1/4 of the width
+  by default); the form shows the break's height. The lower and upper rafters meet at the break in a
+  miter, joined by a 1/2 in plywood gusset on each face. The gussets run straight across under the
+  joint, as a web; the gable-end rafters take one inside, over the gable framing. A Gussets sheet
+  gives each shape with its edge lengths, and the BOM counts them with the sheet goods. A gambrel
+  can go without a ridge board: the upper rafters then butt at the peak, joined by peak gussets.
+  The gable ends, rake ladders, purlins, sheathing, and roofing follow the five-sided profile, with
+  a flashing strip over the break in 3D. Collar ties go just under the break by default. A loft
+  works as on a gable roof; knee walls are a gable-roof option only. Span checks cover the lower and
+  upper rafters. The rafter detail draws both rafters and the gusset.
+
+### Fixed
+
+- **Roof extension under a steep eave:** where a lean-to rafter at a lower pitch passes over the
+  main wall's plate, the cut list gave it a negative birdsmouth seat. It now has no birdsmouth
+  there, and a warning says to block under each rafter.
+- **Drawings:** a panel seen square to its face draws its exact outline, not its convex hull.
+
 ## [0.6.0] - 2026-11-11
 
 ### Added

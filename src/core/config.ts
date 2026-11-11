@@ -22,7 +22,7 @@ export const FRONTS = ['eave', 'gable'] as const;
 export const OPENING_KINDS = ['door', 'window', 'overhead', 'custom'] as const;
 export const HEADER_STYLES = ['single', 'double', 'triple', 'flat'] as const;
 export const ALONG = ['percent', 'left', 'right'] as const;
-export const ROOF_STYLES = ['gable', 'lean-to'] as const;
+export const ROOF_STYLES = ['gable', 'gambrel', 'lean-to'] as const;
 export const LOFT_SUPPORTS = ['plates', 'hung'] as const;
 export const LOFT_OPEN_ENDS = ['none', 'left', 'right'] as const;
 export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
@@ -142,7 +142,16 @@ const opening = z
 
 const roof = z.strictObject({
   style: z.enum(ROOF_STYLES).default('gable'),
-  pitch: z.number().min(1, 'Min 1/12').max(24, 'Max 24/12').default(6), // rise per 12 of run
+  pitch: z.number().min(1, 'Min 1/12').max(24, 'Max 24/12').default(6), // rise per 12 of run; a gambrel's upper slope
+  // A gambrel's steep lower slope, and its run from the eave wall's outside face to the break.
+  // auto: 1/4 of the width. Without a ridge board the upper rafters meet at the peak, gusseted.
+  gambrel: z
+    .strictObject({
+      lowerPitch: z.number().min(12, 'Min 12/12').max(36, 'Max 36/12').default(20),
+      breakRun: z.union([auto, len(12, 240)]).default('auto'),
+      ridgeBoard: z.boolean().default(true),
+    })
+    .prefault({}),
   rafter: twoBy.default('2x6'),
   oc: spacing.default(24),
   eaveOverhang: len(0, 36).default(12), // horizontal
@@ -290,6 +299,15 @@ export type Ramp = z.infer<typeof ramp>;
 /** A ramp with every default. */
 export const newRamp = (): Ramp => ramp.parse({});
 
+/** A roof with two sides that meet at a ridge: gable or gambrel. */
+export const ridged = (roof: { style: (typeof ROOF_STYLES)[number] }) => roof.style !== 'lean-to';
+/** A ridged roof with a ridge board: a gable, or a gambrel that keeps one. */
+export const hasRidgeBoard = (roof: { style: (typeof ROOF_STYLES)[number]; gambrel: { ridgeBoard: boolean } }) =>
+  ridged(roof) && (roof.style !== 'gambrel' || roof.gambrel.ridgeBoard);
+/** The pitch at the eaves, per 12: a gambrel's lower slope, else the roof pitch. */
+export const eavePitch = (roof: { style: (typeof ROOF_STYLES)[number]; pitch: number; gambrel: { lowerPitch: number } }) =>
+  roof.style === 'gambrel' ? roof.gambrel.lowerPitch : roof.pitch;
+
 /** Model sides whose eave a lean-to roof extension takes over. */
 export const extensionSides = (additions: readonly Addition[]): Set<Addition['side']> =>
   new Set(additions.filter(({ attach }) => attach === 'extension').flatMap(({ side, mirror }) => (mirror ? [side, OPPOSITE[side]] : [side])));
@@ -367,7 +385,11 @@ export const shedSchema = z.strictObject({
   // A roof extension continues a roof that slopes down to its side: either eave of a gable roof,
   // the low eave of a lean-to roof.
   const lowSide = config.roof.highSide === 'back' ? 'front' : 'back';
-  const downhill = (side: string) => (config.roof.style === 'gable' ? side === 'front' || side === 'back' : side === lowSide);
+  const downhill = (side: string) => (ridged(config.roof) ? side === 'front' || side === 'back' : side === lowSide);
+  const { roof } = config;
+  if (roof.style === 'gambrel' && roof.gambrel.lowerPitch <= roof.pitch) {
+    context.addIssue({ code: 'custom', message: 'The lower pitch must be steeper than the upper pitch', path: ['roof', 'gambrel', 'lowerPitch'] });
+  }
   config.additions.forEach(({ side, mirror, attach, length }, index) => {
     const own = mirror ? [side, OPPOSITE[side]] : [side];
     if (own.some((taken) => sides.filter((other) => other === taken).length > 1)) {

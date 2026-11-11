@@ -164,6 +164,58 @@ describe('rafter detail', () => {
   });
 });
 
+describe('gambrel rafter detail', () => {
+  const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', rafter: '2x6' } });
+  const rafter = find(drawingsOf(config), 'rafter');
+
+  it('draws the lower and upper rafters, and the gusset dashed over the break', () => {
+    expect(rafter.title).toBe('Gambrel rafters');
+    expect(rafter.shapes.map(({ role }) => role)).toEqual(['rafter', 'rafter.upper']);
+    // A common pair's gusset: its lower edge runs straight across the joint.
+    expect(rafter.outlines).toHaveLength(1);
+    expect(rafter.outlines[0]).toHaveLength(5);
+  });
+
+  it("dimensions the gusset's 12 in reach along each top edge from the break", () => {
+    const reaches = ofKind(rafter, 'aligned').filter(({ offset }) => offset === 40).map(length);
+    expect(reaches).toEqual([expect.closeTo(12, 9), expect.closeTo(12, 9)]);
+  });
+});
+
+describe('gusset sheet', () => {
+  const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', rafter: '2x6' } });
+  const sheet = find(drawingsOf(config), 'gussets');
+
+  it('draws the common and gable-end gussets, each edge dimensioned', () => {
+    expect(sheet.shapes.map(({ outline }) => (outline.kind === 'polygon' ? outline.points.length : 0))).toEqual([5, 6]);
+    expect(ofKind(sheet, 'aligned')).toHaveLength(11);
+    // 12 in along each top edge, and square across the 5-1/2 in rafter depth at each end.
+    const edges = ofKind(sheet, 'aligned').map(length).map((value) => formatInches(value));
+    expect(edges.filter((text) => text === '12"')).toHaveLength(4);
+    expect(edges.filter((text) => text === '5-1/2"')).toHaveLength(4);
+  });
+
+  it('gives the counts and the angle where the top edges meet', () => {
+    // 8x10: 4 common rafter pairs a side, two faces each; a gable-end rafter at each end of each side.
+    expect(sheet.notes).toContain(
+      'At the break: the top edges meet at 147.5°. Left: 16 for the common rafters, one on each face of each pair. Right: 4 for the gable-end rafters, on the inside face.',
+    );
+  });
+
+  it('adds a row for the peak gussets without a ridge board', () => {
+    const peaked = shedSchema.parse({ ...config, roof: { ...config.roof, gambrel: { ...config.roof.gambrel, ridgeBoard: false } } });
+    const rows = find(drawingsOf(peaked), 'gussets');
+    expect(rows.shapes).toHaveLength(4);
+    expect(rows.notes).toContain(
+      'At the peak (bottom row): the top edges meet at 126.9°. Left: 8 for the common rafters, one on each face of each pair. Right: 2 for the gable-end rafters, on the inside face.',
+    );
+  });
+
+  it('is left out on a gable roof', () => {
+    expect(drawingsOf().some(({ id }) => id === 'gussets')).toBe(false);
+  });
+});
+
 describe('building section', () => {
   const section = find(drawingsOf(), 'section');
 

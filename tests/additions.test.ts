@@ -6,6 +6,7 @@ import { buildBom } from '../src/core/out/bom';
 import { naming } from '../src/core/naming';
 import { checkSpans } from '../src/core/out/spans';
 import { PRESETS } from '../src/core/presets';
+import { formatInches } from '../src/core/units';
 
 // 8x10 on skids: 6/12 main roof, 2x4 rafters (seat 2-9/16), 12 in eave, 2x6 fascia, 7/16 OSB walls
 // and roof. A 3/12 lean-to 96 in deep with 2x6 rafters, a 2-ply 2x8 beam on 4x4 posts.
@@ -122,6 +123,20 @@ describe('roof extension', () => {
     const { hardware } = buildBom(withLeanTo({ side: 'front', attach: 'extension', pitch: 'main', rafter: '2x4' }), same, new Map());
     expect(hardware.find(({ item }) => item === 'Hurricane tie, rafter to plate')?.quantity).toBe(12 + 6 * 2);
     expect(hardware.some(({ item }) => item.startsWith('Joist hanger'))).toBe(false);
+  });
+
+  it('stops the lap at the gussets on a gambrel, and blocks over the plate at a shallower pitch', () => {
+    // At 20/12 a lean-to drops 20 in for each foot of depth: 30 in deep stays above grade.
+    const gambrel = (pitch: number | 'main') =>
+      buildModel(
+        shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', rafter: '2x6' }, additions: [{ side: 'front', attach: 'extension', depth: 30, pitch }] }),
+      );
+    // The 2x6 gussets reach 12 in down the 20/12 lower rafters from the break, 24 in from the wall.
+    const [rafter] = ofRole(gambrel('main').members.filter(({ assembly }) => assembly === 'addition.front'), 'rafter');
+    expect(rafter.note).toMatch(/^Laps the main rafter 17-13\/16" in from the wall line/);
+    // At 3/12 the 2x6 underside passes over the plate: 5-1/2 / cos 59.0° - 20/12 x 2-1/8 - 5-1/2 / cos 14.0°.
+    const gap = 5.5 / Math.cos(Math.atan(20 / 12)) - (20 / 12) * 2.125 - 5.5 / Math.cos(Math.atan(0.25));
+    expect(gambrel(3).warnings.map(({ message }) => message)).toContain(`The lean-to rafters pass ${formatInches(gap)} over the main wall's plate. Block under each one.`);
   });
 
   it('extends only a downhill eave, the full length', () => {

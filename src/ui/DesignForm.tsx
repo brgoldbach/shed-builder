@@ -35,6 +35,8 @@ import {
   THROUGH,
   WALL_STUDS,
   WALLS,
+  hasRidgeBoard,
+  ridged,
   type ShedConfig,
 } from '../core/config';
 import { useState, type ReactNode } from 'react';
@@ -56,6 +58,7 @@ import {
   type Edit,
   type SectionProps,
 } from './fields';
+import { gambrelBreak } from '../core/gen/roof';
 import { studLengths, wallTops, type Wall } from '../core/gen/walls';
 import { naming, type Naming } from '../core/naming';
 import { formatInches, formatLength, formatMoney } from '../core/units';
@@ -169,10 +172,10 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
         leanToSlab={value.additions.some(({ floor }) => floor === 'slab')}
       />
       {value.foundation.type !== 'slab' && <FloorSection value={value.floor} onChange={set('floor')} />}
-      <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} gable={value.roof.style === 'gable'} names={names} />
+      <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} gable={ridged(value.roof)} names={names} />
       <OpeningsSection value={value} onChange={onChange} />
-      <RoofSection value={value.roof} onChange={set('roof')} names={names} />
-      {value.roof.style === 'gable' && <LoftSection value={value.roof} onChange={set('roof')} names={names} />}
+      <RoofSection value={value.roof} onChange={set('roof')} names={names} gambrelBreak={value.roof.style === 'gambrel' ? gambrelBreak(value) : null} />
+      {ridged(value.roof) && <LoftSection value={value.roof} onChange={set('roof')} names={names} />}
       <Section title="Lean-tos" brief={count(value.additions.length, 'lean-to')}>
         <AdditionsEditor value={value} onChange={onChange} />
       </Section>
@@ -314,14 +317,22 @@ function OpeningsSection({ value, onChange }: SectionProps<ShedConfig>) {
   );
 }
 
-function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: Naming }) {
+function RoofSection({
+  value,
+  onChange,
+  names,
+  gambrelBreak,
+}: SectionProps<Roof> & { names: Naming; gambrelBreak: { run: number; height: number } | null }) {
   const set = setter(value, onChange);
   const ladder = setter(value.rakeLadder, set('rakeLadder'));
   const ties = setter(value.rafterTies, set('rafterTies'));
   const collar = setter(value.collarTies, set('collarTies'));
-  const gable = value.style === 'gable';
+  const gambrel = setter(value.gambrel, set('gambrel'));
+  // Two sides meeting at a ridge: gable or gambrel.
+  const gable = ridged(value);
+  const pitches = value.style === 'gambrel' ? `${value.gambrel.lowerPitch}/12 and ${value.pitch}/12` : `${value.pitch}/12`;
   return (
-    <Section title="Roof" brief={`${capitalize(value.style)}, ${value.pitch}/12, ${spacing(value.rafter, value.oc)}`}>
+    <Section title="Roof" brief={`${capitalize(value.style)}, ${pitches}, ${spacing(value.rafter, value.oc)}`}>
       <SelectField label="Style" value={value.style} options={ROOF_STYLES} describe={capitalize} onChange={set('style')} />
       {value.style === 'lean-to' && (
         <SelectField
@@ -332,10 +343,21 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
           onChange={set('highSide')}
         />
       )}
-      <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} />
+      {gambrelBreak && <NumberField label="Lower pitch (in / 12)" value={value.gambrel.lowerPitch} onChange={gambrel('lowerPitch')} />}
+      <NumberField label={gambrelBreak ? 'Upper pitch (in / 12)' : 'Pitch (in / 12)'} value={value.pitch} onChange={set('pitch')} />
+      {gambrelBreak && (
+        <>
+          <AutoLengthField label="Break, in from the wall" value={value.gambrel.breakRun} onChange={gambrel('breakRun')} />
+          <p className="muted hint">
+            The break is {formatInches(gambrelBreak.run)} in from the wall, {formatLength(gambrelBreak.height)} above the floor at the rafter tops. Plywood
+            gussets join the rafters there{value.gambrel.ridgeBoard ? '' : ' and at the peak'}.
+          </p>
+          <CheckField label="Ridge board" value={value.gambrel.ridgeBoard} onChange={gambrel('ridgeBoard')} />
+        </>
+      )}
       <SelectField label="Rafter" value={value.rafter} options={TWO_BY} onChange={set('rafter')} />
       <SelectField label="Rafter o.c. (in)" value={value.oc} options={SPACINGS} onChange={set('oc')} />
-      {gable && <SelectField label="Ridge board" value={value.ridge} options={TWO_BY} onChange={set('ridge')} />}
+      {hasRidgeBoard(value) && <SelectField label="Ridge board" value={value.ridge} options={TWO_BY} onChange={set('ridge')} />}
       <CheckField label="Build the gable ends as panels" value={value.gablePanel} onChange={set('gablePanel')} />
 
       <Group title="Overhangs" brief={`${formatInches(value.eaveOverhang)} eaves, ${formatInches(value.rakeOverhang)} rakes`}>
@@ -349,7 +371,7 @@ function RoofSection({ value, onChange, names }: SectionProps<Roof> & { names: N
         <Group title="Rake ladder" brief={`${value.rakeLadder.size}, lookouts at ${value.rakeLadder.spacing}" o.c.`}>
           <SelectField label="Ladder" value={value.rakeLadder.size} options={TWO_BY} onChange={ladder('size')} />
           <SelectField label="Lookout o.c. (in)" value={value.rakeLadder.spacing} options={SPACINGS} onChange={ladder('spacing')} />
-          {gable && (
+          {hasRidgeBoard(value) && (
             <CheckField label="Ridge runs out to the fly rafters" value={value.rakeLadder.ridgeExtends} onChange={ladder('ridgeExtends')} />
           )}
           <CheckField label="Lookout at the fascia" value={value.rakeLadder.fasciaLookouts} onChange={ladder('fasciaLookouts')} />
@@ -404,12 +426,14 @@ function LoftSection({ value, onChange, names }: SectionProps<Roof> & { names: N
   const loft = setter(value.loft, set('loft'));
   const open = setter(value.loft.open, loft('open'));
   const knee = setter(value.kneeWalls, set('kneeWalls'));
+  // A gambrel's steep lower slope gives the headroom: it takes no knee walls.
+  const kneeWalls = value.style === 'gable';
   return (
     <Section
       title="Loft"
       enabled={value.loft.enabled}
       onEnable={loft('enabled')}
-      brief={`${spacing(value.loft.joist, value.loft.oc)}${value.kneeWalls.enabled ? ', knee walls' : ''}`}
+      brief={`${spacing(value.loft.joist, value.loft.oc)}${kneeWalls && value.kneeWalls.enabled ? ', knee walls' : ''}`}
     >
       <SelectField label="Joist" value={value.loft.joist} options={TWO_BY} onChange={loft('joist')} />
       <SelectField label="Joist o.c. (in)" value={value.loft.oc} options={SPACINGS} onChange={loft('oc')} />
@@ -429,15 +453,17 @@ function LoftSection({ value, onChange, names }: SectionProps<Roof> & { names: N
         onChange={open('end')}
       />
       {value.loft.open.end !== 'none' && <LengthField label="Open length" value={value.loft.open.length} onChange={open('length')} />}
-      <Group
-        title="Knee walls"
-        enabled={value.kneeWalls.enabled}
-        onEnable={knee('enabled')}
-        brief={`${formatLength(value.kneeWalls.height)}, ${value.kneeWalls.stud}`}
-      >
-        <LengthField label="Height" value={value.kneeWalls.height} onChange={knee('height')} />
-        <SelectField label="Stud" value={value.kneeWalls.stud} options={WALL_STUDS} onChange={knee('stud')} />
-      </Group>
+      {kneeWalls && (
+        <Group
+          title="Knee walls"
+          enabled={value.kneeWalls.enabled}
+          onEnable={knee('enabled')}
+          brief={`${formatLength(value.kneeWalls.height)}, ${value.kneeWalls.stud}`}
+        >
+          <LengthField label="Height" value={value.kneeWalls.height} onChange={knee('height')} />
+          <SelectField label="Stud" value={value.kneeWalls.stud} options={WALL_STUDS} onChange={knee('stud')} />
+        </Group>
+      )}
       <Group title="Hatches" brief={count(value.loft.hatches.length, 'hatch', 'hatches')}>
         <HatchesEditor value={value.loft.hatches} onChange={loft('hatches')} names={names} />
       </Group>

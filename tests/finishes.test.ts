@@ -50,6 +50,14 @@ describe('finishes', () => {
     expect(caps.map(({ look }) => look)).toEqual(['metal', 'plain', 'plain']);
   });
 
+  it('flashes a gambrel break on each plane and caps the ridge on the upper planes', () => {
+    const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', roofing: 'metal' } });
+    const plain = finishesOf(config).filter((part) => part.layer === 'roofing' && part.shape.kind === 'panel');
+    // Front lower plane: its flashing. Front upper plane: the vented cap, its two vent gaps, and its
+    // flashing. Then the flashing on each back plane.
+    expect(plain.map(({ look }) => look)).toEqual(['plain', 'metal', 'plain', 'plain', 'plain', 'plain', 'plain']);
+  });
+
   it('closes a garage door RO with a slab of four sections each way', () => {
     const garage = PRESETS.find(({ openingTypes }) => openingTypes.some(({ kind }) => kind === 'overhead'))!;
     const [door] = withLook(finishesOf(garage), 'garage');

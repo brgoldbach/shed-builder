@@ -8,12 +8,12 @@ Lean-tos (`additions.ts`), ramps (`ramps.ts`), sheets (`sheathing.ts`), and fini
 | Part | Function | File | Section |
 |---|---|---|---|
 | Member types and warnings | `Member`, `Solid`, `Warning`, `corners` | `src/core/member.ts` | 1 |
-| Shared geometry | `planeMember`, `clipBelow`, `idMaker` | `src/core/gen/section.ts` | 2 |
+| Shared geometry | `planeMember`, `clipBelow`, `idMaker`, `profileOf` | `src/core/gen/section.ts` | 2 |
 | Build order | `buildModel` | `src/core/model.ts` | 3 |
 | Foundation and floor | `frameFloor`, `gradeOf` | `src/core/gen/floor.ts` | 4 |
 | Walls | `frameWalls`, `splitPlate` | `src/core/gen/walls.ts` | 5 |
 | Wall openings | `fitOpening`, `openingBoards` | `src/core/gen/walls.ts` | 6 |
-| Rafters, ridge, fascia, rake ladders, purlins | `frameRoof` | `src/core/gen/roof.ts` | 7 |
+| Rafters, ridge, fascia, rake ladders, purlins, gussets | `frameRoof`, `gambrelBreak` | `src/core/gen/roof.ts` | 7 |
 | Gable ends and gable openings | `frameGableEnds`, `fitGableOpening` | `src/core/gen/roof.ts` | 8 |
 | Ties, loft, knee walls | `frameAttic`, `frameLoft`, `frameKneeWalls` | `src/core/gen/attic.ts` | 9 |
 | Warnings and left-out parts | all of the above | | 10 |
@@ -52,8 +52,13 @@ walls. "1-1/2 in" is the thickness of 2x lumber, the constant `PLY` in each gene
 | Seat | The level face of the birdsmouth. It bears on the plate. |
 | Heel | The plumb face of the birdsmouth. |
 | Tail | The part of a rafter past the wall's outside face. |
-| Ridge board | The board at the peak of a gable roof, between the rafter pairs. |
-| Ridge post | A stud in each gable end, under the ridge board. |
+| Gambrel | A roof with two slopes on each side: a steep lower slope from the eave, and a shallow upper slope to the ridge. |
+| Break | The line where a gambrel's lower and upper slopes meet, on the rafter top lines. |
+| Miter | The cut at the break, where a lower rafter meets an upper rafter. It is on the bisector of the two slopes. |
+| Gusset | A plywood plate on a rafter face, across the break. It joins the lower and upper rafters and acts as a web between them. |
+| Roof profile | One roof side in the drawn section: its slopes from the eave up. The `Profile` type (2.6). |
+| Ridge board | The board at the peak of a gable or gambrel roof, between the rafter pairs. |
+| Ridge post | A stud in each gable end, under the ridge board. None without a ridge board. |
 | Rake | The roof edge over a gable end. The rake overhang is its distance past the end wall. |
 | Rake ladder | The framing of the rake overhang: a fly rafter, lookouts, and a rail. |
 | Fly rafter | The outer rafter of a rake ladder, at the rake edge. |
@@ -104,7 +109,7 @@ The plane of a profile sets which lumber dimension each profile coordinate holds
 
 | Members | Profile across extent | `profile.depth` |
 |---|---|---|
-| Rafters, fly rafters, ladder rails, ties, loft joists | Lumber width | Lumber thickness |
+| Rafters, upper rafters, fly rafters, ladder rails, ties, loft joists | Lumber width | Lumber thickness |
 | Skids | Lumber width (the skid stands on edge) | Lumber thickness |
 | Gable-end members (2.3, section 8) | 1-1/2 in, the lumber thickness | Wall depth, the lumber width |
 
@@ -135,6 +140,7 @@ A panel cut from a stock sheet carries `sheet`. The generators in this document 
 | Thickened edge | 4 boxes | concrete | `FD-TE01`–`FD-TE04` | `frameFloor` |
 | Pier | cylinder | concrete | `FD-PRnn` | `frameFloor` |
 | Anchor bolt | cylinder | steel | wall prefix + `ABnn`, for example `FW-AB01` | `frameWall` |
+| Break gusset, peak gusset | `Panel`, sheet `ply-15/32` | sheet | `RF-GUnn`, `RF-GPnn` | `frameRoof` (7.15) |
 
 Sheets and ramp panels come from `sheathing.ts` and `ramps.ts`.
 
@@ -167,7 +173,8 @@ has its own `nextId` with the same scheme and the assembly's prefix.
 - An id is a position in its counter. It changes when a member before it in the same counter
   appears or goes.
 - Two counters share a prefix only with different codes. `frameRoof` and `frameAttic` both use
-  `RF`: `frameRoof` uses `R`, `RB`, `FR`, `LR`, `LO`, `FA`, `PU`, and `frameAttic` uses `RT`, `CT`.
+  `RF`: `frameRoof` uses `R`, `UR`, `RB`, `FR`, `LR`, `LO`, `FA`, `PU`, and `frameAttic` uses `RT`,
+  `CT`. A third `RF` counter in `frameRoof` gives the gusset solids `GU` (break) and `GP` (peak).
 
 The cut list does not show ids. `buildCutList` (`src/core/out/cutlist.ts`) makes cut lines:
 
@@ -209,6 +216,7 @@ main shed, in that order.
 | `post.ridge` | Ridge post | `gable.*` | `P` | `frameGableEnds` |
 | `ridge` | Ridge board | `roof` | `RB` | `frameRoof` |
 | `rafter` | Rafter | `roof` | `R` | `frameRoof` |
+| `rafter.upper` | Upper rafter | `roof` | `UR` | `frameRoof` |
 | `rafter.fly` | Fly rafter | `roof` | `FR` | `frameRoof` |
 | `rail.ladder` | Ladder rail | `roof` | `LR` | `frameRoof` |
 | `lookout` | Lookout | `roof` | `LO` | `frameRoof` |
@@ -294,8 +302,8 @@ The planes in use:
 | Members | `origin` | `h` | Extrudes | `dir` |
 |---|---|---|---|---|
 | Skid | (0, line + across / 2, 0) | +x | −y, `across` thick | (1, 0) |
-| Rafter, fly rafter, rail, front side | (x, 0, 0) | +y | +x, from x to x + 1-1/2 | (cos, sin) |
-| Rafter, fly rafter, rail, back side | (x + 1-1/2, `width`, 0) | −y | −x, from x + 1-1/2 to x | (cos, sin) |
+| Rafter, upper rafter, fly rafter, rail, front side | (x, 0, 0) | +y | +x, from x to x + 1-1/2 | (cos, sin) of its slope |
+| Rafter, upper rafter, fly rafter, rail, back side | (x + 1-1/2, `width`, 0) | −y | −x, from x + 1-1/2 to x | (cos, sin) of its slope |
 | Tie, collar tie, loft joist | (x, 0, 0) | +y | +x | (1, 0) |
 | Left gable end | (wall depth, `width`, 0) | −y | −x, wall depth thick, to x = 0 | per member |
 | Right gable end | (`length` − wall depth, 0, 0) | +y | +x, wall depth thick, to x = `length` | per member |
@@ -317,15 +325,15 @@ short point.
 ### 2.5 `clipBelow` and `hull`
 
 `clipBelow(polygon, k, limit)` returns the part of a convex polygon where `k · (a, z) <= limit`
-(one Sutherland–Hodgman pass, tolerance `EPSILON` = 1e-9). `frameAttic` calls it twice to trim a
-level piece to the two roof top lines (9.1).
+(one Sutherland–Hodgman pass, tolerance `EPSILON` = 1e-9). `frameAttic` calls it twice for each
+slope to trim a level piece to the roof top lines on both sides (9.1).
 
 `hull(points)` returns the convex hull, counterclockwise, by the monotone chain method. The framing
 generators do not use it. Sheathing, finishes, and drawings do.
 
-### 2.6 Pitch and slope
+### 2.6 Pitch, slope, and roof profile
 
-`frameRoof` computes a `Pitch` from `roof.pitch` (rise per 12 of run):
+`pitchOf(perTwelve)` (`section.ts`) returns a `Pitch` from a rise per 12 of run:
 
 | Field | Formula |
 |---|---|
@@ -333,15 +341,36 @@ generators do not use it. Sheathing, finishes, and drawings do.
 | `cos`, `sin` | of `atan(pitch / 12)` |
 | `degrees` | `atan(pitch / 12) * 180 / π`. `degrees(pitch)` prints it to 0.1°, for example `26.6°`. |
 
-A `Slope` is the rafter in a section across the building. The section is drawn for a side whose
-eave wall's outside face is at y = 0, and the roof rises toward +y.
+`frameRoof` gives the eave slope `pitchOf(eavePitch(roof))`: `roof.gambrel.lowerPitch` on a
+gambrel, else `roof.pitch`. A gambrel's upper slope takes `roof.pitch` (7.15).
+
+A `Slope` is one straight rafter line in a section across the building. The section is drawn for a
+side whose eave wall's outside face is at y = 0, and the roof rises toward +y. The formulas are for
+the eave slope.
 
 | Field | Formula | Content |
 |---|---|---|
+| `pitch` | `pitchOf(...)` | The slope's `Pitch`. |
 | `depth` | `LUMBER[roof.rafter].width` | Rafter depth, square to its edge. |
-| `seat` | `seatLength(...)` (7.4) | Length of the birdsmouth seat. |
+| `seat` | `seatLength(...)` (7.4) | Length of the birdsmouth seat. 0 on a slope with no birdsmouth. |
 | `bottom(y)` | `plate + rise * (y - seat)` | Rafter bottom edge. It passes through (seat, plate), the inner end of the seat. |
 | `top(y)` | `bottom(y) + depth / cos` | Rafter top edge. `depth / cos` is the plumb depth, `plumb`. |
+
+A `Profile` is the roof profile of one side. `profileOf(slopes)` builds it from the slopes, eave
+slope first: one for a gable or a lean-to, two for a gambrel. The roof profile is convex, so each of
+its lines is the lowest of the slopes' lines.
+
+| Field | Content |
+|---|---|
+| `slopes` | The slopes, eave slope first. |
+| `top(y)`, `bottom(y)` | The lowest `top(y)` or `bottom(y)` of the slopes. |
+| `reachTop(z)` | The y where the top line rises to z from the eave: the largest `(z - top(0)) / rise` of the slopes. |
+| `reachBottom(z)` | The y where the bottom line rises to z from the eave: the largest `seat + (z - bottom(seat)) / rise` of the slopes. |
+| `along(from, to)` | The slopes that the top line follows from y = `from` to y = `to`. |
+
+`crossing(first, second)` returns the point where two straight lines z = f(y) cross. `profileOf`
+uses it to find the break on the top line. With one slope, each `Profile` function gives the value
+of the slope's own formula.
 
 `Side.map` moves the drawn section onto a real side: `y` for the front, `width - y` for the back.
 `Side.sign` is +1 or −1. A side's `map` is its own inverse.
@@ -354,7 +383,7 @@ eave wall's outside face is at y = 0, and the roof rises toward +y.
 |---|---|---|---|
 | 1 | `frameFloor(config)` | config | `members`, `solids` |
 | 2 | `frameWalls(config)` | config | `members`, `warnings`, `solids` (anchor bolts), `openings` |
-| 3 | `frameRoof(config)` | config | `members`, `warnings`, `planes`, `openings` (gable), `rafterSpan`, `deck`, `soffit`, `eave` |
+| 3 | `frameRoof(config)` | config | `members`, `solids` (gussets), `warnings`, `planes`, `openings` (gable), `rafterSpans`, `deck`, `soffit`, `eave` |
 | 4 | `frameAdditions(config, roof, shed)` | config, `roof.soffit`, `roof.eave`, shed members | lean-tos |
 | 5 | `frameRamps(config, shed)` | config, shed members (for grade) | ramps |
 | 6 | `frameSheathing(config, members, openings, planes, roof.deck)` | all members, all ROs, all roof planes, the loft deck | sheet solids |
@@ -375,11 +404,11 @@ The `Model` collects:
 | Field | Content |
 |---|---|
 | `members` | Floor, walls, roof (with gable ends and attic), lean-tos, ramps. |
-| `solids` | Floor, walls, lean-tos, ramps, sheathing. |
+| `solids` | Floor, walls, roof (gussets), lean-tos, ramps, sheathing. |
 | `warnings` | Walls, roof (with gable ends and attic), lean-tos, ramps. `frameFloor` has no warnings. |
 | `openings` | Wall ROs, then gable ROs. Only fitted openings. |
 | `planes` | Main roof planes, then lean-to roof planes. |
-| `rafterSpan` | The main rafter span for `checkSpans` (7.12). |
+| `rafterSpans` | The main rafter spans for `checkSpans`, one for each rafter member (7.12). |
 | `leanTos` | Lean-to facts for the span checks. |
 
 ## 4. Foundation and floor
@@ -559,7 +588,7 @@ mud sills, and anchor bolts. `frameWall` frames one wall in its frame (2.2).
 | `walls.capPlate` | boolean | true | |
 | `walls.mudSill` | `none`, `match`, `2x4`–`2x12` | `match` | Slab only. `match` is the stud size. |
 | `walls.corner` | `four-stud`, `three-stud`, `california`, `two-stud` | `four-stud` | |
-| `walls.through` | `ends`, `eaves` | `ends` | Gable roof only. |
+| `walls.through` | `ends`, `eaves` | `ends` | Gable or gambrel roof only. |
 | `studHeight` | 92.625, 104.625, 116.625, `custom` | 92.625 | Precut stud length. |
 | `wallHeight` | 60–200 | 97.125 | `custom` only: floor surface to the top of the top plates. |
 | `roof.style`, `roof.pitch`, `roof.highSide` | | | Lean-to high wall (5.3). |
@@ -569,20 +598,20 @@ mud sills, and anchor bolts. `frameWall` frames one wall in its frame (2.2).
 
 ### 5.2 Through walls and butted walls
 
-`isThrough(config, wall)` returns `isEave(wall) !== (roof.style === 'gable' && walls.through ===
-'ends')`.
+`isThrough(config, wall)` returns `isEave(wall) !== (ridged(roof) && walls.through === 'ends')`.
+`ridged(roof)` (`src/core/config.ts`) is true for a gable or a gambrel roof.
 
 | Roof | `walls.through` | Through walls | Butted walls |
 |---|---|---|---|
-| gable | `ends` | left, right | front, back |
-| gable | `eaves` | front, back | left, right |
+| gable, gambrel | `ends` | left, right | front, back |
+| gable, gambrel | `eaves` | front, back | left, right |
 | lean-to | any | front, back | left, right |
 
 Decisions:
 
 | Decision | Reason |
 |---|---|
-| A gable roof's end walls run through by default. | Each gable end is one full-width frame. |
+| A gable or gambrel roof's end walls run through by default. | Each gable end is one full-width frame. |
 | A lean-to's eave walls always run through. | The lean-to's end walls stop below the high wall. |
 
 | Quantity | Through wall | Butted wall |
@@ -977,23 +1006,26 @@ Each fitted opening adds a `RoughOpening` to `Model.openings`:
 
 ## 7. Roofs
 
-`frameRoof(config)` frames the rafters, ridge board, rake ladders, fascia, and purlins. It calls
-`frameAttic` (section 9) and `frameGableEnds` (section 8). It returns the roof planes, the rafter
-span, the loft deck, and the facts that lean-tos build against.
+`frameRoof(config)` frames the rafters, ridge board, rake ladders, fascia, purlins, and a gambrel's
+gussets. It calls `frameAttic` (section 9) and `frameGableEnds` (section 8). It returns the roof
+planes, the rafter spans, the gussets, the loft deck, and the facts that lean-tos build against.
 
 ### 7.1 Inputs
 
 | Field | Values | Default | Use |
 |---|---|---|---|
-| `roof.style` | `gable`, `lean-to` | `gable` | |
-| `roof.pitch` | 1–24 | 6 | Rise per 12 of run. |
+| `roof.style` | `gable`, `gambrel`, `lean-to` | `gable` | |
+| `roof.pitch` | 1–24 | 6 | Rise per 12 of run. Gambrel: the upper slope. |
+| `roof.gambrel.lowerPitch` | 12–36 | 20 | Gambrel: the lower slope, per 12. |
+| `roof.gambrel.breakRun` | `auto`, 12–240 | `auto` | Gambrel: horizontal run from the eave wall's outside face to the break. `auto` is `width / 4`. |
+| `roof.gambrel.ridgeBoard` | boolean | true | Gambrel: false butts the upper rafters at the peak, with peak gussets. `hasRidgeBoard(roof)` is true for a gable, or a gambrel with this on. |
 | `roof.rafter` | `2x4`–`2x12` | `2x6` | |
 | `roof.oc` | 12, 16, 19.2, 24 | 24 | |
 | `roof.eaveOverhang` | 0–36 | 12 | Horizontal, from the wall's outside face. |
 | `roof.rakeOverhang` | 0–24 | 8 | From the end wall's outside face. |
 | `roof.tailCut` | `plumb`, `square` | `plumb` | |
 | `roof.fascia` | `none`, `2x4`–`2x12` | `2x6` | |
-| `roof.ridge` | `2x4`–`2x12` | `2x8` | Gable only. |
+| `roof.ridge` | `2x4`–`2x12` | `2x8` | Gable and gambrel. |
 | `roof.highSide` | `front`, `back` | `back` | Lean-to only. |
 | `roof.roofing` | `shingles`, `metal`, `metal-over-sheathing` | `shingles` | Purlins for metal. |
 | `roof.sheathing` | `none`, sheet key | `osb-7/16` | Purlin lift. |
@@ -1001,24 +1033,33 @@ span, the loft deck, and the facts that lean-tos build against.
 | `roof.purlinSpacing` | 12–48 | 24 | Along the slope, center to center. |
 | `roof.rakeLadder.size` | `2x4`–`2x12` | `2x4` | Lookouts and rail. |
 | `roof.rakeLadder.spacing` | 12, 16, 19.2, 24 | 24 | Lookouts, at most this far apart. |
-| `roof.rakeLadder.ridgeExtends` | boolean | true | Gable: the ridge board runs out to the fly rafters. |
+| `roof.rakeLadder.ridgeExtends` | boolean | true | With a ridge board: it runs out to the fly rafters. |
 | `roof.rakeLadder.fasciaLookouts` | boolean | false | A lookout at each fascia end of the ladder. |
 | `roof.rakeLadder.onEndRafter` | boolean | false | The gable-end rafter is the ladder's inner rail. |
-| `roof.loft`, `roof.kneeWalls` | | | Raised roof (7.13). |
+| `roof.loft`, `roof.kneeWalls` | | | Raised roof (7.13). Knee walls: gable only. |
 | `additions[]` with `attach: 'extension'` | | | `extensionSides`: the eaves that a lean-to roof extension takes over. |
 
-### 7.2 Gable and lean-to
+A gambrel's `lowerPitch` must be more than `pitch`. Else the schema gives the error `The lower pitch
+must be steeper than the upper pitch` at `roof.gambrel.lowerPitch`.
 
-| Item | Gable | Lean-to |
-|---|---|---|
-| Low wall (`lowWall`) | `front` | `front` when `highSide` is `back`, else `back` |
-| Sides drawn | front and back | the low side only |
-| Drawn extent, `from` to `to` | `-eave` to `width / 2 - 0.75` (the ridge face) | `-eave` to `width + eave` |
-| High end cut (`highCut`) | Plumb, at the ridge | `tailCut` |
-| Birdsmouths (heel y) | 0 | 0 and `width − wall depth` |
-| Ridge board, ties, loft, knee walls | Yes | No |
-| Fascia | Each eave | Low eave and high end |
-| Gable framing (section 8) | Up to the ridge post | Up to the high wall's inside face |
+### 7.2 Gable, gambrel, and lean-to
+
+In `frameRoof`, `gable` is `ridged(roof)`: true for a gable or a gambrel roof. The formulas below
+use it in that sense.
+
+| Item | Gable | Gambrel | Lean-to |
+|---|---|---|---|
+| Slopes in the roof profile | 1, at `roof.pitch` | 2: lower at `lowerPitch`, upper at `roof.pitch` (7.15) | 1, at `roof.pitch` |
+| Low wall (`lowWall`) | `front` | `front` | `front` when `highSide` is `back`, else `back` |
+| Sides drawn | front and back | front and back | the low side only |
+| Drawn extent, `from` to `to` | `-eave` to `width / 2 - 0.75` (the ridge face) | As gable. The break divides it. | `-eave` to `width + eave` |
+| Rafters | `rafter` | `rafter` to the break, `rafter.upper` from the break | `rafter` |
+| High end cut (`highCut`) | Plumb, at the ridge | Plumb, at the ridge, on the upper rafter | `tailCut` |
+| Birdsmouths (heel y) | 0 | 0, on the lower rafter | 0 and `width − wall depth` |
+| Ridge board, ties, loft | Yes | Yes | No |
+| Knee walls | Yes | No | No |
+| Fascia | Each eave | Each eave | Low eave and high end |
+| Gable framing (section 8) | Up to the ridge post | Up to the ridge post | Up to the high wall's inside face |
 
 On a lean-to, the high wall is taller by the roof rise (5.3). The high birdsmouth has its heel at
 the high wall's inside face, and its seat runs outward over that wall. The seat level is
@@ -1028,12 +1069,14 @@ the high wall's inside face, and its seat runs outward over that wall. The seat 
 
 | Quantity | Formula |
 |---|---|
-| `raised` | `gable && roof.loft.enabled && roof.kneeWalls.enabled` |
+| `pitch` | `pitchOf(eavePitch(roof))`: the eave slope's pitch (2.6) |
+| `raised` | `roof.style === 'gable' && roof.loft.enabled && roof.kneeWalls.enabled` |
 | `plate` | `raised ? kneeBase + kneeWalls.height : wallTops[lowWall]` |
 | `bearingDepth` | `raised ? LUMBER[kneeWalls.stud].width : wall depth` |
 | `plumb` | `depth / cos` |
 
-`kneeBase` is in 7.13.
+`kneeBase` is in 7.13. The seat (7.4), the tails (7.6), and the fascia (7.9) use the eave slope's
+pitch.
 
 ### 7.4 Birdsmouth seat
 
@@ -1054,6 +1097,7 @@ The heel height is `rise * seat`.
 | 2x6, 6/12, 2x4 | 3-1/2 (the full wall) | 1-3/4 |
 | 2x4, 12/12, 2x4 | 1-5/8 | 1-5/8 |
 | 2x4, 18/12, 2x4 | 1-1/2, with the warning | 2-1/4 |
+| 2x6, 20/12 (gambrel lower slope), 2x4 | 2-1/8 | 3-9/16 |
 
 Decision: the seat bears on the full wall depth when it can. It shortens so the notch stays within
 1/3 of the rafter depth. The bearing stays at least 1-1/2 in.
@@ -1075,6 +1119,10 @@ section:
    `(to + depth * sin, top(to) - depth * cos)`.
 4. High top corner `(to, top(to))`, then low top corner `(from, top(from))`.
 
+A `Cut` is `plumb`, `square`, or a `Joint` `{ top, bottom }`: a miter at the break (7.15). At a
+joint end, the outline takes the joint's `bottom` and `top` points in place of the corners at
+`from` or `to`.
+
 `planeMember` turns the outline into a member with `dir = (cos, sin)`.
 
 The heel at y = 0 is at the eave wall's outside face. The seat runs inward from there, on the plate
@@ -1095,6 +1143,8 @@ top. The bottom edge passes through (seat, plate).
 |---|---|
 | Gable | `Plumb cut 26.6° at the ridge. Birdsmouth: heel line 52-13/16" from the ridge long point on the top edge; seat 3-1/2", heel 1-3/4".` and the tail text. The heel line distance is `to / cos`. |
 | Lean-to | `Birdsmouths on the top edge, X and Y from its low end; each seat S, heel H. Both ends plumb cut 14.0°.` (or `Both ends square cut.`). X is `run / cos`, Y is `(width - wall depth + run) / cos`, with `run = -lowEnd`. |
+| Gambrel, lower rafter | `Cut 16.2° from square at the break. Birdsmouth: heel line 46-5/8" from the break long point on the top edge; seat 2-1/8", heel 3-9/16".` and the tail text. The heel line distance is `run / cos`, with the break `run` (7.15). |
+| Gambrel, upper rafter | `Cut 16.2° from square at the break. Plumb cut 26.6° at the ridge.` |
 
 | Tail text | When |
 |---|---|
@@ -1102,24 +1152,31 @@ top. The bottom edge passes through (seat, plate).
 | `No tail.` | `eave = 0` |
 | `No tail: plumb cut at the wall line, under the lean-to rafter beside it.` | Extended side |
 
-With `rakeLadder.onEndRafter` and a rake, the two gable-end rafters of each side add: `Build the
-rake ladder on this rafter on the ground (lookouts and fly rafter), then set it in place.`
+The gambrel notes are for the example in 7.15.
+
+With `rakeLadder.onEndRafter` and a rake, the gable-end rafters of each side add: `Build the rake
+ladder on this rafter on the ground (lookouts and fly rafter), then set it in place.` On a gambrel,
+the lower and the upper gable-end rafters both add it.
 
 ### 7.8 Ridge board
 
-On a gable roof only:
+On a gable roof, or a gambrel with `gambrel.ridgeBoard`. Without it, `to` is `width / 2`: the upper
+rafters run to the ridge line, plumb cut, against each other. Their note ends `Plumb cut 26.6° at
+the peak, against the rafter on the other side.` Peak gussets join them (7.15). `peak` is the slope at the ridge: the upper slope on a gambrel,
+else the eave slope.
 
-1. Set the ridge top to `slope.top(to)`: the rafter top at the ridge face.
+1. Set the ridge top to `peak.top(to)`: the rafter top at the ridge face.
 2. Set the ridge bottom to the top less the ridge lumber width.
 3. Center the ridge on y = `width / 2`, 1-1/2 thick.
 4. Run it from −rake to `length + rake` with `ridgeExtends`, else from 0 to `length`.
 5. Split it on the rafter centers.
 
 Warning, built: `The ridge board (2x6) is shallower than the rafter plumb cut (6-1/8").` It fires
-when the ridge width is less than `plumb`.
+when the ridge width is less than the plumb cut at the ridge, `depth / peak.cos`.
 
 Example, 8 × 10 ft, 2x6 at 6/12, 2x8 ridge, 8 in rakes: the ridge is 136 long. Its bottom is at
-97-1/8 + 1/2 × (47-1/4 − 3-1/2) + 5-1/2 / cos − 7-1/4 = 117.899.
+97-1/8 + 1/2 × (47-1/4 − 3-1/2) + 5-1/2 / cos − 7-1/4 = 117.899. On the gambrel in 7.15, the
+ridge top is 144.273 + 1/2 × 23-1/4 = 155.898, and its bottom is 148.648.
 
 ### 7.9 Fascia
 
@@ -1145,7 +1202,7 @@ ladder, and the ridge, fascia, and purlins stop at the end walls.
 | Fly rafter | `rafter.fly`, `FR` | −rake, and `length + rake − 1.5` | `roof.rafter` | rake > 0 |
 | Rail | `rail.ladder`, `LR` | −1-1/2, and `length` | `rakeLadder.size` | not `onEndRafter`, and rake ≥ 3 |
 | Lookout | `lookout`, `LO` | −rake + 1-1/2, and `length` (+ 1-1/2 with a rail) | `rakeLadder.size` | lookout length ≥ 1-1/2 |
-| Peak block | `lookout`, `LO` | as the lookouts | `rakeLadder.size` | gable, not `ridgeExtends` |
+| Peak block | `lookout`, `LO` | as the lookouts | `rakeLadder.size` | gable or gambrel, no ridge board or not `ridgeExtends` |
 
 - The fly rafter has the rafter outline with no birdsmouth. Note: `No birdsmouth.` and the end cuts.
 - The rail sits against the gable-end rafter's outside face, top flush with the rafter top. Its
@@ -1153,17 +1210,28 @@ ladder, and the ridge, fascia, and purlins stop at the end walls.
   rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.`
 - A lookout is `rake - (railed ? 2 : 1) * 1.5` long. It stands on edge, square to the roof, its top
   flush with the rafter tops.
-- `flyTo` is `width / 2` when a gable's ladders meet at the ridge line (`ridgeExtends` false), else
-  `to`.
+- `flyTo` is `width / 2` when the ladders meet at the ridge line: no ridge board, or `ridgeExtends`
+  false. Else it is `to`.
 
-Lookout spacing along one ladder:
+Each end of a side has one ladder for each slope of the roof profile:
 
-1. Set `reach = (flyTo - start) / cos - 1.5 - ladder width * rise`. This is the last place where a
-   lookout's lower corner stays inside the high end's plumb line.
+| Ladder | `start` to `end` | Low end | High end | Lookouts, i |
+|---|---|---|---|---|
+| Gable, lean-to | Low end to `flyTo` | Tail cut | `highCut` | `fasciaLookouts ? 0 : 1` to `gaps − 1` on a gable or without `fasciaLookouts`, else to `gaps` |
+| Gambrel, lower | Low end to the break | Tail cut | Miter (7.15) | `fasciaLookouts ? 0 : 1` to `gaps − 1` |
+| Gambrel, upper | The break to `flyTo` | Miter | Plumb | 0 to `gaps − 1`: one at the break |
+
+Lookout spacing along one ladder, on its own slope:
+
+1. Set `reach = (end - start) / cos - 1.5 - ladder width * rise`. This is the last place where a
+   lookout's lower corner stays inside a plumb line at `end`.
 2. Set `gaps = max(1, ceil(reach / rakeLadder.spacing))`.
-3. Put lookout i at `i * reach / gaps` along the top edge from the tail.
-4. Start at i = 0 with `fasciaLookouts`, else at i = 1.
-5. Stop at i = `gaps − 1` on a gable, or without `fasciaLookouts`. Else stop at i = `gaps`.
+3. Put lookout i at `i * reach / gaps` along the top edge from `start`, for each i in the table.
+
+On a gambrel, the lower fly rafter's note is `No birdsmouth. Cut 16.2° from square at the break.`
+and the tail text. The upper fly rafter's note is `No birdsmouth. Cut 16.2° from square at the
+break. Plumb cut 26.6° at the ridge.` Each rail has the same end cuts, then the assemble sentence.
+The peak blocks follow the upper slope.
 
 | Option | Effect |
 |---|---|
@@ -1178,53 +1246,75 @@ Decisions:
 | A rake ladder goes up in one piece: fly rafter, lookouts, and a rail face-nailed to the gable-end rafter. | Builders assemble it on the ground. |
 | No lookout at a fascia end unless chosen. | The fascia ties the ladder's eave ends. |
 | No lookout at the top of a gable ladder. | The ridge board, run out to the fly rafters, is the top rung. Without it, the peak block is. |
+| A gambrel's upper ladder has a lookout at the break. | The lower and upper fly rafters meet there. |
 | A rake under 3 in has no rail. | The rail and fly rafter need 3 in. |
 
 Example, 8 × 10 ft, 8 in rakes, 2x4 ladder at 24 in: lookouts 8 − 3 = 5 in. Reach is 62.99, so
 3 gaps and 2 lookouts a ladder, 8 in all. With `fasciaLookouts`, 12. With `onEndRafter`, the
-lookouts are 6-1/2 in.
+lookouts are 6-1/2 in. On the gambrel in 7.15, the lower reach is 62.64: 3 gaps, 2 lookouts. The
+upper reach is 22.74: 1 gap, 1 lookout at the break. That gives 12 lookouts, 8 fly rafters, and 8
+rails.
 
 ### 7.11 Purlins
 
-With `roof.roofing` not `shingles`, purlins lie flat across the rafters:
+With `roof.roofing` not `shingles`, purlins lie flat across the rafters. Each slope of a side gets
+its own purlins, from its low edge `start` to its high edge `stop`. One slope runs from the low end
+to `to`. A gambrel's lower slope runs from the low end to the break, and its upper slope from the
+break to `to`.
 
 1. Set `lift` to the sheathing thickness for `metal-over-sheathing` with sheathing, else 0.
-2. Set `run = (to - start) / cos - purlin width` along the slope.
+2. Set `run = (stop - start) / cos - purlin width` along the slope.
 3. Set `gaps = max(1, ceil(run / purlinSpacing))`.
-4. Put purlin i, for i = 0 to `gaps`, at `i * run / gaps` along the top edge from the low end.
+4. Put purlin i, for i = 0 to `gaps`, at `i * run / gaps` along the top edge from `start`.
 5. Run each from −rake to `length + rake`, split on the rafter centers.
 6. Raise it by `lift` square to the roof. A raised purlin has the note `Over the roof sheathing:
    fasten through it into the rafters.`
 
-The lowest purlin starts at the tail. The highest ends at the ridge face or the high end. Example,
-8 × 10 ft, `metal`: 4 purlins a side, each 136.
+The lowest purlin starts at the tail. The highest ends at the ridge face or the high end. On a
+gambrel, one purlin ends at the break, and the next starts there. Example, 8 × 10 ft, `metal`: 4
+purlins a side, each 136.
 
-### 7.12 Roof planes and rafter span
+### 7.12 Roof planes and rafter spans
 
-Each drawn side gives one `RoofPlane` for the sheathing:
+Each slope of each drawn side gives one `RoofPlane` for the sheathing. A gambrel side gives two,
+the lower plane first.
 
 | Field | Content |
 |---|---|
-| `origin` | The low edge over the fascia, at the rake. `fasciaRun = fascia thick / (plumb tails ? cos : 1)`. An extended side starts at the wall line. |
+| `origin` | The low edge over the fascia, at the rake. `fasciaRun = fascia thick / (plumb tails ? cos : 1)`. An extended side starts at the wall line. A gambrel's upper plane starts at the break, on the top line. |
 | `u`, `v` | Along x, and up the slope. `u × v` points out of the roof. |
 | `length` | Rake to rake. |
-| `width` | Gable: up to the ridge line, `width / 2`. Lean-to: over the high fascia. |
-| `eaves` | Edges along u that take drip edge. |
+| `width` | Gable: up to the ridge line, `width / 2`. Lean-to: over the high fascia. Gambrel lower plane: up to the break. Gambrel upper plane: `(width / 2 - run) / cos` of the upper slope, up to the ridge line. |
+| `eaves` | Edges along u that take drip edge. 0 on a gambrel's upper plane. |
 | `sheathed` | `roofing !== 'metal'`. |
+| `ridge` | True when the upper edge is on the ridge line: a gable plane, or a gambrel's upper plane. |
+| `breakEdge` | The edge on a gambrel's break: `high` on the lower plane, `low` on the upper plane. Else null. |
 
-`rafterSpan` is `to - seat` on a gable and `width - wall depth - seat` on a lean-to: the horizontal
-clear span. `checkSpans` reads it.
+`rafterSpans` gives the horizontal clear span of each rafter member. `checkSpans` checks each entry
+as its own member, named by `member`.
+
+| Roof | `rafterSpans` |
+|---|---|
+| Gable | `Rafters`: `to - seat` |
+| Lean-to | `Rafters`: `width - wall depth - seat` |
+| Gambrel | `Lower rafters`: `run - seat`, the bearing to the break. `Upper rafters`: `to - run`, the break to the ridge face. |
+
+`checkSpans` does not check the thrust at the break. On the gambrel in 7.15, the lower planes are
+72.887 wide and the upper planes 26.833. The spans are 21-7/8 and 23-1/4.
 
 ### 7.13 Raised roof on knee walls
 
 | Quantity | Formula |
 |---|---|
-| `raised` | `gable && loft.enabled && kneeWalls.enabled` |
+| `raised` | `roof.style === 'gable' && loft.enabled && kneeWalls.enabled` |
 | `kneeBase` | `hung`: `wallTops.front`. `plates`: `wallTops.front + loft joist width + deck thick`. |
 | `plate` | `kneeBase + kneeWalls.height` |
 | `bearingDepth` | Knee-wall stud width |
 
 The rafters seat on the knee walls (9.8). The ridge and the collar ties rise with the slope.
+
+Decision: a gambrel takes no knee walls, so it is never raised. The steep lower slope gives the
+headroom.
 
 Example, 8 × 10 ft, 2x6 loft joists on the plates, 23/32 deck, 36 in knee walls: `kneeBase`
 103-11/32, bearing 139-11/32, ridge top 167.368.
@@ -1244,30 +1334,141 @@ along it:
 | Front, back | ≤ eave + fascia thickness | The fascia bottom: the rafter top at the tail less the fascia width. |
 | Front, back | farther | null |
 
+The rafter underside is `profile.bottom` (2.6). Over a gable end of a gambrel, it follows both
+slopes.
+
 `soffit.breaks(wall)` lists the x where `under` changes: `[0, rake]` on end walls,
 `[0, eave, eave + fascia thick]` on eave walls.
 
-`eave` is `{ top: slope.top(0), plate, bearing: bearingDepth }`: the rafter top over the outside
-face, the bearing plate top, and the bearing depth. A roof extension starts here.
+`eave` gives the facts at the eave wall. A roof extension starts here.
 
-### 7.15 Change it safely
+| Field | Content |
+|---|---|
+| `top` | `slope.top(0)`: the rafter top over the outside face. |
+| `plate` | The bearing plate top. |
+| `bearing` | `bearingDepth`. |
+| `pitch` | `eavePitch(roof)`: the eave slope, per 12. A lean-to with `pitch: 'main'` takes it. |
+| `lap` | Gambrel: `run - 12 * cos`, horizontal from the wall's outside face to where the gussets start. Else `Infinity`. A same-plane roof extension laps the main rafters `min(24, lap)` in from the wall. |
 
-- Rafters, fly rafters, and rails go through `planeMember` with `dir = (cos, sin)`, so their length
-  stays long point to long point. Keep new angled roof members on `planeMember`.
+On the gambrel in 7.15, `lap` is 24 − 12 × cos 59.0° = 17-13/16.
+
+### 7.15 Gambrel break, miter, and gussets
+
+A gambrel side has two slopes. The lower slope is the eave slope (2.6), at
+`roof.gambrel.lowerPitch`. The upper slope rises from the break at `roof.pitch`.
+
+`gambrelBreak(config)` gives the break. The form shows the same values.
+
+| Field | Formula | Content |
+|---|---|---|
+| `wanted` | `breakRun`, or `width / 4` for `auto` | The break run that the user asks for. |
+| `run` | `min(wanted, width / 2 - MIN_UPPER)`, `MIN_UPPER` = 12 | The break run. The break stays 1 ft from the ridge line. |
+| `height` | `slope.top(run)` | The rafter top at the break. |
+
+Warning, adjusted: `The break 40" in from the wall is within 1 ft of the ridge line. It is at 36".`
+It fires when `run < wanted`.
+
+| Upper slope | Formula |
+|---|---|
+| `top(y)` | `slope.top(run) + upper rise * (y - run)` |
+| `bottom(y)` | `top(y) - depth / upper cos` |
+| `seat` | 0 |
+
+The two top lines cross at (`run`, `height`): the break on the top line.
+
+`miterOf(eaveward, ridgeward, upper, lower)` gives the miter as a `Joint` `{ top, bottom }`. `top`
+is the `crossing` of the two slopes' lines that are `upper` below their top lines, measured square
+to each slope. `bottom` is the same at `lower`. The cut is on the bisector of the two slopes:
+`M = (lower degrees - upper degrees) / 2` from square. Each note prints
+`Cut M° from square at the break.`, with M to 0.1°.
+
+| Member | `upper`, `lower` |
+|---|---|
+| Rafter, fly rafter | 0, rafter depth |
+| Ladder rail | 0, ladder width |
+| Gable top plate (8.3) | rafter depth, rafter depth + 1-1/2 |
+
+| Rafter | Role, code | Extent | Cuts |
+|---|---|---|---|
+| Lower | `rafter`, `R` | Low end to the miter | Tail and birdsmouth as on a gable (7.5, 7.6). Miter at the break. |
+| Upper | `rafter.upper`, `UR` | Miter to the ridge face | Miter at the break. Plumb cut at the ridge. No birdsmouth. |
+
+Each rafter start gets one lower and one upper rafter on each side. Notes are in 7.7.
+
+Gussets join each lower and upper rafter at the break:
+
+1. Take the joint `miterOf(slope, upper, 0, depth)`: the break on the top line, and the inside
+   corner.
+2. From the break, go `GUSSET` = 12 in along each rafter's top edge. From there, go square across
+   the rafter depth.
+3. Common rafters: make the outline from 5 points: low bottom, high bottom, high top, break, low
+   top. The lower edge runs straight across, under the inside corner, so the gusset is a web.
+4. Gable-end rafters: make the outline from 6 points: low bottom, inside corner, high bottom, high
+   top, break, low top. It stays within the rafter depth, because the gable top plate is under it.
+5. Put one gusset on each face of each common rafter: the −x face at `x − thick`, the +x face at
+   `x + 1-1/2`.
+6. Put one gusset on each gable-end rafter, on its inside face. The outside face carries the rake
+   ladder.
+
+Without a ridge board, peak gussets join the upper rafters across the ridge line, in the same way:
+12 in down each top edge from the peak, square across, the same faces. The common one runs straight
+across under the inside corner; the gable-end one stays within the rafter depth. The back half is
+the front half mirrored about y = `width / 2`. `ridgeBottom` for the ties (9.3) is then the peak
+gussets' lowest point.
+
+The Gussets sheet (drawings.md) tells the shapes apart by their label and corner count.
+
+| Field | Value |
+|---|---|
+| Shape | `Panel` at that x, u = +y, v = +z. The outline is in real (y, z), counterclockwise. |
+| `label` | `Break gusset, 15/32" plywood (1/2")`, or `Peak gusset, …` |
+| `sheet`, `material`, `layer` | `ply-15/32`, `sheet`, `roof` |
+| Id | `RF-GU01`, … at the break; `RF-GP01`, … at the peak |
+| Count | Break: `2 × commons + 2` a side. Peak: `2 × commons + 2` in all, one set across both sides. |
+
+`frameRoof` passes `Gussets { thick, bottom, top, inside }` to `frameAttic` (9.1, 9.3). The fields
+are the plywood thickness, the lowest and highest z of the outline, and the z of the inside corner.
+
+Example, 8 × 10 ft, 2x4 walls with plates at 97-1/8, 2x6 rafters at 24 in, 20/12 and 6/12, `auto`
+break:
+
+| Quantity | Value |
+|---|---|
+| `run` | 96 / 4 = 24 |
+| Seat, heel | 2-1/8, 3-9/16 (7.4) |
+| `height` | 97-1/8 + 20/12 × (24 − 2-1/8) + 5-1/2 / cos 59.0° = 144.273 |
+| M | (59.0° − 26.6°) / 2 = 16.2° |
+| Lower, upper rafter | 79.138, 25.994 |
+| Gussets | 4 commons: 10 a side, 20 in all (16 with 5 corners, 4 with 6) |
+| Without a ridge board | Upper rafter 24 × √1.25 = 26.833; 10 peak gussets; peak at 144.273 + 12 = 156.273 |
+
+### 7.16 Change it safely
+
+- Rafters, upper rafters, fly rafters, and rails go through `planeMember` with `dir` = (cos, sin) of
+  their slope. Their length stays long point to long point. Keep new angled roof members on
+  `planeMember`.
 - `rafterStarts` puts the gable-end rafters first and last. `frameAttic` relies on that order for
-  `commons`.
-- The ridge bottom is `slope.top(width / 2 - 0.75)` less the ridge width. `frameRoof` passes it to
-  `frameAttic`. `frameGableEnds` computes the same value. Change both together.
+  `commons`. The gussets rely on it to find the gable-end rafters.
+- The ridge bottom is `profile.top(width / 2 - 0.75)` less the ridge width. `frameRoof` computes it
+  from `peak.top(to)` and passes it to `frameAttic`. `frameGableEnds` computes the same value.
+  Change both together.
+- With one slope, each `Profile` function must give the value of the slope's own formula. Gable and
+  lean-to output depends on it.
+- `frameRoof` and `frameGableEnds` each build the text `Cut M° from square at the break.` Change
+  both together.
+- `gambrelBreak` repeats the seat and the break height of `frameRoof`. Change both together.
 - A change to `soffit` or `eave` changes every lean-to. Run `tests/additions.test.ts` too.
 - `tests/roof.test.ts` pins the rafter count and length, the birdsmouth, the seat limit, and the
-  ridge. It also pins rake ladders, purlins, fascia, gable panels, gable studs, and the lean-to
-  roof. Its last case checks that every profiled member has right-handed axes.
+  ridge. It also pins rake ladders, purlins, fascia, gable panels, gable studs, the gambrel roof,
+  and the lean-to roof. Two cases check that every profiled member has right-handed axes: one on a
+  gable, one on a gambrel.
 
 ## 8. Gable ends
 
-`frameGableEnds(config, slope, sides, gable, wallTop, wallDepth, bearingDepth, raised, warnings)`
-frames the area above each end wall, under the end rafters. It runs for both roof styles. On a
-lean-to, the area is the slope above each end wall, up to the high wall.
+`frameGableEnds(config, profile, sides, gable, wallTop, wallDepth, bearingDepth, raised, warnings)`
+frames the area above each end wall, under the end rafters. It runs for every roof style. `gable` is
+`ridged(roof)` (7.2). On a lean-to, the area is the slope above each end wall, up to the high wall.
+`slope` is the eave slope, and `peak` is the slope at the ridge or the high wall.
 
 ### 8.1 Planes and members
 
@@ -1283,10 +1484,11 @@ y: `width - u` on the left, `u` on the right.
 | Quantity | Formula | Content |
 |---|---|---|
 | `plateTop` | `wallTop + (gablePanel ? 1.5 : 0)` | Where the gable studs stand. |
-| `plateThick` | `1.5 / cos` | Plumb thickness of the gable top plate. |
-| `under(y)` | `min over sides of slope.bottom(map(y)) - plateThick` | Underside of the gable top plates. |
-| `ridgeBottom` | `slope.top(width / 2 - 0.75) - ridge width` | Gable only. |
-| `post` | `[width / 2 - 0.75, width / 2 + 0.75]` when `ridgeBottom - plateTop >= 3`, else null | Gable only. The ridge post span. |
+| `plateThick` | `1.5 / cos` of the eave slope | Plumb thickness of the gable top plate. |
+| `under(y)` | Lowest over sides and slopes of `on.bottom(map(y)) - 1.5 / on.cos` | Underside of the gable top plates. |
+| `topCut(y)` | `Top cut`, then the degrees of the slope that gives `under(y)` | Top-cut note of a stud, king, or cripple, at its middle. |
+| `ridgeBottom` | `profile.top(width / 2 - 0.75) - ridge width` | Gable and gambrel. |
+| `post` | `[width / 2 - 0.75, width / 2 + 0.75]` when `hasRidgeBoard(roof)` and `ridgeBottom - plateTop >= 3`, else null | Gable and gambrel. The ridge post span. |
 
 `MIN_STUD` = 3 in. A gable stud, cripple, or ridge post shorter than 3 in is not built, and no
 warning appears.
@@ -1315,11 +1517,21 @@ rafter's underside. All values are in one side's drawn section.
 | Level cut, raised | as above | `Plumb cut against the knee wall's cap plate, level cut on the corner plate. Plumb cut ...` With no cap plate: `Level cut on the corner plate. ...` |
 | Plumb cut | `(low, under(low))`, `(high, under(high))`, `(high, bottom(high))`, `(low, bottom(low))` | `Plumb cuts 45.0° at the eave wall's inside face and 45.0° at the ridge post.` Raised: `at the knee wall`. |
 
-The length runs along the plate's underside, low end to high end. A plate exists only when
-`low < high`. A gable end gets one plate for each drawn side: two on a gable roof, one on a lean-to.
+On a gambrel, each side has two gable top plates, mitered at the break as the rafters are. The
+joint is `miterOf(slope, upper, depth, depth + 1.5)` (7.15).
+
+| Piece | Outline | Note |
+|---|---|---|
+| Lower | As above, with the joint's `bottom` and `top` as the high end | `Level cut on the wall plate. Cut 16.2° from square at the break.` Panel: `on the bottom plate`. Plumb low end: `Plumb cut 59.0° at the eave wall's inside face. Cut 16.2° from square at the break.` |
+| Upper | Joint `bottom`, `(high, under)`, `(high, bottom(high))`, joint `top` | `Cut 16.2° from square at the break. Plumb cut 26.6° at the ridge post.` |
+
+Each piece's length runs along its underside, low end to high end. A plate exists only when
+`low < high`. A gable end gets one plate for each drawn side and slope: two on a gable roof, four on
+a gambrel, one on a lean-to.
 
 Example, 8 × 10 ft, 2x6 at 6/12: `meet` = 3-1/2 + 1.677 / 0.5 = 6.85, so the plate has a level cut.
-Its top edge runs from 3-1/2 to the ridge post face at 47-1/4: 43-3/4 / cos = 48.91.
+Its top edge runs from 3-1/2 to the ridge post face at 47-1/4: 43-3/4 / cos = 48.91. On the gambrel
+in 7.15, the lower plates are 50.082 and the upper plates 21.643.
 
 ### 8.4 In place or as a panel
 
@@ -1346,13 +1558,15 @@ Layout studs follow the end wall's layout:
 5. Skip it if it overlaps an opening's zone.
 6. Skip it if `min(top(near), top(far)) - plateTop < 3`.
 7. Else put a `stud.gable` (`S`) from `plateTop` up to the gable top plate. Its top follows the
-   plate. Note: `Top cut 26.6°.`
+   plate. Note: `topCut` at the stud's middle, for example `Top cut 26.6°.`
 
 The ridge post (`post.ridge`, `P`) stands from `plateTop` to `ridgeBottom`, square cut. Inside an RO
 it becomes a post from the header top to `ridgeBottom` and a cripple below the sill.
 
 Example, 8 × 10 ft, 2x6 at 6/12: layout 16, 32, 64, and 80 (48 is the post). Studs 4.948, 4.948,
-12.948, 12.948. Post 117.899 − 97-1/8 = 20.774.
+12.948, 12.948. Post 117.899 − 97-1/8 = 20.774. On the gambrel in 7.15, the studs at 16 and 80 are
+21.460, `Top cut 59.0°.` The studs at 32 and 64 are 43.697, `Top cut 26.6°.` The post is 148.648 −
+97-1/8 = 51.523.
 
 On a raised roof, each eave corner also gets:
 
@@ -1386,6 +1600,8 @@ A gable opening is a row on an end wall with its sill at or above the end-wall t
 | Flat header on a bearing wall | Warning on front and back | No check |
 | Overhead headroom | Warning | No check |
 
+On a gambrel, `top` follows both slopes. Its lowest point over a header is still at an outer end.
+
 | Member | Rule |
 |---|---|
 | Kings | From `plateTop` up to the gable top plate. Note `Top cut ...`. |
@@ -1406,14 +1622,19 @@ cripples below the sill. The post continues from the header top at 115-1/2 to th
 - The gable studs and gable openings use the end wall's u. Keep `toY` and `wallFrames` in step.
 - A gable opening uses `openingZone`, `resolveHeader`, `warnThickHeader`, `openingBoards`, and
   `leftOut` from `walls.ts`.
-- The gable top plate cases depend on `raised`, `capPlate`, and `gablePanel`. Test each one.
+- The gable top plate cases depend on `raised`, `capPlate`, `gablePanel`, and the roof style. Test
+  each one.
+- `under` and `topCut` take the lowest of all slopes. A gable member that follows the roof must use
+  `top(u)`, not one slope's line.
 - `tests/roof.test.ts` pins the plates, studs, post, and panels. `tests/openings.test.ts` pins the
   gable openings. `tests/attic.test.ts` pins the raised corners.
 
 ## 9. Attic
 
-`frameAttic(config, slope, rafters, ridgeBottom, wallDepth, wallTop, kneeBase)` frames rafter ties,
-collar ties, the loft, and knee walls. It runs on gable roofs only.
+`frameAttic(config, profile, rafters, ridgeBottom, wallDepth, wallTop, kneeBase, gussets)` frames
+rafter ties, collar ties, the loft, and knee walls. It runs on gable and gambrel roofs. `gussets` is
+the `Gussets` of a gambrel (7.15), else null. `plate` is the rafter bearing height, and `ridgeTop`
+is `profile.top(width / 2 - 0.75)`.
 
 | Field | Values | Default |
 |---|---|---|
@@ -1437,12 +1658,25 @@ Ties and loft joists run front to back between the slopes. `Level` builds them:
 
 | Function | Formula |
 |---|---|
-| `span(bottom, inset = 0)` | `[s, width - s]` with `s = max(inset, (bottom - slope.top(0)) / rise)`: where the rafter top line reaches the piece's bottom, or `inset`. |
-| `piece(base, x, bottom, extent, note)` | A box from `extent[0]` to `extent[1]`, from `bottom` up the lumber width. `clipBelow` trims it to both roof top lines. Plane (x, 0, 0), h = +y. |
+| `span(bottom, inset = 0)` | `[s, width - s]` with `s = max(inset, profile.reachTop(bottom))`: where the roof top line reaches the piece's bottom, or `inset`. |
+| `piece(base, x, bottom, extent, note)` | A box from `extent[0]` to `extent[1]`, from `bottom` up the lumber width. `clipBelow` trims it below each slope's top line on both sides. Plane (x, 0, 0), h = +y. |
 
 Each tie and loft joist sits at x = rafter start + 1-1/2, beside the rafter's +x face. It laps the
-rafter side, so it can reach out to the roof's top line. `trimmed` is true when a roof line cuts a
-top corner. Note: `Ends cut 26.6° to the roof line.` or `Square ends.`
+rafter side, so it can reach out to the roof's top line.
+
+`piece` gives `note` the cut angles of a trimmed end, or null when no roof line cuts a top corner.
+It lists the degrees of each slope in `profile.along(from, profile.reachTop(bottom + depth))`: the
+slopes over the trimmed end.
+
+| Trimmed end | Note |
+|---|---|
+| Under one slope | `Ends cut 26.6° to the roof line.` |
+| Across a gambrel's break | `Ends cut 59.0° and 26.6° to the roof line.` |
+| None | `Square ends.` |
+
+A rafter tie or collar tie overlaps the gussets when its z range overlaps `gussets.bottom` to
+`gussets.top`. It then sits on the gusset face, at x = rafter start + 1-1/2 + `gussets.thick`. Its
+note adds ` Over the gussets.`
 
 ### 9.2 Rafter ties
 
@@ -1460,8 +1694,9 @@ ends. At 12 in up, each is 65.60 long, ends cut to the roof line, with the warni
 
 ### 9.3 Collar ties
 
-1. Set `auto = min(plate + (ridgeTop - plate) * 2 / 3, ridgeBottom - depth)`: the bottom of the
-   upper third, kept under the ridge board.
+1. Set `auto = min(gussets ? gussets.inside - depth : plate + (ridgeTop - plate) * 2 / 3,
+   ridgeBottom - depth)`, under the ridge board. On a gable, it is the bottom of the upper third. On
+   a gambrel, the tie top is at the miter's inside corner.
 2. Set the bottom to `auto`, or to `plate + collarTies.height`.
 3. If `bottom + depth > ridgeBottom`, leave the ties out: `Collar ties 20" above the plate hit the
    ridge board. Lower them.` The outline is level at the tie bottom, from the first common to the
@@ -1471,7 +1706,9 @@ ends. At 12 in up, each is 65.60 long, ends cut to the roof line, with the warni
 
 Collar ties exist with or without a loft. Example, 8 × 10 ft, 2x6 at 6/12. The upper third starts
 at 115.808, and the ridge bottom less 3-1/2 is 114.399. The ties sit at 114.399, and each is 44-1/2
-long.
+long. On the gambrel in 7.15, the ties sit at 136.570, with their tops at the inside corner,
+140.070. They overlap the gussets, so they are at x = 25-7/32, 49-7/32, 73-7/32, and 97-7/32. Each
+is 57.244 long, with the note `Ends cut 59.0° to the roof line. Over the gussets.`
 
 ### 9.4 Loft floor
 
@@ -1532,7 +1769,7 @@ hangers.
 | `left < inner[0]` or `right + 3 > inner[1]` | Left out: `The hatch and its trimmers do not fit between the ends of the loft floor.` |
 | `tail < 0.01` | Left out: `The hatch headers reach past the ends of the loft joists.` |
 | Trimmers overlap an earlier hatch's | Left out: `The hatch overlaps another hatch.` |
-| `lapping`, and a header is above the rafter underside | Left out: `The hatch headers would hit the rafters. Move the hatch away from the eaves.` |
+| `lapping`, and a header is above the rafter underside, `profile.bottom` | Left out: `The hatch headers would hit the rafters. Move the hatch away from the eaves.` |
 | `tail < MIN_TAIL` (3) | Warning, built: `The shortest tail joist is 2" long.` |
 | Header length `right − left − 3 > LONG_HEADER` (48) | Warning, built: `The 60" hatch headers are longer than 4 ft. Check their size.` |
 
@@ -1568,14 +1805,14 @@ Example, `hung`, 8 × 10 ft: ledgers 113 long at y = 3-1/2 and 92-1/2, z = 91-5/
 |---|---|
 | `bottom` | Joist top: joist bottom + joist width. |
 | x extent | Knee walls on `plates`: wall depth to `length − wall depth`. Else `floor`. |
-| `reach` (y from each wall) | `hung`: wall depth. Knee walls on `plates`: 0. `plates` with no knee walls: `seat + (deck top - slope.bottom(seat)) / rise`, where the rafter underside meets the deck top. |
+| `reach` (y from each wall) | `hung`: wall depth. Knee walls on `plates`: 0. `plates` with no knee walls: `profile.reachBottom(deck top)`, where the rafter underside meets the deck top. |
 | `holes` | Each hatch, inside its trimmers and headers. Knee walls on `plates` with an open end: the open part, less a strip of knee-wall depth at each eave. |
 | None | When `reach >= width / 2 - 0.01`. |
 
 ### 9.8 Knee walls
 
-`frameKneeWalls(config, base)` builds a knee wall at each eave when the roof is raised. `base` is
-`kneeBase` (7.13).
+`frameKneeWalls(config, base)` builds a knee wall at each eave when the roof is raised: on a gable
+roof only. `base` is `kneeBase` (7.13).
 
 1. Set `studLength = kneeWalls.height - 1.5 * (capPlate ? 3 : 2)`. The height runs from the base to
    the top of the plates, where the rafters bear.
@@ -1607,6 +1844,8 @@ and 137-27/32. Studs 31-1/2 at x = 3-1/2, 15-1/4, ... 115. The bottom plate is 1
 ### 9.9 Change it safely
 
 - `commons` assumes the gable-end rafters are first and last in `rafters`.
+- A new member that laps the rafter sides near a gambrel's break must sit on the gusset face, as
+  the ties do (9.1).
 - `clear` moves a member only when `lapping` is true. On the plates with no knee walls, send each
   new front-to-back loft member through `clear`. Else it can collide with a rafter.
 - Ledgers and rims splice on members with `axes.length[1] === 1`. A new front-to-back loft member
@@ -1650,8 +1889,9 @@ and it draws that part in red in 3D and on the drawings.
 | Opening label | `A flat header is on a bearing wall.` | Flat header on front or back | Built | `fitOpening` |
 | Opening label | `The headroom above the RO is X. The door needs Y.` | Overhead door, headroom short | Built | `fitOpening` |
 | `Roof` | `A 1-1/2 in seat cuts the birdsmouth deeper than 1/3 ...` | Seat limit under 1-1/2 in | Adjusted: seat 1-1/2 | `seatLength` |
+| `Roof` | `The break X in from the wall is within 1 ft of the ridge line. It is at Y.` | Gambrel, `wanted > width / 2 - 12` | Adjusted: break at `width / 2 - 12` | `frameRoof` |
 | `Roof` | `A square tail cut needs X of eave overhang. ...` | `eave < depth * sin` | Adjusted: plumb tails | `frameRoof` |
-| `Roof` | `The ridge board (S) is shallower than the rafter plumb cut (X).` | Ridge width < `plumb` | Built | `frameRoof` |
+| `Roof` | `The ridge board (S) is shallower than the rafter plumb cut (X).` | Ridge width < `depth / peak.cos` | Built | `frameRoof` |
 | Opening label | `The framing runs past the gable. ...` | Zone within `clear` of an eave | Left out, `gable.*` | `fitGableOpening` |
 | Opening label | `The framing overlaps another opening.` | Zone overlaps an earlier gable zone | Left out, `gable.*` | `fitGableOpening` |
 | Opening label | `The kings or jacks land on the ridge post. Move the opening.` | Post in the zone, not inside the RO | Left out, `gable.*` | `fitGableOpening` |
@@ -1659,7 +1899,7 @@ and it draws that part in red in 3D and on the drawings.
 | Opening label | `The header does not fit. ... above the gable top plate at ...` | Header stack above the gable top plate | Left out, `gable.*` | `fitGableOpening` |
 | Opening label | `The rough sill is below the top of the end-wall plate.` | Rough sill under `plateTop` | Left out, `gable.*` | `fitGableOpening` |
 | `Roof` | `Rafter ties X above the plate are above the lower third of the roof (Y).` | `height > lowerThird` | Built | `frameAttic` |
-| `Roof` | `Collar ties X above the plate hit the ridge board. Lower them.` | Tie top above `ridgeBottom` | Left out, `roof` | `frameAttic` |
+| `Roof` | `Collar ties X above the plate hit the ridge board. Lower them.` (`the peak gussets` without a ridge board) | Tie top above `ridgeBottom` | Left out, `roof` | `frameAttic` |
 | `Loft` | `The open end leaves no loft floor.` | `inner` under 1-1/2 in | No loft members, no deck, no outline | `frameLoft` |
 | `Hatch N` | `The hatch and its trimmers do not fit between the ends of the loft floor.` | Trimmers outside `inner` | Left out, `loft` | `frameLoft` |
 | `Hatch N` | `The hatch headers reach past the ends of the loft joists.` | `tail < 0.01` | Left out, `loft` | `frameLoft` |
@@ -1681,7 +1921,7 @@ These rules skip a part, or keep a long piece, with no warning:
 | A rake under 3 in, or `onEndRafter`, has no rail. | `frameRoof` |
 | A lookout shorter than 1-1/2 in is not built. | `frameRoof` |
 | A gable stud, gable cripple, or ridge post shorter than 3 in is not built. | `frameGableEnds` |
-| No ridge post when the ridge bottom is less than 3 in above `plateTop`. | `frameGableEnds` |
+| No ridge post when the ridge bottom is less than 3 in above `plateTop`, or with no ridge board. The top plates then meet at the peak: `Plumb cut 26.6° at the peak.` | `frameGableEnds` |
 | Ties with an extent under 1-1/2 in are not built. | `frameAttic` |
 | A run with no legal splice stays one piece, longer than stock. | `splitPlate` |
 | No deck when `reach` is `width / 2` or more: the rafter undersides leave no deck area. | `frameLoft` |
@@ -1693,9 +1933,14 @@ These rules skip a part, or keep a long piece, with no warning:
 | `tests/floor.test.ts` | Joist layout, rims, blocking, skid lines, skid end cuts and notes, square splices, girder plies, piers, posts, slab, anchor bolts clear of doorways. |
 | `tests/walls.test.ts` | Through and butted walls, corner types, layout from the building corner, plates and caps, splices, mud sills, custom heights, lean-to walls and caps. |
 | `tests/openings.test.ts` | Kings, jacks, header styles and ply positions, header plates, tight header, cripples, rough sills, doorway notes, placement, left-out outlines, overhead headroom, gable openings. |
-| `tests/roof.test.ts` | Rafter layout and cut length, birdsmouth, seat limit, ridge, rake ladders and options, purlins, fascia, gable panels, gable studs and post, lean-to roof, right-handed axes. |
+| `tests/roof.test.ts` | Rafter layout and cut length, birdsmouth, seat limit, ridge, rake ladders and options, purlins, fascia, gable panels, gable studs and post, lean-to roof, right-handed axes. `gambrel roof`: rafters, miter and notes, ridge, gussets, planes, gable top plates and studs, rake ladders, collar ties, spans, `gambrelBreak`, the break limit, no knee walls. |
 | `tests/attic.test.ts` | Rafter and collar ties, loft modes, open ends, hatches, ledgers and rims, knee walls, raised gable corners, layers. |
 | `tests/every-design.test.ts` | On each design in `tests/designs.ts`: unique ids, positive lengths, and profiles within their lumber width. Also one cut line for each member, unique marks, finite numbers in every output, and no empty drawing. |
+
+`tests/designs.ts` includes `tests/fixtures/12x16-gambrel-barn.json`. It is a gambrel with an auto
+break and no ridge board, a loft with a hatch, a loft door in a gable end, a roof extension, and a
+gable-end lean-to.
+Its one warning is on purpose: the extension rafters pass over the main wall's plate.
 
 `tests/golden.test.ts` compares the cut list, warnings, and costs of each design with
 `tests/golden/*.txt`. When a framing change alters a golden file on purpose, read the diff. Then run

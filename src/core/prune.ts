@@ -1,4 +1,4 @@
-import { OPPOSITE, shedSchema, type ShedConfig } from './config';
+import { hasRidgeBoard, OPPOSITE, ridged, shedSchema, type ShedConfig } from './config';
 import { onShed } from './gen/deck';
 import { rampPlace } from './gen/ramps';
 
@@ -14,7 +14,7 @@ const omit = <T extends object>(value: T, keys: (keyof T)[]): Partial<T> =>
  */
 export function pruneConfig(config: ShedConfig): ShedConfig {
   const { foundation, walls, roof, additions, finishes, loads } = config;
-  const gable = roof.style === 'gable';
+  const gable = ridged(roof);
   const loft = gable && roof.loft.enabled;
   const anyMetal = roof.roofing !== 'shingles' || additions.some(({ roofing }) => roofing === 'metal');
   // Open metal roofing has no sheathing; a lean-to without metal takes the main roof's.
@@ -41,17 +41,20 @@ export function pruneConfig(config: ShedConfig): ShedConfig {
       .filter(({ name }) => placed.has(name))
       .map((type) => (type.kind === 'overhead' ? type : omit(type, ['headroom']))),
     roof: {
-      ...omit(roof, ['sheathing', 'purlin', 'purlinSpacing', 'rakeLadder', 'ridge', 'highSide', 'rafterTies', 'collarTies', 'loft', 'kneeWalls']),
+      ...omit(roof, ['gambrel', 'sheathing', 'purlin', 'purlinSpacing', 'rakeLadder', 'ridge', 'highSide', 'rafterTies', 'collarTies', 'loft', 'kneeWalls']),
+      ...(roof.style === 'gambrel' && { gambrel: roof.gambrel }),
       ...(sheathed && { sheathing: roof.sheathing }),
       ...(roof.roofing !== 'shingles' && { purlin: roof.purlin, purlinSpacing: roof.purlinSpacing }),
-      ...(roof.rakeOverhang >= LADDER && { rakeLadder: gable ? roof.rakeLadder : omit(roof.rakeLadder, ['ridgeExtends']) }),
-      ...(gable ? { ridge: roof.ridge } : { highSide: roof.highSide }),
+      ...(roof.rakeOverhang >= LADDER && { rakeLadder: hasRidgeBoard(roof) ? roof.rakeLadder : omit(roof.rakeLadder, ['ridgeExtends']) }),
+      ...(hasRidgeBoard(roof) && { ridge: roof.ridge }),
+      ...(!gable && { highSide: roof.highSide }),
       // Loft joists take the place of rafter ties.
       ...(gable && !loft && { rafterTies: roof.rafterTies.enabled ? roof.rafterTies : { enabled: false } }),
       ...(gable && { collarTies: roof.collarTies.enabled ? roof.collarTies : { enabled: false } }),
       ...(loft && {
         loft: { ...roof.loft, open: roof.loft.open.end === 'none' ? { end: 'none' } : roof.loft.open },
-        kneeWalls: roof.kneeWalls.enabled ? roof.kneeWalls : { enabled: false },
+        // A gambrel takes no knee walls.
+        ...(roof.style === 'gable' && { kneeWalls: roof.kneeWalls.enabled ? roof.kneeWalls : { enabled: false } }),
       }),
     },
     additions: additions.map((addition) => {

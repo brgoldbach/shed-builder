@@ -1,8 +1,8 @@
 import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
-import type { ShedConfig } from '../config';
+import { hasRidgeBoard, type ShedConfig } from '../config';
 import { LEFT_OUT, type Assembly, type Member, type Point, type Role, type Vec3, type Warning } from '../member';
 import { formatInches } from '../units';
-import { clipBelow, degrees, idMaker, planeMember, type Slope } from './section';
+import { clipBelow, degrees, idMaker, planeMember, type Profile } from './section';
 import { splitPlate } from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
@@ -30,51 +30,70 @@ export interface Deck {
 interface Level {
   /** Wall-to-wall extent at `bottom`: `inset` in from each wall face, less where the roof line cuts in. */
   span: (bottom: number, inset?: number) => Span;
-  /** A piece over `extent` at x, lapping the rafter sides; ends past the roof line are trimmed. */
-  piece: (base: Base, x: number, bottom: number, extent: Span, note: (trimmed: boolean) => string) => Member;
+  /**
+   * A piece over `extent` at x, lapping the rafter sides; ends past the roof line are trimmed.
+   * `note` gets the angles of a trimmed end, or null.
+   */
+  piece: (base: Base, x: number, bottom: number, extent: Span, note: (cut: string | null) => string) => Member;
+}
+
+/** A gambrel's break joint: the gussets' thickness and height range, and the joint's inside corner. */
+export interface Gussets {
+  thick: number;
+  bottom: number;
+  top: number;
+  inside: number;
 }
 
 /**
- * Rafter ties, collar ties, the loft floor, and knee walls of a gable roof. `rafters` holds each
- * rafter's start x, gable-end rafters first and last. `wallTop` is the top of the eave walls.
- * `kneeBase` is where knee walls stand when they carry the rafters, else null.
+ * Rafter ties, collar ties, the loft floor, and knee walls of a gable or gambrel roof. `rafters`
+ * holds each rafter's start x, gable-end rafters first and last. `wallTop` is the top of the eave
+ * walls. `kneeBase` is where knee walls stand when they carry the rafters, else null.
  */
 export function frameAttic(
   config: ShedConfig,
-  slope: Slope,
+  profile: Profile,
   rafters: readonly number[],
   ridgeBottom: number,
   wallDepth: number,
   wallTop: number,
   kneeBase: number | null,
+  gussets: Gussets | null,
 ): { members: Member[]; warnings: Warning[]; deck: Deck | null } {
   const { width, roof } = config;
-  const { pitch } = slope;
+  const [slope] = profile.slopes; // at the eave
   const members: Member[] = [];
   const warnings: Warning[] = [];
   const warn: Warn = (source, message) => warnings.push({ source, message });
   const leaveOut: LeaveOut = (source, assembly, message, outline) =>
     warnings.push({ source, message: `${message} ${LEFT_OUT}`, missing: { assembly, outline } });
   const plate = slope.bottom(slope.seat); // where the rafters bear
-  const ridgeTop = slope.top(width / 2 - PLY / 2);
+  const ridgeTop = profile.top(width / 2 - PLY / 2);
   // The gable-end rafter pairs stand on the gable framing and get no ties.
   const commons = rafters.slice(1, -1);
   const roofIds = idMaker('RF');
 
   const level: Level = {
     span: (bottom, inset = 0) => {
-      const start = Math.max(inset, (bottom - slope.top(0)) / pitch.rise);
+      const start = Math.max(inset, profile.reachTop(bottom));
       return [start, width - start];
     },
     piece: (base, x, bottom, [from, to], note) => {
       const depth = LUMBER[base.size].width;
       const box: Point[] = [[from, bottom], [to, bottom], [to, bottom + depth], [from, bottom + depth]];
-      const outline = clipBelow(clipBelow(box, [-pitch.rise, 1], slope.top(0)), [pitch.rise, 1], slope.top(width));
-      const trimmed = slope.top(from) < bottom + depth || slope.top(width - to) < bottom + depth;
-      return planeMember({ ...base, note: note(trimmed) }, { origin: [x, 0, 0], h: [0, 1, 0] }, outline, [1, 0]);
+      const outline = profile.slopes.reduce(
+        (kept, { pitch, top }) => clipBelow(clipBelow(kept, [-pitch.rise, 1], top(0)), [pitch.rise, 1], top(width)),
+        box,
+      );
+      const trimmed = profile.top(from) < bottom + depth || profile.top(width - to) < bottom + depth;
+      const cut = trimmed ? profile.along(from, profile.reachTop(bottom + depth)).map(({ pitch }) => degrees(pitch)).join(' and ') : null;
+      return planeMember({ ...base, note: note(cut) }, { origin: [x, 0, 0], h: [0, 1, 0] }, outline, [1, 0]);
     },
   };
-  const tieNote = (trimmed: boolean) => (trimmed ? `Ends cut ${degrees(pitch)} to the roof line.` : 'Square ends.');
+  const tieNote = (cut: string | null) => (cut ? `Ends cut ${cut} to the roof line.` : 'Square ends.');
+  // A tie at the height of a gambrel's gussets laps them, not the rafter.
+  const lap = (bottom: number, depth: number) => (gussets && bottom < gussets.top && bottom + depth > gussets.bottom ? gussets.thick : 0);
+  const lapNote = (offset: number) => (cut: string | null) => (offset > 0 ? `${tieNote(cut)} Over the gussets.` : tieNote(cut));
 
   // Loft joists take the place of rafter ties. An open end keeps clear of ties.
   if (!roof.loft.enabled && roof.rafterTies.enabled) {
@@ -88,18 +107,19 @@ export function frameAttic(
       );
     }
     const extent = level.span(plate + ties.height);
+    const offset = lap(plate + ties.height, LUMBER[ties.size].width);
     commons.forEach((x, index) => {
       if (index % ties.every !== 0 || extent[1] - extent[0] < PLY) return;
       const base = { id: roofIds('RT'), assembly: 'roof', role: 'tie.rafter', size: ties.size } as const;
-      members.push(level.piece(base, x + PLY, plate + ties.height, extent, tieNote));
+      members.push(level.piece(base, x + PLY + offset, plate + ties.height, extent, lapNote(offset)));
     });
   }
 
   if (roof.collarTies.enabled) {
     const collar = roof.collarTies;
     const depth = LUMBER[collar.size].width;
-    // Auto: at the bottom of the upper third, kept under the ridge board.
-    const auto = Math.min(plate + ((ridgeTop - plate) * 2) / 3, ridgeBottom - depth);
+    // Auto: at the bottom of the upper third, or on a gambrel just under the break, kept under the ridge board.
+    const auto = Math.min(gussets ? gussets.inside - depth : plate + ((ridgeTop - plate) * 2) / 3, ridgeBottom - depth);
     const bottom = collar.height === 'auto' ? auto : plate + collar.height;
     const extent = level.span(bottom);
     if (bottom + depth > ridgeBottom + 1e-9) {
@@ -107,19 +127,21 @@ export function frameAttic(
       const [x0, x1] = commons.length > 0 ? [commons[0], commons[commons.length - 1] + 2 * PLY] : [0, config.length];
       const [y0, y1] = level.span(bottom);
       const outline: Vec3[] = [[x0, y0, bottom], [x1, y0, bottom], [x1, y1, bottom], [x0, y1, bottom]];
-      leaveOut('Roof', 'roof', `Collar ties ${formatInches(bottom - plate)} above the plate hit the ridge board. Lower them.`, outline);
+      const ridge = hasRidgeBoard(roof) ? 'ridge board' : 'peak gussets';
+      leaveOut('Roof', 'roof', `Collar ties ${formatInches(bottom - plate)} above the plate hit the ${ridge}. Lower them.`, outline);
     } else if (extent[1] - extent[0] >= PLY) {
+      const offset = lap(bottom, depth);
       commons.forEach((x, index) => {
         if (index % collar.every !== 0) return;
         const base = { id: roofIds('CT'), assembly: 'roof', role: 'tie.collar', size: collar.size } as const;
-        members.push(level.piece(base, x + PLY, bottom, extent, tieNote));
+        members.push(level.piece(base, x + PLY + offset, bottom, extent, lapNote(offset)));
       });
     }
   }
 
   let deck: Deck | null = null;
   if (roof.loft.enabled) {
-    const loft = frameLoft(config, slope, rafters, wallDepth, wallTop, kneeBase !== null, level, warn, leaveOut);
+    const loft = frameLoft(config, profile, rafters, wallDepth, wallTop, kneeBase !== null, level, warn, leaveOut);
     members.push(...loft.members);
     deck = loft.deck;
   }
@@ -130,7 +152,7 @@ export function frameAttic(
 /** Loft floor joists, open end, and hatches, with the ledgers or rim joists along the eaves, and the deck. */
 function frameLoft(
   config: ShedConfig,
-  slope: Slope,
+  profile: Profile,
   rafters: readonly number[],
   wallDepth: number,
   wallTop: number,
@@ -141,7 +163,6 @@ function frameLoft(
 ): { members: Member[]; deck: Deck | null } {
   const { width, length, roof, catalog } = config;
   const { loft } = roof;
-  const { pitch } = slope;
   const ids = idMaker('LF');
   const joistDepth = LUMBER[loft.joist].width;
   const hung = loft.support === 'hung';
@@ -151,8 +172,8 @@ function frameLoft(
   const extent = level.span(bottom, hung ? wallDepth + PLY : raised ? PLY : 0);
   const members: Member[] = [];
 
-  const trimNote = (trimmed: boolean) => (trimmed ? `Ends cut ${degrees(pitch)} to the roof line.` : 'Square ends.');
-  const joistNote = (trimmed: boolean) => (hung ? 'Square ends. Joist hangers at both ends.' : trimNote(trimmed));
+  const trimNote = (cut: string | null) => (cut ? `Ends cut ${cut} to the roof line.` : 'Square ends.');
+  const joistNote = (cut: string | null) => (hung ? 'Square ends. Joist hangers at both ends.' : trimNote(cut));
   const joist = (code: string, role: Role, x: number, span: Span = extent, note = joistNote) =>
     members.push(level.piece({ id: ids(code), assembly: 'loft', role, size: loft.joist }, x, bottom, span, note));
 
@@ -212,7 +233,7 @@ function frameLoft(
       skip('The hatch overlaps another hatch.');
       return;
     }
-    if (lapping && Math.min(slope.bottom(front), slope.bottom(width - back)) < bottom + joistDepth) {
+    if (lapping && Math.min(profile.bottom(front), profile.bottom(width - back)) < bottom + joistDepth) {
       skip('The hatch headers would hit the rafters. Move the hatch away from the eaves.');
       return;
     }
@@ -240,8 +261,8 @@ function frameLoft(
 
   // Layout joists on o.c. multiples, moved beside a rafter they land on. Between a hatch's
   // trimmers they become tail joists from each header to the eave.
-  const tailNote = (trimmed: boolean) =>
-    ['Joist hanger at the hatch header.', trimmed ? `Eave end cut ${degrees(pitch)} to the roof line.` : '', hung ? 'Joist hanger at the ledger.' : '']
+  const tailNote = (cut: string | null) =>
+    ['Joist hanger at the hatch header.', cut ? `Eave end cut ${cut} to the roof line.` : '', hung ? 'Joist hanger at the ledger.' : '']
       .filter(Boolean)
       .join(' ');
   for (let index = 1; index * loft.oc < length; index++) {
@@ -313,7 +334,7 @@ function frameLoft(
   const deckBottom = bottom + joistDepth;
   const strips = raised && !hung;
   const kneeDepth = strips ? LUMBER[roof.kneeWalls.stud].width : 0;
-  const reach = hung ? wallDepth : raised ? 0 : Math.max(0, slope.seat + (deckBottom + SHEETS[loft.deck].thick - slope.bottom(slope.seat)) / pitch.rise);
+  const reach = hung ? wallDepth : raised ? 0 : Math.max(0, profile.reachBottom(deckBottom + SHEETS[loft.deck].thick));
   const [from, to] = strips ? [wallDepth, length - wallDepth] : floor;
   const holes: Rect[] = hatches.map(({ left, right, front, back }) => ({ min: [left + 2 * PLY, front + 2 * PLY], max: [right, back - 2 * PLY] }));
   if (strips && leftEdge !== null) holes.push({ min: [from, kneeDepth], max: [leftEdge, width - kneeDepth] });

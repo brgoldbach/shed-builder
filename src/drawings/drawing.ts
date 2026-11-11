@@ -58,6 +58,11 @@ export interface Drawing {
 const EPSILON = 1e-6;
 
 const dot = (first: Vec3, second: Vec3) => first[0] * second[0] + first[1] * second[1] + first[2] * second[2];
+const cross = (first: Vec3, second: Vec3): Vec3 => [
+  first[1] * second[2] - first[2] * second[1],
+  first[2] * second[0] - first[0] * second[2],
+  first[0] * second[1] - first[1] * second[0],
+];
 const relative = (view: View, point: Vec3): Vec3 => [
   point[0] - view.origin[0],
   point[1] - view.origin[1],
@@ -92,8 +97,8 @@ export const memberTitle = (member: Member, mark?: string) =>
   `${mark ? `${mark} ` : ''}${ROLES[member.role]}, ${member.size}${member.treated ? ' PT' : ''}, ${formatInches(member.length)}`;
 
 /**
- * Members and parts projected and sorted back to front. A profile seen square to its face keeps
- * its exact outline; anything else takes the convex hull of its corners. `context` members are
+ * Members and parts projected and sorted back to front. A profile or a panel seen square to its
+ * face keeps its exact outline; anything else takes the convex hull of its corners. `context` members are
  * drawn first, faint, for reference.
  */
 export function shapesOf(
@@ -126,11 +131,14 @@ export function shapesOf(
     return { shape, depth: mean(points3.map((point) => depthOf(view, point))) };
   };
   const solidShape = (solid: Solid) => {
+    const { shape: part } = solid;
     const points3 = solidCorners(view, solid);
+    const projected = points3.map((point) => project(view, point));
+    const facing = part.kind === 'panel' && Math.abs(dot(cross(part.u, part.v), view.forward)) > 1 - EPSILON;
     const outline: Outline =
-      solid.shape.kind === 'cylinder' && plan
-        ? { kind: 'circle', center: project(view, solid.shape.base), radius: solid.shape.radius }
-        : { kind: 'polygon', points: hull(points3.map((point) => project(view, point))) };
+      part.kind === 'cylinder' && plan
+        ? { kind: 'circle', center: project(view, part.base), radius: part.radius }
+        : { kind: 'polygon', points: facing ? projected.slice(0, part.outline.length) : hull(projected) };
     const shape: Shape = { outline, kind: solid.material, title: solid.label };
     return { shape, depth: mean(points3.map((point) => depthOf(view, point))) };
   };

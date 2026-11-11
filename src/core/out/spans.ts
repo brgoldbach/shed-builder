@@ -95,7 +95,9 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
   };
 
   const rafterLoad = { live: loads.roof, dead: loads.roofDead, limit: RAFTER_LIMIT };
-  joists('Rafters', roof.rafter, roof.oc, model.rafterSpan, rafterLoad, roofDuration, `${roofLabel}, L/${RAFTER_LIMIT}`);
+  for (const { member, span } of model.rafterSpans) {
+    joists(member, roof.rafter, roof.oc, span, rafterLoad, roofDuration, `${roofLabel}, L/${RAFTER_LIMIT}`);
+  }
 
   if (has('joist.floor')) {
     // Clear span between the skid or girder lines under the joists.

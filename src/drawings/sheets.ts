@@ -5,7 +5,7 @@ import { corners, panelCorners, type Assembly, type Member, type Point, type Rol
 import type { Model } from '../core/model';
 import { capitalize, type Naming } from '../core/naming';
 import { formatInches } from '../core/units';
-import { depthOf, project, shapesOf, type Dimension, type Drawing, type View } from './drawing';
+import { depthOf, project, shapesOf, type Dimension, type Drawing, type Shape, type View } from './drawing';
 import { cutLengthKey } from './piece';
 
 const UP: Vec3 = [0, 0, 1];
@@ -43,6 +43,7 @@ export function buildDrawings(
     roofPlan(context),
     buildingSection(context),
     rafterDetail(context),
+    gussetDetail(context),
     cutLengthKey(model.members, marks),
   ];
   return drawings.filter((drawing) => drawing !== null);
@@ -61,7 +62,9 @@ function boxOf(points: readonly Point[]): { min: Point; max: Point } {
 const extentOf = (view: View, members: readonly Member[]) =>
   boxOf(members.flatMap((member) => corners(member).map((point) => project(view, point))));
 
-const pitchText = ({ roof }: ShedConfig) => `Pitch ${roof.pitch}/12 (${((Math.atan(roof.pitch / 12) * 180) / Math.PI).toFixed(1)}°).`;
+const slopeText = (perTwelve: number) => `${perTwelve}/12 (${((Math.atan(perTwelve / 12) * 180) / Math.PI).toFixed(1)}°)`;
+const pitchText = ({ roof }: ShedConfig) =>
+  roof.style === 'gambrel' ? `Pitch ${slopeText(roof.gambrel.lowerPitch)} lower, ${slopeText(roof.pitch)} upper.` : `Pitch ${slopeText(roof.pitch)}.`;
 
 function makeDrawing(id: string, title: string, parts: Partial<Drawing> & Pick<Drawing, 'shapes'>): Drawing {
   return { id, title, dims: [], labels: [], outlines: [], missing: [], notes: [], ...parts };
@@ -304,7 +307,7 @@ function upperElevation({ config, model, names, marks }: Context, wall: Wall): D
   // rim under a knee wall.
   const context = model.members.filter((member) => {
     const fits = gable
-      ? member.role === 'rafter' || (member.assembly === `wall.${wall}` && (member.role === 'plate.top' || member.role === 'plate.cap'))
+      ? member.role === 'rafter' || member.role === 'rafter.upper' || (member.assembly === `wall.${wall}` && (member.role === 'plate.top' || member.role === 'plate.cap'))
       : member.role === 'rim.loft';
     if (!fits) return false;
     const depths = corners(member).map((point) => depthOf(view, point));
@@ -430,13 +433,20 @@ function buildingSection({ config, model, names, marks }: Context): Drawing {
   });
 }
 
-// One common rafter, low end on the left, with its cuts dimensioned along the top edge.
+// One common rafter, low end on the left, with its cuts dimensioned along the top edge. On a
+// gambrel: the lower and upper rafters of one side, and the gusset over the break.
 function rafterDetail({ config, model, marks }: Context): Drawing | null {
   const rafters = model.members.filter((member) => member.role === 'rafter' && member.assembly === 'roof');
   if (!rafters.length) return null;
   // The one nearest the middle: on a raised roof the gable-end rafters have no birdsmouth.
   const offMiddle = (member: Member) => Math.abs(corners(member)[0][0] - config.length / 2);
   const rafter = rafters.reduce((best, member) => (offMiddle(member) < offMiddle(best) ? member : best));
+  const xs = (points: Vec3[]) => points.map(([x]) => x);
+  const inPlane = (points: Vec3[]) => Math.min(...xs(points)) > Math.min(...xs(corners(rafter))) - 1 && Math.max(...xs(points)) < Math.max(...xs(corners(rafter))) + 1;
+  const meanY = (points: Vec3[]) => points.reduce((sum, [, y]) => sum + y, 0) / points.length;
+  const near = (points: Vec3[]) => Math.abs(meanY(points) - meanY(corners(rafter)));
+  const uppers = model.members.filter((member) => member.role === 'rafter.upper' && inPlane(corners(member)));
+  const upper = uppers.length ? uppers.reduce((best, member) => (near(corners(member)) < near(corners(best)) ? member : best)) : null;
   // right = forward × up
   const facing = (forward: Vec3): View => ({ origin: [0, 0, 0], right: [forward[1], -forward[0], 0], up: UP, forward });
   let view = facing([-1, 0, 0]);
@@ -444,14 +454,138 @@ function rafterDetail({ config, model, marks }: Context): Drawing | null {
   const lowest = points3.reduce((best, point) => (point[2] < best[2] ? point : best));
   const highest = points3.reduce((best, point) => (point[2] > best[2] ? point : best));
   if (project(view, lowest)[0] > project(view, highest)[0]) view = facing([1, 0, 0]);
-  const shapes = shapesOf(view, [rafter], [], marks);
-  const outline = shapes[0].outline;
-  const points = outline.kind === 'polygon' ? outline.points : [];
+  const pieces = upper ? [rafter, upper] : [rafter];
+  const shapes = shapesOf(view, pieces, [], marks);
+  const shapeOf = (member: Member) => shapes.find(({ id }) => id === member.id)!;
+  const dims = pieces.flatMap((member) => cutDims(shapeOf(member)));
 
-  const edges = points.map((point, index) => [point, points[(index + 1) % points.length]] as const);
-  const size = ([from, to]: readonly [Point, Point]) => Math.hypot(to[0] - from[0], to[1] - from[1]);
-  const top = edges.reduce((best, edge) => (size(edge) > size(best) ? edge : best));
-  const [left, right] = top[0][0] < top[1][0] ? [top[0], top[1]] : [top[1], top[0]];
+  // The gusset on the face in view, dashed over the joint.
+  const outlines: Point[][] = [];
+  if (upper) {
+    const gussets = model.solids.filter(({ label, shape }) => label.startsWith('Break gusset') && shape.kind === 'panel' && inPlane(panelCorners(shape)));
+    const sameSide = gussets.filter(({ shape }) => shape.kind === 'panel' && near(panelCorners(shape)) < near(corners(upper)) + 12);
+    const nearest = sameSide.reduce<Solid | null>((best, solid) => (best && depthOfSolid(view, best) < depthOfSolid(view, solid) ? best : solid), null);
+    if (nearest) {
+      const [gusset] = shapesOf(view, [], [nearest], marks);
+      if (gusset.outline.kind === 'polygon') {
+        const points = gusset.outline.points;
+        outlines.push(points);
+        // Its reach along each top edge from the break, where the lower rafter's top edge ends.
+        const lower = shapeOf(rafter).outline;
+        const [, breakPoint] = topEdge(lower.kind === 'polygon' ? lower.points : []);
+        const off = (index: number) => Math.hypot(points[index][0] - breakPoint[0], points[index][1] - breakPoint[1]);
+        const knee = points.reduce((best, _, index) => (off(index) < off(best) ? index : best), 0);
+        const ends = [points[(knee + points.length - 1) % points.length], points[(knee + 1) % points.length]].sort((first, second) => first[0] - second[0]);
+        dims.push({ kind: 'aligned', from: ends[0], to: points[knee], offset: 40 }, { kind: 'aligned', from: points[knee], to: ends[1], offset: 40 });
+      }
+    }
+  }
+
+  const title = (member: Member) => {
+    const mark = marks.get(member.id);
+    return `${mark ? `${mark}: ` : ''}${member.size}, ${formatInches(member.length)} long point to long point.`;
+  };
+  return makeDrawing('rafter', upper ? 'Gambrel rafters' : 'Common rafter', {
+    shapes,
+    dims,
+    outlines,
+    notes: [
+      `${pieces.map(title).join(' ')} ${pitchText(config)}`,
+      ...pieces.flatMap(({ note }) => (note ? [note] : [])),
+      'Top-edge dimensions run from each end of the top edge to the heel lines.',
+      ...(upper ? ['Dashed: the plywood gusset on each face, dimensioned along the top edges from the break. The Gussets sheet gives its shape.'] : []),
+    ],
+  });
+}
+
+// A gambrel's gusset shapes laid flat as cut, seen from the left end with the lower rafter on the
+// left. One row per joint, the break above the peak; in each row the common rafters' gusset, then
+// the gable-end rafters'. Each edge is dimensioned.
+function gussetDetail({ config, model, names, marks }: Context): Drawing | null {
+  const { roof, width } = config;
+  if (roof.style !== 'gambrel') return null;
+  const view: View = { origin: [0, 0, 0], right: [0, 1, 0], up: UP, forward: [-1, 0, 0] };
+  const cornersOf = ({ shape }: Solid) => (shape.kind === 'panel' ? shape.outline.length : 0);
+  const onFront = ({ shape }: Solid) => shape.kind === 'panel' && Math.min(...panelCorners(shape).map(([, y]) => y)) < width / 2;
+  const angle = (perTwelve: number) => (Math.atan(perTwelve / 12) * 180) / Math.PI;
+  const joints = [
+    { use: 'Break gusset', name: 'At the break', meet: 180 - (angle(roof.gambrel.lowerPitch) - angle(roof.pitch)) },
+    { use: 'Peak gusset', name: 'At the peak', meet: 180 - 2 * angle(roof.pitch) },
+  ];
+  // A common rafter's gusset has 5 corners, a gable-end rafter's 6 (roof.ts). A row shows one of
+  // each, from the front slope.
+  const rows = joints.flatMap((joint) => {
+    const gussets = model.solids.filter(({ label, shape }) => label.startsWith(joint.use) && shape.kind === 'panel');
+    const kinds = [5, 6].flatMap((count) => {
+      const solid = gussets.find((gusset) => cornersOf(gusset) === count && onFront(gusset));
+      return solid ? [{ solid, count: gussets.filter((gusset) => cornersOf(gusset) === count).length }] : [];
+    });
+    return kinds.length ? [{ ...joint, kinds }] : [];
+  });
+  if (rows.length === 0) return null;
+
+  const shapes: Shape[] = [];
+  const dims: Dimension[] = [];
+  let base = 0; // the bottom of the next row up
+  for (const row of [...rows].reverse()) {
+    const placed = row.kinds.flatMap(({ solid }) => shapesOf(view, [], [solid], marks)).filter(({ outline }) => outline.kind === 'polygon');
+    let left = 0;
+    let height = 0;
+    for (const shape of placed) {
+      const corners = shape.outline.kind === 'polygon' ? shape.outline.points : [];
+      const box = boxOf(corners);
+      const points = corners.map(([x, y]): Point => [x - box.min[0] + left, y - box.min[1] + base]);
+      shapes.push({ ...shape, outline: { kind: 'polygon', points } });
+      // Outside each edge: to its right on a counterclockwise loop.
+      const turn = points.reduce((sum, [x, y], index) => sum + x * points[(index + 1) % points.length][1] - points[(index + 1) % points.length][0] * y, 0);
+      const outside = turn > 0 ? -16 : 16;
+      points.forEach((point, index) => dims.push({ kind: 'aligned', from: point, to: points[(index + 1) % points.length], offset: outside }));
+      left += box.max[0] - box.min[0] + 24;
+      height = Math.max(height, box.max[1] - box.min[1]);
+    }
+    base += height + 24;
+  }
+
+  const count = (row: (typeof rows)[number], corners: number) => row.kinds.find(({ solid }) => cornersOf(solid) === corners)?.count ?? 0;
+  const rowNote = (row: (typeof rows)[number], index: number) => {
+    const where = rows.length > 1 ? ` (${index === 0 ? 'top' : 'bottom'} row)` : '';
+    const [common, end] = [count(row, 5), count(row, 6)];
+    return [
+      `${row.name}${where}: the top edges meet at ${row.meet.toFixed(1)}°.`,
+      ...(common ? [`${end ? 'Left: ' : ''}${common} for the common rafters, one on each face of each pair.`] : []),
+      ...(end ? [`${common ? 'Right: ' : ''}${end} for the gable-end rafters, on the inside face.`] : []),
+    ].join(' ');
+  };
+  return makeDrawing('gussets', 'Gussets', {
+    shapes,
+    dims,
+    notes: [
+      `${rows[0].kinds[0].solid.label.split(', ')[1]}, cut to these shapes, seen from the ${names.side('left')} end with the lower rafter on the left. The ends are square to the rafter edges.`,
+      ...rows.map(rowNote),
+      "A common rafter's gusset runs straight across under the joint's inside corner, as a web. A gable-end rafter's stays within the rafter depth, over the gable framing.",
+    ],
+  });
+}
+
+const depthOfSolid = (view: View, { shape }: Solid) =>
+  shape.kind === 'panel' ? Math.min(...panelCorners(shape).map((point) => depthOf(view, point))) : 0;
+
+const edgesOf = (points: readonly Point[]) => points.map((point, index) => [point, points[(index + 1) % points.length]] as const);
+const edgeSize = ([from, to]: readonly [Point, Point]) => Math.hypot(to[0] - from[0], to[1] - from[1]);
+
+// A rafter's top edge, its longest, left end first.
+function topEdge(points: readonly Point[]): [Point, Point] {
+  const top = edgesOf(points).reduce((best, edge) => (edgeSize(edge) > edgeSize(best) ? edge : best));
+  return top[0][0] < top[1][0] ? [top[0], top[1]] : [top[1], top[0]];
+}
+
+// A rafter's top edge from each end to its heel lines, its seats and heels, and its cut length.
+function cutDims(shape: Shape): Dimension[] {
+  const outline = shape.outline;
+  const points = outline.kind === 'polygon' ? outline.points : [];
+  const edges = edgesOf(points);
+  const size = edgeSize;
+  const [left, right] = topEdge(points);
   const onTop = (x: number): Point => [x, left[1] + ((x - left[0]) * (right[1] - left[1])) / (right[0] - left[0])];
   const level = ([from, to]: readonly [Point, Point]) => Math.abs(to[1] - from[1]) < NEAR && size([from, to]) > NEAR;
   const plumb = ([from, to]: readonly [Point, Point]) => Math.abs(to[0] - from[0]) < NEAR && size([from, to]) > NEAR;
@@ -459,7 +593,8 @@ function rafterDetail({ config, model, marks }: Context): Drawing | null {
   const shares = (first: readonly [Point, Point], second: readonly [Point, Point]) => first.some((point) => second.includes(point));
   const heels = edges.filter((edge) => plumb(edge) && seats.some((seat) => shares(seat, edge)));
 
-  const marksOnTop = [left, ...heels.map(([from]) => onTop(from[0])).sort((first, second) => first[0] - second[0]), right];
+  // Without heels the top edge is the cut length, dimensioned below.
+  const marksOnTop = heels.length ? [left, ...heels.map(([from]) => onTop(from[0])).sort((first, second) => first[0] - second[0]), right] : [];
   const dims: Dimension[] = [
     ...marksOnTop.slice(1).map((point, index): Dimension => ({ kind: 'aligned', from: marksOnTop[index], to: point, offset: 16 })),
     ...seats.map(([from, to]): Dimension => {
@@ -473,20 +608,11 @@ function rafterDetail({ config, model, marks }: Context): Drawing | null {
     }),
   ];
   // The cut length, long point to long point along the rafter, below it and clear of the seat dimension.
-  const axis = shapes[0].axis!;
+  const axis = shape.axis!;
   const along: Point = axis[0] < 0 ? [-axis[0], -axis[1]] : axis;
   const reach = ([x, y]: Point) => x * along[0] + y * along[1];
   const tail = points.reduce((best, point) => (reach(point) < reach(best) ? point : best));
   const ridge = points.reduce((best, point) => (reach(point) > reach(best) ? point : best));
   dims.push({ kind: 'aligned', from: tail, to: ridge, offset: -56, along });
-  const mark = marks.get(rafter.id);
-  return makeDrawing('rafter', 'Common rafter', {
-    shapes,
-    dims,
-    notes: [
-      `${mark ? `${mark}: ` : ''}${rafter.size}, ${formatInches(rafter.length)} long point to long point. ${pitchText(config)}`,
-      ...(rafter.note ? [rafter.note] : []),
-      'Top-edge dimensions run from each end of the top edge to the heel lines.',
-    ],
-  });
+  return dims;
 }

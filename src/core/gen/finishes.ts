@@ -38,6 +38,7 @@ const SASH = 2; // window frame width
 const PAIR = 50; // a door RO wider than this takes a pair of leaves
 const SHINGLE = 0.3;
 const CAP = 6; // ridge cap reach down each slope
+const FLASH = 4; // gambrel break flashing reach down or up each slope
 const COVER = 24; // corrugated panel coverage; the panel is 2 in wider, for the side lap
 const PANEL = 26;
 const END_LAP = 6;
@@ -197,15 +198,33 @@ function roofing(config: ShedConfig, model: Model): FinishPart[] {
         shape: { kind: 'panel', origin: add(plane.origin, out, lift), u: plane.u, v: plane.v, thick: SHINGLE, outline: loop({ min: [0, 0], max: [plane.length, plane.width] }), holes: [] },
       });
     }
-    // A ridge cap where a gable roof's two planes meet: one vented metal cap, or a shingle cap on
-    // each plane.
-    if (main && roof.style === 'gable' && metal && !capped) {
+    // A ridge cap where a gable or gambrel roof's two planes meet: one vented metal cap, or a
+    // shingle cap on each plane.
+    if (plane.ridge && metal && !capped) {
       // Above the ridge line, where the two slopes' panel crests meet.
       const ridge = add(add(plane.origin, plane.v, plane.width), UP, (lift + DEPTH) / out[2]);
       parts.push(...ridgeVent(ridge, plane.u, plane.length, unit([-plane.v[0], -plane.v[1], 0]), roof.pitch / 12, finishes.roofColor));
       capped = true;
     }
-    if (main && roof.style === 'gable' && !metal) {
+    // At a gambrel's break: a flashing strip over the roofing on each plane.
+    if (plane.breakEdge) {
+      const [from, to] = plane.breakEdge === 'high' ? [plane.width - FLASH, plane.width] : [0, FLASH];
+      parts.push({
+        layer: 'roofing',
+        look: 'plain',
+        color: finishes.roofColor,
+        shape: {
+          kind: 'panel',
+          origin: add(plane.origin, out, lift + (metal ? DEPTH : SHINGLE)),
+          u: plane.u,
+          v: plane.v,
+          thick: 0.0625,
+          outline: loop({ min: [0, from], max: [plane.length, to] }),
+          holes: [],
+        },
+      });
+    }
+    if (plane.ridge && !metal) {
       parts.push({
         layer: 'roofing',
         look: 'plain',

@@ -79,7 +79,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/core/model.ts` | `buildModel`: calls the generators in order. |
 | `src/core/gen/floor.ts` | Foundation (skids, piers, girders, posts, slab) and floor framing. |
 | `src/core/gen/walls.ts` | Wall framing, openings in the walls, plates and splices, anchor bolts. |
-| `src/core/gen/roof.ts` | Rafters, ridge, fascia, rake ladders, purlins, gable-end framing and gable openings. Calls `attic.ts`. |
+| `src/core/gen/roof.ts` | Rafters, ridge, fascia, rake ladders, purlins, a gambrel's gussets, gable-end framing and gable openings. `gambrelBreak`: where a gambrel's break is. Calls `attic.ts`. |
 | `src/core/gen/attic.ts` | Rafter and collar ties, loft floor and hatches, knee walls. |
 | `src/core/gen/additions.ts` | Lean-tos: ledger or roof extension, rafters, beam, posts, piers, slab, or deck. |
 | `src/core/gen/deck.ts` | Lean-to decks: `deckHeights`, `frameDeck` (ledger, joists, beam, rims, boards, and a deck's own skids or girders), and the facts the floor shares: `onShed`, `deckReach`, `continuedDecks`. |
@@ -87,7 +87,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/core/gen/ramps.ts` | Ramps: `rampPlace` (its wall and edges, from its opening or its own position); wood stringers and boards, or a concrete wedge as a panel solid. The foot is `belowGrade` under grade. `withoutOpeningRow` removes an opening row and keeps each ramp in place. |
 | `src/core/gen/sheathing.ts` | Wall, roof, and floor sheets, cut around openings. |
 | `src/core/gen/finishes.ts` | 3D look only: siding, roofing, trim, doors, windows. It does not change framing, cut list, or BOM. |
-| `src/core/gen/section.ts` | Shared geometry: `planeMember`, pitch and slope math, `idMaker`. |
+| `src/core/gen/section.ts` | Shared geometry: `planeMember`, pitch and slope math (`pitchOf`, `Slope`), `Profile` (one roof side's slopes, from `profileOf`), `crossing`, `idMaker`. |
 | `src/core/out/cutlist.ts` | `buildCutList`, and `LENGTH_RULE`, the cut-length text. |
 | `src/core/out/bom.ts` | `buildBom`: lumber packed onto stock lengths, sheets, concrete, hardware, roofing, costs. |
 | `src/core/out/spans.ts` | `checkSpans`: AWC span equations with NDS 2018 values for No. 2 lumber. |
@@ -115,7 +115,8 @@ the config; the later ones also read what came before.
 
 1. `frameFloor`: foundation and floor.
 2. `frameWalls`: walls and their openings.
-3. `frameRoof`: roof, gable ends, and through `frameAttic` the ties, loft, and knee walls.
+3. `frameRoof`: roof, a gambrel's gussets, gable ends, and through `frameAttic` the ties, loft,
+   and knee walls.
 4. `frameAdditions`: lean-tos. They need the main roof's soffit and eave facts, and the shed members.
 5. `frameRamps`: ramps. They need grade, from the foundation members.
 6. `frameSheathing`: sheets. They need the members, openings, roof planes, and loft deck.
@@ -161,8 +162,9 @@ A `Drawing` holds shapes (projected members and solids), dimensions (`chain`, `r
 7. Knee-wall elevations.
 8. Roof framing plan.
 9. Building section.
-10. Common rafter.
-11. Cut-length key.
+10. Common rafter, or Gambrel rafters on a gambrel roof.
+11. Gussets, on a gambrel roof.
+12. Cut-length key.
 
 A sheet with nothing to show is left out. On screen, `DrawingSvg` renders each drawing. The PDF
 puts one drawing on each sheet, at the largest standard scale that fits, with a title block. When a
@@ -243,12 +245,13 @@ The gate before each commit: `npm test`, `npm run lint`, and `npm run build`.
 
 ## Span checks
 
-`checkSpans` checks rafters, floor joists, loft joists, opening headers, pier girders, lean-to
-rafters and beams, and lean-to deck joists and beams. Girder checks cover the shed's own girders.
+`checkSpans` checks rafters (a gambrel's lower and upper rafters apart), floor joists, loft joists,
+opening headers, pier girders, lean-to rafters and beams, and lean-to deck joists and beams. Girder
+checks cover the shed's own girders.
 It does not check studs, the ridge board, a deck's own skids and girders,
-rafter and collar ties, skids, loft ledgers, posts, ramps, lean-to loads on the main-wall headers and
-girders, the deck ledger's load on the floor framing, pier bearing on soil, wind, uplift, wall
-bracing, or connections.
+rafter and collar ties, a gambrel's gussets and the thrust at its break, skids, loft ledgers, posts,
+ramps, lean-to loads on the main-wall headers and girders, the deck ledger's load on the floor
+framing, pier bearing on soil, wind, uplift, wall bracing, or connections.
 
 ## Release
 

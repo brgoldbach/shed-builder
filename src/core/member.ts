@@ -62,6 +62,7 @@ export const ROLES = {
   'post.ridge': 'Ridge post',
   ridge: 'Ridge board',
   rafter: 'Rafter',
+  'rafter.upper': 'Upper rafter',
   'rafter.fly': 'Fly rafter',
   'rail.ladder': 'Ladder rail',
   lookout: 'Lookout',

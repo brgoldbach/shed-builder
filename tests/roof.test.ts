@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
-import { frameRoof } from '../src/core/gen/roof';
+import { frameRoof, gambrelBreak } from '../src/core/gen/roof';
 import { corners, type Member, type Role } from '../src/core/member';
 
 // 8 x 10 ft, 2x4 walls with 92-5/8 in studs and a cap plate: plate tops at 97-1/8 in.
@@ -217,6 +217,166 @@ describe('gable roof options', () => {
   it('warns when even a 1-1/2 in seat cuts too deep, or the ridge is too shallow', () => {
     expect(roofOf({ ...gableRoof, rafter: '2x4', pitch: 18 }).warnings[0].message).toContain('deeper than 1/3');
     expect(roofOf({ ...gableRoof, ridge: '2x6' }).warnings[0].message).toContain('shallower than the rafter plumb cut');
+  });
+});
+
+describe('gambrel roof', () => {
+  // The 8 x 10 ft shed as above, lower slope 20/12 (59.0°), upper 6/12, break 24 in from the wall:
+  // 1/4 of the width. The 2x6 seat stops at 1/3 of the depth: 2-1/8.
+  const config = shedSchema.parse({ schemaVersion: 1, width: 96, length: 120, roof: { style: 'gambrel', pitch: 6, gambrel: { lowerPitch: 20 } } });
+  const { members, warnings, solids, planes, rafterSpans } = frameRoof(config);
+  const lower = ofRole(members, 'rafter');
+  const upper = ofRole(members, 'rafter.upper');
+  const lowerAngle = Math.atan(20 / 12);
+  // Rafter tops at the break: plate 97-1/8 + 20/12 x (24 - 2-1/8) + 5-1/2 / cos 59.0°.
+  const knee = 97.125 + (20 / 12) * (24 - 2.125) + 5.5 / Math.cos(lowerAngle);
+  const atMiddle = (list: Member[]) => list.find((member) => member.origin[0] === 47.25 && member.axes.length[1] > 0)!;
+  const near = (corners: number[][], y: number, z: number) =>
+    corners.some(([cornerY, cornerZ]) => Math.abs(cornerY - y) < 1e-6 && Math.abs(cornerZ - z) < 1e-6);
+
+  it('frames a lower and an upper rafter at each rafter position on each side', () => {
+    expect(lower).toHaveLength(12);
+    expect(upper).toHaveLength(12);
+    expect(warnings).toEqual([]);
+  });
+
+  it('meets the rafters at the break with one miter, top edges at the break', () => {
+    const [low, high] = [sectionCorners(atMiddle(lower)), sectionCorners(atMiddle(upper))];
+    expect(near(low, 24, knee)).toBe(true);
+    expect(near(high, 24, knee)).toBe(true);
+    // Both pieces share the miter's two points.
+    expect(high.filter(([y, z]) => near(low, y, z))).toHaveLength(2);
+    expect(atMiddle(lower).note).toBe(
+      'Cut 16.2° from square at the break. Birdsmouth: heel line 46-5/8" from the break long point on the top edge; ' +
+        'seat 2-1/8", heel 3-9/16". Tail 23-5/16" past the heel line on the top edge, plumb cut.',
+    );
+    expect(atMiddle(upper).note).toBe('Cut 16.2° from square at the break. Plumb cut 26.6° at the ridge.');
+    // The upper rafter: break to the ridge face along its top edge, 23-1/4 x √1.25.
+    expect(atMiddle(upper).length).toBeCloseTo(23.25 * Math.hypot(1, 0.5), 9);
+  });
+
+  it('runs the ridge board level with the upper plumb cuts', () => {
+    const [ridge] = ofRole(members, 'ridge');
+    expect(ridge.origin[2] + 7.25).toBeCloseTo(knee + 0.5 * 23.25, 9);
+  });
+
+  it('joins each pair with plywood gussets on both faces, inside only at the gable ends', () => {
+    // Rafters at 0, 23-1/4, 47-1/4, 71-1/4, 95-1/4, 118-1/2: 4 x 2 + 2 faces on each side.
+    expect(solids).toHaveLength(20);
+    // A common pair's gusset runs straight across under the joint (5 corners); a gable-end rafter's
+    // stays within the rafter depth, over the gable top plate (6 corners).
+    const cornerCounts = solids.map(({ shape }) => (shape.kind === 'panel' ? shape.outline.length : 0));
+    expect(cornerCounts.filter((count) => count === 5)).toHaveLength(16);
+    expect(cornerCounts.filter((count) => count === 6)).toHaveLength(4);
+    expect(new Set(solids.map(({ label, sheet }) => `${label} ${sheet}`))).toEqual(new Set(['Break gusset, 15/32" plywood (1/2") ply-15/32']));
+    const faces = solids.flatMap(({ shape }) => (shape.kind === 'panel' ? [shape.origin[0]] : [])).sort((first, second) => first - second);
+    expect(faces.slice(0, 4)).toEqual([1.5, 1.5, 23.25 - 15 / 32, 23.25 - 15 / 32]);
+    expect(faces.slice(-2)).toEqual([118.5 - 15 / 32, 118.5 - 15 / 32]);
+  });
+
+  it('roofs four planes: each lower one from the fascia to the break, each upper one on to the ridge', () => {
+    const cos = Math.cos(lowerAngle);
+    expect(planes.map(({ width }) => width)).toEqual([
+      expect.closeTo((36 + 1.5) / cos, 9),
+      expect.closeTo(24 * Math.hypot(1, 0.5), 9),
+      expect.closeTo((36 + 1.5) / cos, 9),
+      expect.closeTo(24 * Math.hypot(1, 0.5), 9),
+    ]);
+    expect(planes.map(({ eaves, ridge, breakEdge }) => [eaves, ridge, breakEdge])).toEqual([
+      [1, false, 'high'],
+      [0, true, 'low'],
+      [1, false, 'high'],
+      [0, true, 'low'],
+    ]);
+    expect(planes[1].origin[2]).toBeCloseTo(knee, 9);
+  });
+
+  it('frames each gable end with two top plates a side, mitered at the break, and studs cut to them', () => {
+    const plates = ofRole(members, 'plate.gable');
+    expect(plates).toHaveLength(8);
+    expect(new Set(plates.map(({ note }) => note))).toEqual(
+      new Set(['Level cut on the wall plate. Cut 16.2° from square at the break.', 'Cut 16.2° from square at the break. Plumb cut 26.6° at the ridge post.']),
+    );
+    expect(new Set(ofRole(members, 'stud.gable').map(({ note }) => note))).toEqual(new Set(['Top cut 59.0°.', 'Top cut 26.6°.']));
+  });
+
+  it('builds a rake ladder on each slope, its fly rafters and rails cut at the break', () => {
+    expect(ofRole(members, 'rafter.fly')).toHaveLength(8);
+    expect(ofRole(members, 'rail.ladder')).toHaveLength(8);
+  });
+
+  it('sets auto collar ties just under the break, over the gussets', () => {
+    const ties = ofRole(members, 'tie.collar');
+    expect(ties).toHaveLength(4);
+    expect(ties.map(({ origin }) => origin[0])).toEqual([23.25, 47.25, 71.25, 95.25].map((x) => x + 1.5 + 15 / 32));
+    expect(ties[0].note).toBe('Ends cut 59.0° to the roof line. Over the gussets.');
+    // The tie's top is at the miter's inside corner, the lowest point of the gussets' joint.
+    const top = Math.max(...corners(ties[0]).map(([, , z]) => z));
+    const inside = Math.min(...sectionCorners(atMiddle(upper)).map(([, z]) => z));
+    expect(top).toBeCloseTo(inside, 9);
+  });
+
+  it('checks the lower rafters to the break and the upper rafters to the ridge board', () => {
+    expect(rafterSpans).toEqual([
+      { member: 'Lower rafters', span: 24 - 2.125 },
+      { member: 'Upper rafters', span: 47.25 - 24 },
+    ]);
+  });
+
+  it('gives every angle-cut piece right-handed axes', () => {
+    for (const member of members.filter((candidate) => candidate.profile)) {
+      cross(member.axes.length, member.axes.width).forEach((value, axis) => expect(value).toBeCloseTo(member.axes.thick[axis], 9));
+    }
+  });
+
+  it('gives the form the break it frames', () => {
+    expect(gambrelBreak(config)).toEqual({ run: 24, wanted: 24, height: expect.closeTo(knee, 9) });
+  });
+
+  it('keeps the break 1 ft from the ridge line, and says so', () => {
+    const { warnings: moved } = roofOf({ style: 'gambrel', gambrel: { breakRun: 40 } });
+    expect(moved.map(({ message }) => message)).toEqual(['The break 40" in from the wall is within 1 ft of the ridge line. It is at 36".']);
+  });
+
+  it('takes no knee walls', () => {
+    const { members: framed } = roofOf({ style: 'gambrel', loft: { enabled: true }, kneeWalls: { enabled: true } });
+    expect(framed.filter(({ assembly }) => assembly.startsWith('knee'))).toEqual([]);
+  });
+});
+
+describe('gambrel roof without a ridge board', () => {
+  // The 8 x 10 ft gambrel above, its upper rafters butted at the peak.
+  const { members, solids, rafterSpans } = roofOf({ style: 'gambrel', pitch: 6, gambrel: { lowerPitch: 20, ridgeBoard: false } });
+  const upper = ofRole(members, 'rafter.upper');
+  const lowerAngle = Math.atan(20 / 12);
+  const peak = 97.125 + (20 / 12) * (24 - 2.125) + 5.5 / Math.cos(lowerAngle) + 0.5 * 24;
+
+  it('meets the upper rafters at the ridge line, plumb cut, with no ridge board or ridge post', () => {
+    expect(ofRole(members, 'ridge')).toEqual([]);
+    expect(ofRole(members, 'post.ridge')).toEqual([]);
+    const front = upper.find((member) => member.origin[0] === 47.25 && member.axes.length[1] > 0)!;
+    expect(sectionCorners(front).some(([y, z]) => Math.abs(y - 48) < 1e-6 && Math.abs(z - peak) < 1e-6)).toBe(true);
+    expect(front.length).toBeCloseTo(24 * Math.hypot(1, 0.5), 9);
+    expect(front.note).toBe('Cut 16.2° from square at the break. Plumb cut 26.6° at the peak, against the rafter on the other side.');
+  });
+
+  it('joins each pair at the peak with a gusset on each face, inside only at the gable ends', () => {
+    const peaks = solids.filter(({ label }) => label.startsWith('Peak gusset'));
+    // 4 common pairs × 2 faces, and the 2 gable-end pairs inside.
+    expect(peaks).toHaveLength(10);
+    // Each common one spans both rafters, symmetric about the ridge line.
+    const outline = peaks.find(({ shape }) => shape.kind === 'panel' && shape.outline.length === 5)!.shape;
+    const ys = outline.kind === 'panel' ? outline.outline.map(([y]) => y) : [];
+    expect(Math.min(...ys) + Math.max(...ys)).toBeCloseTo(96, 9);
+  });
+
+  it('meets the gable top plates and the rake ladders at the peak', () => {
+    expect(new Set(ofRole(members, 'plate.gable').map(({ note }) => note))).toContain('Cut 16.2° from square at the break. Plumb cut 26.6° at the peak.');
+    expect(ofRole(members, 'lookout').filter(({ note }) => note?.startsWith('Plumb, at the peak'))).toHaveLength(4);
+  });
+
+  it('checks the upper rafters to the ridge line', () => {
+    expect(rafterSpans[1]).toEqual({ member: 'Upper rafters', span: 48 - 24 });
   });
 });
 

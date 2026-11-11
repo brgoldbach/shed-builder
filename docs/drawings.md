@@ -69,7 +69,7 @@ it.
 | `shapes` | `Shape[]` | Projected members and solids, back to front. Context shapes come first. |
 | `dims` | `Dimension[]` | Chain, running, and aligned dimensions. |
 | `labels` | `{ at, text, room }[]` | Text centered at `at`. `room` is the width in inches that the text may take. Only RO names use labels. |
-| `outlines` | `Point[][]` | Dashed reference loops. Four plans use one: the footprint, which is the outside of the walls. |
+| `outlines` | `Point[][]` | Dashed reference loops. Four plans use one: the footprint, which is the outside of the walls. The gambrel rafter detail uses one: the gusset. |
 | `missing` | `Point[][]` | Loops of left-out parts, projected into the view, drawn red and dashed. |
 | `notes` | `string[]` | Sentences under the drawing. Keep them distinct: each note is a React key. |
 | `wireframe` | `boolean`, optional | Draws shapes without fill, so lower parts show through. Only the foundation plan sets it. |
@@ -119,7 +119,7 @@ largest dimension. A tier number with no dimension takes no room.
 | Part | Drawn as | Source |
 |---|---|---|
 | Label | Text with a halo at the RO center. It shows only when its width plus 50 px fits inside the RO width in px. | `openingLabels` |
-| `outlines` | Grey dashed loop (6 4 dash), no fill, no pick. | `footprint(config, view)` on the foundation, decks, loft, and roof plans |
+| `outlines` | Grey dashed loop (6 4 dash), no fill, no pick. | `footprint(config, view)` on the foundation, decks, loft, and roof plans; the gusset on the gambrel rafter detail |
 | `missing` | Red dashed loop (4 3 dash, 1.5 px), no fill, no pick. | `missingIn(model, view, shows)` |
 
 The 50 px label margin is 2 × (14 + 11) px. It keeps the name clear of the RO height dimension
@@ -135,7 +135,7 @@ then sees where the part goes and that the frame lacks it. The 3D view draws the
 |---|---|---|
 | `wall.<wall>` | An opening that collides (`leftOut`, `walls.ts`). | That wall elevation. |
 | `gable.<wall>` | A gable opening that collides (`leftOut`, `roof.ts`). | That gable-end elevation. |
-| `roof` | Collar ties that hit the ridge board (`attic.ts`). | Building section. |
+| `roof` | Collar ties that hit the ridge board or the peak gussets (`attic.ts`). | Building section. |
 | `loft` | A loft hatch that collides (`attic.ts`). | Loft framing plan. |
 | `addition.<side>` | A lean-to that cannot be framed (`additions.ts`). | Roof framing plan. |
 | `ramp` | A ramp with too little rise (`ramps.ts`). | Foundation plan, and decks and ramps. |
@@ -165,7 +165,7 @@ then sees where the part goes and that the frame lacks it. The 3D view draws the
 | `planView`, `front: 'gable'` | (0, width, 0) | −y | +x | −z | Same |
 | `elevationView(config, wall)` | Wall frame origin | Wall frame `u` | +z | Wall frame `v` | Wall, gable-end, knee-wall elevations |
 | Section | (0, width, 0) | −y | +z | +x | Building section |
-| `facing(forward)` | (0, 0, 0) | forward × up | +z | −x or +x | Common rafter |
+| `facing(forward)` | (0, 0, 0) | forward × up | +z | −x or +x | Common rafter, Gambrel rafters |
 
 ### `shapesOf(view, members, solids, marks, { context, section })`
 
@@ -180,13 +180,18 @@ then sees where the part goes and that the frame lacks it. The 3D view draws the
 7. Project each solid. A `panel` gives its `panelCorners`, a `box` its 8 corners.
 8. A cylinder in a plan gives a circle. In other views it gives 4 points: base and top, ± radius
    along `right`.
-9. Give each shape the mean depth of its corners. Sort members and solids together, farthest first.
-10. Put the `context` members first, as `context` shapes, without a sort.
+9. A panel seen square to its face (|(`u` × `v`) · `forward`| > 1 − 1e-6) keeps the projected
+   `outline` of its first face: its exact outline. Other solids, except a cylinder in a plan, take
+   the convex hull.
+10. Give each shape the mean depth of its corners. Sort members and solids together, farthest first.
+11. Put the `context` members first, as `context` shapes, without a sort.
 
 Decisions:
 
 - The hull is exact for a box from any direction, because a box is convex. A profiled member seen
   other than square to its face loses its notches.
+- A panel seen square to its face keeps its exact outline, as a profiled member does. A gambrel
+  gusset has an inside corner that the hull would lose.
 - The sort is painter's order: near shapes cover far shapes. It compares one mean depth for each
   shape; it is not an occlusion test.
 - Context shapes go first, so the sheet's own framing covers them.
@@ -248,7 +253,7 @@ member crosses the cut plane.
 | Sheet | Context members | Depth test |
 |---|---|---|
 | Wall elevation | Members of the other three walls. | Depth range overlaps (0.01, stud width − 0.01): the ends of the adjacent walls inside this wall. |
-| Gable-end elevation | Every `rafter`, and the end wall's `plate.top` and `plate.cap`. | Depth range inside [−0.01, stud width + 0.01]. |
+| Gable-end elevation | Every `rafter` and `rafter.upper`, and the end wall's `plate.top` and `plate.cap`. | Depth range inside [−0.01, stud width + 0.01]. |
 | Knee-wall elevation | `rim.loft`. | Same as the gable end. |
 
 Context shapes are grey and dashed. They count in `bounds`, but not in the dimensions, which use the
@@ -271,8 +276,9 @@ passes an empty `Map`, so its shapes have no marks.
 | 7 | `knee-front`, `knee-back` | `<Knee-wall label>, from outside` | `upperElevation` | No members in that knee wall | That knee wall |
 | 8 | `roof` | Roof framing plan | `roofPlan` | Never | `addition.*` |
 | 9 | `section` | Building section | `buildingSection` | Never | `roof` |
-| 10 | `rafter` | Common rafter | `rafterDetail` | No `rafter` in assembly `roof` | None |
-| 11 | `cut-lengths` | Measuring cut lengths | `cutLengthKey` (`piece.ts`) | No angled piece of a key kind | None |
+| 10 | `rafter` | Common rafter, or Gambrel rafters on a gambrel roof | `rafterDetail` | No `rafter` in assembly `roof` | None |
+| 11 | `gussets` | Gussets | `gussetDetail` | Not a gambrel, or no gusset solids | None |
+| 12 | `cut-lengths` | Measuring cut lengths | `cutLengthKey` (`piece.ts`) | No angled piece of a key kind | None |
 
 Decisions:
 
@@ -300,7 +306,7 @@ Decisions:
 | `panelDims(view, framing, openings, ...)` | The dimensions of a wall, gable end, or knee wall (section 3.4). |
 | `openingLabels(openings)` | One label for each RO: its name at its center, with `room` = the RO width. |
 | `missingIn(model, view, shows)` | The projected loops of the left-out parts whose assembly passes `shows`. |
-| `pitchText(config)` | `Pitch 6/12 (26.6°).`: the rise per 12 and the angle to 0.1°. |
+| `pitchText(config)` | `Pitch 6/12 (26.6°).`: the rise per 12 and the angle to 0.1°. On a gambrel: `Pitch 20/12 (59.0°) lower, 6/12 (26.6°) upper.` |
 | `UPPER` | The panel above each wall: `gable.left` and `gable.right` over the end walls, `knee.front` and `knee.back` over the eave walls. |
 | `LAYOUT` | The roles in a panel's layout: `stud`, `king`, `cripple`, `stud.gable`. |
 
@@ -455,8 +461,8 @@ sheet and the gable sheet split the ROs by height; keep the two tests complement
 `null` when the gable assembly has no members. A lean-to roof also has them: the framing above each
 end wall.
 
-Shows: the gable members, the end rafters and the end wall's top and cap plates as context shapes,
-and the gable ROs.
+Shows: the gable members, the end rafters (lower and upper on a gambrel) and the end wall's top and
+cap plates as context shapes, and the gable ROs.
 
 1. Take the gable framing, its box, and its own `plate.bottom` members.
 2. Find the layout origin.
@@ -563,20 +569,25 @@ surface, then the wall.
 `cut` takes every member with role `rafter`, lean-to rafters too. `rafterDetail` takes only the
 rafters of assembly `roof`.
 
-### 3.10 Common rafter (`rafterDetail`, `rafter`)
+### 3.10 Common rafter or gambrel rafters (`rafterDetail`, `rafter`)
 
-`null` when no `rafter` has assembly `roof`.
+`null` when no `rafter` has assembly `roof`. The title is `Gambrel rafters` on a gambrel roof, else
+`Common rafter`. The id is `rafter` for both.
 
 1. Take the main-roof rafter whose first corner is nearest the middle of the length. This skips the
-   gable-end rafters, which have no birdsmouth on a raised roof.
-2. View it from the model's right end (`facing([-1, 0, 0])`). If its lowest corner is right of its
-   highest, view it from the model's left end. The low end is then on the left.
-3. Project it. Its `axes.thick` runs along the line of sight, so the outline is the exact profile.
-   A gable rafter has 7 corners: tail, heel, seat, ridge plumb cut, and top edge.
-4. Take the edges of the outline. The longest edge is the top edge.
-5. Take the seats: level edges. Take the heels: plumb edges that share a corner with a seat.
-6. Mark points on the top edge: its left end, the point above each heel, its right end.
-7. Add the dimensions.
+   gable-end rafters, which have no birdsmouth on a raised roof. On a gambrel, it is a lower rafter.
+2. On a gambrel, take the upper rafter in the same plane on the same side: the `rafter.upper`
+   within 1 in of the rafter's x range whose mean y is nearest the rafter's.
+3. View the rafter from the model's right end (`facing([-1, 0, 0])`). If its lowest corner is right
+   of its highest, view it from the model's left end. The low end is then on the left.
+4. Project the rafters. Their `axes.thick` runs along the line of sight, so each outline is the
+   exact profile. A gable rafter has 7 corners: tail, heel, seat, ridge plumb cut, and top edge.
+5. For each rafter (`cutDims`), take the edges of the outline. The longest edge is the top edge.
+6. Take the seats: level edges. Take the heels: plumb edges that share a corner with a seat.
+7. When the rafter has heels, mark points on the top edge: its left end, the point above each heel,
+   its right end. An upper rafter has no heel, so its cut length is its only dimension.
+8. Add the dimensions.
+9. On a gambrel, add the gusset.
 
 | Dimension | Kind | Offset |
 |---|---|---|
@@ -584,12 +595,26 @@ rafters of assembly `roof`.
 | Each seat, left to right | aligned | −30 px, below |
 | Each heel, bottom to top | aligned | 16 px, on the tail side, clear of the seat dimension |
 | Cut length, tail long point to ridge long point | aligned, `along` the rafter | −56 px, below, clear of the seat dimension |
+| Gambrel: the gusset along each top edge from the break | aligned | 40 px |
+
+The gusset on a gambrel:
+
+1. Take the `Break gusset` panels in the rafter's plane, on the upper rafter's side.
+2. Take the one nearest the viewer: the least depth. Its face is square to the view, so it keeps its
+   exact outline (section 2): 5 corners on a common rafter.
+3. Put its outline in `outlines`. It draws as a dashed loop.
+4. Find the break: the right end of the lower rafter's top edge. Take the gusset corner nearest it,
+   and the two corners next to that corner.
+5. Add one dimension from each of the two corners to the break corner: 12 in (`GUSSET`) each.
 
 Notes:
 
-- `<mark>: <size>, <length> long point to long point.`, then `pitchText`.
-- The rafter's own `note`, when it has one.
+- `<mark>: <size>, <length> long point to long point.` for each rafter, lower first, then
+  `pitchText`.
+- Each rafter's own `note`, when it has one.
 - "Top-edge dimensions run from each end of the top edge to the heel lines."
+- On a gambrel: "Dashed: the plywood gusset on each face, dimensioned along the top edges from the
+  break. The Gussets sheet gives its shape."
 
 Example (8x10, 2x4 at 6/12):
 
@@ -601,10 +626,44 @@ Example (8x10, 2x4 at 6/12):
 | Heel | 1-9/32 in: the seat × 6/12. |
 | Cut length | 68". |
 
-Change safely: `shares` compares corner objects by reference. Build the edges from the one
-`points` array. A rafter whose longest edge is not its top edge breaks the top-edge dimensions.
+Example (`tests/drawings.test.ts`, the 8x10 preset as a 2x6 gambrel): the shapes are `rafter` and
+`rafter.upper`. The gusset is one dashed loop of 5 points, with two 12 in dimensions.
 
-### 3.11 Cut-length key
+Change safely: `shares` compares corner objects by reference. Build the edges from the one
+`points` array. A rafter whose longest edge is not its top edge breaks the top-edge dimensions. On a
+gambrel, the right end of the lower rafter's top edge must be the break.
+
+### 3.11 Gussets (`gussetDetail`, `gussets`)
+
+`null` unless the roof is a gambrel with gusset solids. It shows each gusset shape laid flat as cut,
+so the builder can cut them from the sheet.
+
+1. Take the `Break gusset` panels, and the `Peak gusset` panels when the gambrel has no ridge
+   board. A common rafter's has 5 corners, a gable-end rafter's 6 (framing.md 7.15).
+2. In each joint's row, take one of each shape from the front slope, common first.
+3. View each from the model's left end (`right` = +y, `up` = +z), lower rafter on the left. Its
+   face is square to the view, so it keeps its exact outline.
+4. Lay out the rows: the break row above the peak row, 24 in apart. In a row the shapes stand 24
+   in apart.
+5. Dimension each edge, aligned, 16 px outside the shape.
+
+Notes:
+
+- `<sheet label>, cut to these shapes, seen from the <left side name> end with the lower rafter on
+  the left. The ends are square to the rafter edges.`
+- One per row: `At the break (top row): the top edges meet at A°. Left: N for the common rafters,
+  one on each face of each pair. Right: N for the gable-end rafters, on the inside face.` The row
+  name is left out with one row. At the break `A = 180 − (lower angle − upper angle)`; at the peak
+  `A = 180 − 2 × upper angle`.
+- `A common rafter's gusset runs straight across under the joint's inside corner, as a web. A
+  gable-end rafter's stays within the rafter depth, over the gable framing.`
+
+Example (`tests/drawings.test.ts`, the 8x10 preset as a 2x6 gambrel): 5 and 6 corners, 11
+dimensions: four 12 in top edges and four 5-1/2 in ends. The top edges meet at 147.5°. 16 common and
+4 gable-end gussets. Without a ridge board a peak row adds 2 shapes: 8 common and 2 gable-end
+gussets, meeting at 126.9°.
+
+### 3.12 Cut-length key
 
 See section 4.
 
@@ -1093,7 +1152,7 @@ design. `prune.test.ts` checks that it is the same after `pruneConfig`.
 - A sheet that draws an assembly with left-out parts must pass `missingIn` for that assembly
   (DEVELOPER.md, "Leave out a part that cannot be framed").
 - `rafterDetail` depends on the rafter's outline: the top edge must be the longest edge, and the
-  seats must be level.
+  seats must be level. On a gambrel, the lower rafter's top edge must end at the break.
 
 ## Tests
 
@@ -1114,6 +1173,8 @@ design. `prune.test.ts` checks that it is the same after `pruneConfig`.
 | `wall elevation` | Running, chain, and aligned dimensions and the RO label of the front wall. The adjacent walls as context. |
 | `panel sheets` | The sheet ids in order. A wall without the panel above it. The knee-wall rim and deck edge. Gable layout, cut in place and as a panel. |
 | `rafter detail` | Top-edge, seat, heel, and cut-length dimensions. |
+| `gambrel rafter detail` | The title, the lower and upper rafter shapes, the 5-point gusset outline, and its two 12 in dimensions. |
+| `gusset sheet` | One shape of each kind (5 and 6 corners), each edge dimensioned, the counts and the angle in the notes; none on a gable roof. |
 | `building section` | The cut at the middle rafter pair, the X on the ridge, and the height chain. |
 | `foundation plan` | The pier-line and pier chains. |
 | `gable front` | Wall titles in the user's order, and the floor layout on the left side. |

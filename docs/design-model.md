@@ -28,8 +28,10 @@ storage, or in a file or a link that the user holds.
 | Model side | `front`, `back`, `left`, or `right` in model coordinates. Config fields hold model sides. |
 | User side | The name the user sees for a model side. It depends on `front`. |
 | Eave wall | The model's front or back wall. It carries the rafters. |
-| End wall | The model's left or right wall. On a gable roof, it carries the gable-end framing. |
+| End wall | The model's left or right wall. On a gable or gambrel roof, it carries the gable-end framing. |
 | Lean-to roof | A main roof with one slope: `roof.style: 'lean-to'`. |
+| Gambrel roof | A main roof with two slopes on each side, a steep lower slope and a shallower upper slope: `roof.style: 'gambrel'`. |
+| Break | The line on a gambrel roof where the top lines of the lower and upper slopes meet. |
 | Lean-to | An open addition on posts against one side of the shed: an item of `additions`. |
 | Compact form | The output of `compactDesign`: what a saved file and a link hold. |
 | Link data | The text after `#design=` in a link. |
@@ -52,14 +54,30 @@ storage, or in a file or a link that the user holds.
 | `walls` | Wall framing. | `stud`, `oc`, `capPlate`, `mudSill`, `corner`, `through`, `header`, `doubleJackOver`, `sillPlies`, `sheathing` |
 | `openingTypes` | Reusable openings. Placement rows refer to a type by name. | `name`, `kind`, `width`, `height`, `header`, `girder`, `plateBelow`, `plateAbove`, `jacks`, `headroom` |
 | `openings` | Placement rows: one type on one wall, at one or more positions. | `enabled`, `type`, `wall`, `sill`, `along`, `at` |
-| `roof` | Main roof, ties, loft, and knee walls. | `style`, `pitch`, `rafter`, `oc`, `eaveOverhang`, `rakeOverhang`, `tailCut`, `fascia`, `sheathing`, `roofing`, `gablePanel`, `purlin`, `purlinSpacing`, `rakeLadder`, `ridge`, `highSide`, `rafterTies`, `collarTies`, `loft`, `kneeWalls` |
+| `roof` | Main roof, ties, loft, and knee walls. | `style`, `pitch`, `gambrel` {`lowerPitch`, `breakRun`, `ridgeBoard`}, `rafter`, `oc`, `eaveOverhang`, `rakeOverhang`, `tailCut`, `fascia`, `sheathing`, `roofing`, `gablePanel`, `purlin`, `purlinSpacing`, `rakeLadder`, `ridge`, `highSide`, `rafterTies`, `collarTies`, `loft`, `kneeWalls` |
 | `additions` | Lean-tos, one per side. | `side`, `mirror`, `attach`, `depth`, `length`, `center`, `pitch`, `drop`, `roofing`, `post`, `beam`, `floor`, `deck` |
 | `ramps` | Ramps from the floor down to grade. | `opening` and `margin`, or `wall`, `along`, `at`, `width`; `slope`, `belowGrade`, `material`, `stringer`, `oc`, `thickness` |
 | `finishes` | The 3D look only. It does not change the framing, cut list, or BOM. | `siding`, `sidingColor`, `trimColor`, `roofColor`, `doorColor`, `panelLength`, `metalOverhang` |
 | `loads` | Loads for the span checks, psf. | `roof` (20 is the live load with no snow; 30–70 are snow loads), `roofDead`, `loft` |
 | `catalog` | Lumber and prices. | `species`, `kerf`, `maxLength`, `maxOnePiece`, `stock`, `prices` |
 
-`config.ts` holds the range and a comment for each field. This document does not repeat them.
+`config.ts` holds the range and a comment for each field. This document does not repeat them,
+except for the roof fields whose meaning depends on `roof.style`:
+
+| `roof.style` | Shape | Pitch fields |
+|---|---|---|
+| `gable` (default) | Two slopes that meet at a ridge. | `pitch`: both slopes. |
+| `gambrel` | Two sides that meet at a ridge. Each side has a lower slope from the eave to the break, and an upper slope from the break to the ridge. | `gambrel.lowerPitch`: the lower slope, 12–36, default 20 (59.0°). `pitch`: the upper slope. `gambrel.breakRun`: `auto` (`width` / 4) or 12–240 in, horizontal from the eave wall's outside face to the break. `gambrel.ridgeBoard` (true): false butts the upper rafters at the peak, joined by gussets. |
+| `lean-to` | One slope, high at `highSide`. | `pitch` |
+
+`frameRoof` keeps the break at least 12 in from the ridge line, with a warning (framing.md). Two
+helpers in `config.ts` group the styles:
+
+| Helper | Returns |
+|---|---|
+| `ridged(roof)` | `true` for `gable` and `gambrel`: two sides that meet at a ridge. The ridge board, ties, loft, through end walls, and the extension rule (1.5) follow it. |
+| `hasRidgeBoard(roof)` | `true` for a gable, or a gambrel with `gambrel.ridgeBoard`. The ridge board, ridge posts, `ridge`, and `rakeLadder.ridgeExtends` follow it. |
+| `eavePitch(roof)` | The pitch at the eaves, per 12: `gambrel.lowerPitch` on a gambrel, else `pitch`. |
 
 ### 1.2 Value builders
 
@@ -71,7 +89,7 @@ storage, or in a file or a link that the user holds.
 | `count(min, max)` | An integer in range. | `Whole number`, `Min 2`, `Max 6` |
 | `spacing` | One of `SPACINGS`: 12, 16, 19.2, 24. | zod's own text |
 | `twoBy` | One of `TWO_BY`. | zod's own text |
-| `auto` | The literal `auto`, in a union with a number: `jacks`, `collarTies.height`. | — |
+| `auto` | The literal `auto`, in a union with a number: `jacks`, `gambrel.breakRun`, `collarTies.height`. | — |
 | `money(fallback)` | 0–10,000 US dollars. | `Min 0`, `Max 10000` |
 | `priceTable(defaults)` | A strict object with one `money` field for each key of `defaults`. | — |
 | `color(fallback)` | `#rrggbb`, either case. | `Not a color, e.g. #a0b0c0` |
@@ -129,8 +147,9 @@ a warning. `additions[].center` is always a percent, so its own range is 0–100
 
 | Rule | Path and message | Reason |
 |---|---|---|
+| On a gambrel, `gambrel.lowerPitch` is more than `pitch`. | `roof.gambrel.lowerPitch`: `The lower pitch must be steeper than the upper pitch` | A `Profile` takes the lowest slope line at each point. That holds only when the lower slope is the steeper one. |
 | One lean-to per side. A lean-to with `mirror` takes `side` and `OPPOSITE[side]`. | `additions.N.side`: `One lean-to per side` | Each side has one lean-to assembly, for example `addition.front` with mark prefix `AF`. |
-| An extension (`attach: 'extension'`) needs a downhill eave on each side it takes. On a gable roof, that is `front` or `back`. On a lean-to roof, it is the side opposite `highSide`. | `additions.N.attach`: `A roof extension needs an eave the roof slopes down to` | Extension rafters lap the main rafters at a downhill eave, in place of the main eave overhang. |
+| An extension (`attach: 'extension'`) needs a downhill eave on each side it takes. On a gable or gambrel roof (`ridged`), that is `front` or `back`. On a lean-to roof, it is the side opposite `highSide`. | `additions.N.attach`: `A roof extension needs an eave the roof slopes down to` | Extension rafters lap the main rafters at a downhill eave, in place of the main eave overhang. |
 | An extension has `length: 'full'`. | `additions.N.length`: `A roof extension runs the full wall length` | It replaces the eave overhang along the whole wall. |
 | Opening type names are unique. The check is case-sensitive and runs after the trim. | `openingTypes.N.name`: `Duplicate name "<name>"` | A row finds its type by name. |
 | Each row's `type` names an opening type. | `openings.N.type`: `No opening type "<type>"` | Same. |
@@ -591,21 +610,27 @@ finishes, warnings, and span checks.
    checks, as one JSON string.
 3. Expect equal strings.
 
-The designs are `DESIGNS` (10) and `MESSY` (4). Each `MESSY` design sets unused settings away from
+The designs are `DESIGNS` (11) and `MESSY` (7). Each `MESSY` design sets unused settings away from
 their defaults:
 
 - A slab garage with skid, pier, floor, loft, and metal settings.
 - A lean-to roof with gable, loft, and slab settings.
 - A gable loft with rafter tie settings and a closed loft end.
 - Skids with one lean-to on piers and one on a slab.
+- A gambrel loft with knee wall settings.
+- A gable with gambrel settings.
+- A gambrel without a ridge board, with ridge settings.
 
-Two more tests check that a slab resets the skid, pier, floor, and loft settings and drops the
-unplaced type. They also check that lean-to piers keep `diameter`, `depth`, and `aboveGrade` while
-`girder` goes back to `2x8`.
+Three more tests check one rule each:
+
+- A slab resets the skid, pier, floor, and loft settings and drops the unplaced type.
+- Lean-to piers keep `diameter`, `depth`, and `aboveGrade` while `girder` goes back to `2x8`.
+- Only a gambrel keeps `roof.gambrel`. A gambrel resets `roof.kneeWalls`.
 
 ### 7.1 Steps
 
-1. Compute the flags: `gable`, `loft` (gable and `loft.enabled`), `anyMetal`, `sheathed`,
+1. Compute the flags: `gable` (`ridged(roof)`: gable or gambrel), `loft` (`gable` and
+   `loft.enabled`), `anyMetal`, `sheathed`,
    `leanToPiers`, `leanToSlab`, and `placed` (the type names that rows use).
 2. Build `raw`. Keep each field whose rule holds. `omit` the rest.
 3. Return `shedSchema.parse(raw)`. The parse puts each omitted field back at its default.
@@ -626,20 +651,21 @@ The input must be a valid config. `shedSchema.parse` throws otherwise.
 | `foundation.slab.thickness` | `type` is `slab`, or a lean-to has `floor: 'slab'`. | A lean-to slab takes the main slab thickness. |
 | `floor` | `foundation.type` is not `slab`. | The slab is the floor. |
 | `walls.mudSill` | `foundation.type` is `slab`. | A mud sill sits on a slab only (`mudSillSize`). |
-| `walls.through` | `roof.style` is `gable`. | A lean-to roof's eave walls always run through. |
+| `walls.through` | The roof is gable or gambrel. | A lean-to roof's eave walls always run through. |
 | `openingTypes[]` | A row names the type, with `enabled` true or false. | A row needs its type to parse. |
 | `openingTypes[].headroom` | `kind` is `overhead`. | Track room for an overhead door. |
+| `roof.gambrel` | `style` is `gambrel`. | |
 | `roof.sheathing` | `roof.roofing` is not `metal`, or a lean-to has `roofing` other than `metal`. | Open metal roofing has no sheathing. A lean-to without metal takes the main roof's sheathing. |
 | `roof.purlin`, `purlinSpacing` | `roof.roofing` is not `shingles`. | Metal roofing sits on purlins. |
 | `roof.rakeLadder` | `rakeOverhang` is 1.5 in (`LADDER`) or more. | `frameRoof` frames no rake overhang below 1.5 in. |
-| `roof.rakeLadder.ridgeExtends` | Also `style` is `gable`. | A lean-to roof has no ridge. |
-| `roof.ridge` | `style` is `gable`. | |
+| `roof.rakeLadder.ridgeExtends` | Also the roof has a ridge board (`hasRidgeBoard`). | A lean-to roof, or a gambrel without a ridge board, has none. |
+| `roof.ridge` | The roof has a ridge board (`hasRidgeBoard`). | |
 | `roof.highSide` | `style` is `lean-to`. | |
-| `roof.rafterTies` | Gable roof and no loft. When off, only `{ enabled: false }`. | Loft joists take the place of rafter ties. |
-| `roof.collarTies` | Gable roof. When off, only `{ enabled: false }`. | |
-| `roof.loft` | Gable roof with `loft.enabled`. | |
+| `roof.rafterTies` | Gable or gambrel roof, and no loft. When off, only `{ enabled: false }`. | Loft joists take the place of rafter ties. |
+| `roof.collarTies` | Gable or gambrel roof. When off, only `{ enabled: false }`. | |
+| `roof.loft` | Gable or gambrel roof with `loft.enabled`. | |
 | `roof.loft.open.length` | Also `open.end` is not `none`. | |
-| `roof.kneeWalls` | Gable roof with a loft. When off, only `{ enabled: false }`. | `frameRoof` raises the roof on knee walls only with a gable loft. |
+| `roof.kneeWalls` | `style` is `gable`, with a loft. When off, only `{ enabled: false }`. | `frameRoof` raises the roof on knee walls only with a gable loft. A gambrel takes no knee walls: its steep lower slope gives the headroom. |
 | `additions[].purlin`, `purlinSpacing` | `roofing` is `metal`. | |
 | `additions[].center` | `length` is not `full`. | A full-length lean-to has no center to set. |
 | `additions[].drop` | `attach` is not `extension`. | `drop` lowers the ledger. An extension has no ledger. |
@@ -653,7 +679,7 @@ The input must be a valid config. `shedSchema.parse` throws otherwise.
 | `ramps[].thickness` | `material` is `concrete`. | |
 | `finishes.sidingColor` | `siding` is not `none`. | |
 | `finishes.panelLength`, `metalOverhang` | The main roof or a lean-to has metal roofing. | |
-| `loads.loft` | Gable roof with a loft. | |
+| `loads.loft` | Gable or gambrel roof with a loft. | |
 
 Each other setting stays as it is: `name`, `width`, `length`, `studHeight`, `front`, `openings`,
 `catalog` with every price, and the other `walls`, `roof`, `additions`, and `finishes` fields.
@@ -727,7 +753,7 @@ example `kind: 'door'` or `side: 'front'`. Without them, the item fails to parse
 `studHeight` equal to its default is not always safe to drop. `restore` compares the parsed result
 with `full`. It puts back each value that differs, and recurses into objects.
 
-On the 10 test designs, `restore` changes nothing and the fallback in step 6 never runs. Prune
+On the 11 test designs, `restore` changes nothing and the fallback in step 6 never runs. Prune
 writes `wallHeight` only with `studHeight: 'custom'`, which is not a default. Both steps guard
 against a future dependent default.
 
@@ -792,9 +818,9 @@ fragment to the server, so the static host never sees the design.
 | Test limit, bare design (`tests/share.test.ts`) | Link data under 40 characters |
 | Test limit, each test design | Link data under 1000 characters |
 | Measured, bare design | Link data 28 characters |
-| Measured, the 10 test designs | Link data 296–787 characters; saved file 671–2,461 bytes; autosave text 3,770–6,038 bytes |
+| Measured, the 11 test designs | Link data 296–802 characters; saved file 671–2,399 bytes; autosave text 3,844–6,742 bytes |
 
-The measured values are from the working tree at version 0.5.0 with the unreleased changes. They
+The measured values are from the working tree at version 0.6.0 with the unreleased changes. They
 change with the designs and the defaults.
 
 ### 8.7 QR sheet in the PDF
@@ -941,15 +967,17 @@ with `shedSchema.parse`. The fixtures cover options that the presets leave at th
 | `20x24-heavy-snow.json` | Six 6x6 skids; 2x8 joists 12 in o.c. with blocking; 104.625 in studs; two-stud corners; eave walls through | 8/12; no rake overhang; rafter ties every second pair | Overhead door with a 2x12 header; a ramp that follows it | 70 psf snow, 20 psf dead; DFL; `maxLength` 144 |
 | `12x12-with-lean-tos.json` | Slab with no mud sill | Metal; a ridge that does not extend | Front extension lean-to at the main pitch; partial left lean-to; right lean-to on a slab, with 6x6 posts and a 3-ply 2x10 beam; a free concrete ramp below grade | — |
 | `4x6-tiny-shed.json` | Two 4x4 skids; 2x4 joists 24 in o.c.; custom wall height 66 in; no cap plate; no wall sheathing | Lean-to roof at 2/12 with metal | 28 in door with a 2x4 header | Minimum width 48 in; T1-11; HF |
+| `12x16-gambrel-barn.json` | Piers with 3 girder lines | Gambrel, 20/12 lower and 6/12 upper, auto break (36 in), no ridge board; metal on purlins; loft on the plates with a hatch | 62 in double door and a loft door in the left gable end; two windows in the front wall; back extension at 4/12, blocked over the plate; right lean-to 96 in long on a slab | Gable front |
 
-Some designs warn on purpose: the odd openings, the heavy-snow header, and the low lean-tos.
+Some designs warn on purpose: the odd openings, the heavy-snow header, the low lean-tos, and the
+gambrel's extension, blocked over the plate.
 
 ### 10.3 Tests that pin this document
 
 | Test | Checks |
 |---|---|
-| `tests/config.test.ts` | A bare file fills every default. `keepWallHeight`. The unknown-key and out-of-range messages. A percent over 100, a row type that does not exist, a duplicate name. Another schema version and bad JSON fail. `appVersion` is the second key and does not load. Each design loads back from `serializeConfig`. |
-| `tests/prune.test.ts` | Each design in `DESIGNS` and `MESSY` builds the same after prune, save, and load. A slab resets the unused foundation, floor, and loft settings. Lean-to piers keep their settings. |
+| `tests/config.test.ts` | A bare file fills every default. `keepWallHeight`. The unknown-key and out-of-range messages. A gambrel lower pitch no steeper than the upper pitch. A percent over 100, a row type that does not exist, a duplicate name. Another schema version and bad JSON fail. `appVersion` is the second key and does not load. Each design loads back from `serializeConfig`. |
+| `tests/prune.test.ts` | Each design in `DESIGNS` and `MESSY` builds the same after prune, save, and load. A slab resets the unused foundation, floor, and loft settings. Lean-to piers keep their settings. Only a gambrel keeps `roof.gambrel`, and it drops `roof.kneeWalls`. |
 | `tests/share.test.ts` | Each design loads back from its link and its file as the pruned design. A slab file has no `skid`, `pier`, or `floor`. List items keep their required keys. The size limits. A cut-off link gives the damaged-link error. `linkData` reads only `#design=`. |
 | `tests/naming.test.ts` | `eave` keeps the `ASSEMBLIES` names and order. `gable` turns the names a quarter turn. The cut list marks `FW-1` on the model's left wall. A warning names an opening by its user side. |
 | `tests/units.test.ts` | Format and parse examples, rejected inputs, and the 1/16 in round trip up to 20 ft. |

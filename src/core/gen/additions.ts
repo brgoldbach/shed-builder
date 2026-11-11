@@ -32,7 +32,7 @@ export interface LeanTo {
 /** The main roof facts a lean-to builds against. */
 export interface MainRoof {
   soffit: Soffit;
-  eave: { top: number; plate: number; bearing: number };
+  eave: { top: number; plate: number; bearing: number; pitch: number; lap: number };
 }
 
 /** Open lean-tos on posts against the main walls: below the main roof's soffit, or extending its eave. */
@@ -90,8 +90,8 @@ function frameLeanTo(
   // What sits on the rafters under the roofing: purlins, or the main roof's sheathing.
   const roofSheet = metal ? LUMBER[addition.purlin].thick : roof.sheathing === 'none' ? 0 : SHEETS[roof.sheathing].thick;
   const extension = addition.attach === 'extension';
-  const pitch = addition.pitch === 'main' ? roof.pitch : addition.pitch;
-  const samePlane = extension && pitch === roof.pitch;
+  const pitch = addition.pitch === 'main' ? eave.pitch : addition.pitch;
+  const samePlane = extension && pitch === eave.pitch;
   const angle = Math.atan(pitch / 12);
   const [rise, cos, sin] = [pitch / 12, Math.cos(angle), Math.sin(angle)];
   const depth = LUMBER[addition.rafter].width;
@@ -104,8 +104,8 @@ function frameLeanTo(
   // the drop. Main roof and lean-to roof are straight between the soffit's breaks, so the breaks
   // and the lean-to's ends bound it. Extension: the rafters continue the main roof's top line from
   // over the wall's outside face, and lap the main rafters inward: 2 ft in the same plane, or to the
-  // wall's inside face at a broken pitch.
-  const start = extension ? (samePlane ? -LAP : -eave.bearing) : wallSheet + PLY;
+  // wall's inside face at a broken pitch. A gambrel's gussets stop the lap.
+  const start = extension ? (samePlane ? -Math.min(LAP, eave.lap) : -eave.bearing) : wallSheet + PLY;
   const ledgerTop = extension
     ? 0
     : Math.min(
@@ -199,12 +199,19 @@ function frameLeanTo(
     if (-seatEnd > Math.floor((depth / 3 / sin) * 16) / 16 + NEAR) {
       warn(`The birdsmouth on the main wall cuts deeper than 1/3 of the ${addition.rafter} rafter. Use a rafter no deeper than the main rafters.`);
     }
-    const stand = (rise - roof.pitch / 12) * -start;
+    const stand = (rise - eave.pitch / 12) * -start;
     if (stand > 0.125) warn(`At the steeper pitch the lean-to rafters stand ${formatInches(stand)} over the main roof plane at their upper ends. Trim them flush.`);
-    outline = [...toBeam, [0, bottom(0)], [0, eave.plate], ...(seatEnd > start ? ([[seatEnd, eave.plate], [start, bottom(start)]] as Point[]) : ([[start, eave.plate]] as Point[]))];
-    note =
-      `Laps the main rafter ${formatInches(-start)} in from the wall line, nailed to it; upper end plumb cut ${degrees}. ` +
-      `Birdsmouths on the main wall (heel at its outside face, seat ${formatInches(Math.min(-seatEnd, -start))}) and ${beamText}`;
+    const laps = `Laps the main rafter ${formatInches(-start)} in from the wall line, nailed to it; upper end plumb cut ${degrees}.`;
+    // Under a steeper main eave, as a gambrel's, the underside can pass over the plate.
+    const gap = rise * seatEnd;
+    if (gap > -NEAR) {
+      outline = [...toBeam, [start, bottom(start)]];
+      note = `${laps} No birdsmouth on the main wall${gap > NEAR ? `: block under it, ${formatInches(gap)} at the wall's outside face` : ''}. Birdsmouth ${beamText}`;
+      if (gap > NEAR) warn(`The lean-to rafters pass ${formatInches(gap)} over the main wall's plate. Block under each one.`);
+    } else {
+      outline = [...toBeam, [0, bottom(0)], [0, eave.plate], ...(seatEnd > start ? ([[seatEnd, eave.plate], [start, bottom(start)]] as Point[]) : ([[start, eave.plate]] as Point[]))];
+      note = `${laps} Birdsmouths on the main wall (heel at its outside face, seat ${formatInches(Math.min(-seatEnd, -start))}) and ${beamText}`;
+    }
   } else {
     // One flush with each end, the rest on o.c. multiples from the left end.
     starts = [u0, u1 - PLY];
@@ -318,6 +325,8 @@ function frameLeanTo(
     length: run,
     width: (low - (extension ? 0 : wallSheet)) / cos,
     eaves: 1,
+    ridge: false,
+    breakEdge: null,
   });
 
   // Studs behind the ledger, each taking two lag screws.

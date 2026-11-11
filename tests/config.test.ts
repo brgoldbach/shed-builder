@@ -31,6 +31,12 @@ describe('parseConfig', () => {
     expect(result).toEqual({ ok: false, errors: [`width: Min 4' 0"`] });
   });
 
+  it('takes a gambrel only with a lower slope steeper than the upper one', () => {
+    const gambrel = (lowerPitch: number) => parseConfig({ schemaVersion: 1, roof: { style: 'gambrel', pitch: 12, gambrel: { lowerPitch } } });
+    expect(gambrel(12)).toEqual({ ok: false, errors: ['roof.gambrel.lowerPitch: The lower pitch must be steeper than the upper pitch'] });
+    expect(gambrel(14).ok).toBe(true);
+  });
+
   describe('openings', () => {
     const openingTypes = [{ name: 'window 24x36', kind: 'window', width: 24, height: 36 }];
     const parse = (openings: object[], types: object[] = openingTypes) =>

@@ -13,7 +13,7 @@ export interface Model {
   warnings: Warning[];
   openings: RoughOpening[];
   planes: RoofPlane[];
-  rafterSpan: number;
+  rafterSpans: { member: string; span: number }[]; // the main roof's rafters
   leanTos: LeanTo[];
 }
 
@@ -30,11 +30,18 @@ export function buildModel(config: ShedConfig): Model {
   const planes = [...roof.planes, ...additions.planes];
   return {
     members,
-    solids: [...floor.solids, ...walls.solids, ...additions.solids, ...ramps.solids, ...frameSheathing(config, members, openings, planes, roof.deck)],
+    solids: [
+      ...floor.solids,
+      ...walls.solids,
+      ...roof.solids,
+      ...additions.solids,
+      ...ramps.solids,
+      ...frameSheathing(config, members, openings, planes, roof.deck),
+    ],
     warnings: [...walls.warnings, ...roof.warnings, ...additions.warnings, ...ramps.warnings],
     openings,
     planes,
-    rafterSpan: roof.rafterSpan,
+    rafterSpans: roof.rafterSpans,
     leanTos: additions.leanTos,
   };
 }
