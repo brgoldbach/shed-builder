@@ -1,16 +1,20 @@
 import { LUMBER, SHEETS, TWO_BY, stockFor, type LumberSize } from '../catalog';
 import { OPPOSITE, type Addition, type ShedConfig } from '../config';
-import { ASSEMBLIES, corners, type Member, type Point, type Solid, type Vec3, type Warning } from '../member';
+import { ASSEMBLIES, corners, LEFT_OUT, type Member, type Point, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
 import { formatInches, formatLength } from '../units';
 import type { RoofPlane, Soffit } from './roof';
 import { idMaker, planeMember } from './section';
+import { gradeOf } from './floor';
 import { splitPlate, wallFrames, type Wall } from './walls';
 
 const PLY = 1.5;
 const CLEARANCE = 1.5; // lean-to roof surface to the main roof's underside
 const HEADROOM = 80; // a lower clear height under the beam gets a warning
-const MIN_POST = 12;
+const MIN_POST = 12; // a shorter post gets a warning
+const DECK_GAP = 0.25; // between deck boards
+
+type Span = readonly [number, number];
 const LAP = 24; // an extension rafter in the main roof's plane laps its main rafter this far in from the wall line
 const UP: Vec3 = [0, 0, 1];
 const DOWN: Vec3 = [0, 0, -1];
@@ -24,6 +28,9 @@ export interface LeanTo {
   postSpacing: number; // post center to post center
   beamTributary: number; // horizontal roof carried per unit length of beam
   lags: number; // two at each main-wall stud behind the ledger
+  // The deck: ledger face to the beam's inner face, the deck each unit of beam carries, and the
+  // piers that seat the beam directly (none when deck posts stand under it).
+  deck: { joist: LumberSize; plies: number; joistSpan: number; beamTributary: number; seats: number } | null;
 }
 
 /** The main roof facts a lean-to builds against. */
@@ -47,13 +54,6 @@ export function frameAdditions(
   return out;
 }
 
-/** Ground level: the slab top, the skid bottoms, or the pier tops less their height above grade. */
-function gradeOf(config: ShedConfig, framing: readonly Member[]): number {
-  if (config.foundation.type === 'slab') return 0;
-  const lowest = Math.min(...framing.filter(({ assembly }) => assembly === 'foundation').flatMap((member) => corners(member).map(([, , z]) => z)));
-  return config.foundation.type === 'pier' ? lowest - config.foundation.pier.aboveGrade : lowest;
-}
-
 function frameLeanTo(
   config: ShedConfig,
   addition: Addition,
@@ -68,7 +68,8 @@ function frameLeanTo(
   const assembly = `addition.${side}` as const;
   const nextId = idMaker(ASSEMBLIES[assembly].prefix);
   const label = naming(config).side(side);
-  const warn = (message: string) => out.warnings.push({ source: `${label.charAt(0).toUpperCase()}${label.slice(1)} lean-to`, message });
+  const source = `${label.charAt(0).toUpperCase()}${label.slice(1)} lean-to`;
+  const warn = (message: string) => out.warnings.push({ source, message });
   const maxStock = (size: LumberSize) => Math.max(...stockFor(catalog, size));
 
   // Along the wall from its left corner, viewed from outside.
@@ -136,20 +137,38 @@ function frameLeanTo(
     warn(`A 1-1/2 in seat cuts the birdsmouth deeper than 1/3 of the ${addition.rafter} rafter. Use a deeper rafter or a lower pitch.`);
     seat = PLY;
   }
+  const grade = gradeOf(config, framing);
+  // The lean-to's footprint at grade, for a lean-to that cannot be framed.
+  const leaveOut = (message: string) => {
+    const outline = [at(u0, 0, grade), at(u1, 0, grade), at(u1, addition.depth, grade), at(u0, addition.depth, grade)];
+    out.warnings.push({ source, message: `${message} ${LEFT_OUT}`, missing: { assembly, outline } });
+  };
+  if (!Number.isFinite(ledgerTop)) {
+    leaveOut('The main roof does not reach past the wall here, so the ledger has no height. Give the main roof an overhang on this side.');
+    return;
+  }
   if (heel - seat <= Math.max(start, 0)) {
-    warn('The lean-to is too shallow for its beam. Make it deeper.');
+    leaveOut('The lean-to is too shallow for its beam. Make it deeper.');
     return;
   }
   const beamTop = bottom(heel - seat);
   const tail = Math.max(addition.depth + addition.eaveOverhang, heel);
-  const grade = gradeOf(config, framing);
-  const postBottom = addition.floor === 'slab' ? grade : grade + foundation.pier.aboveGrade;
+  // A deck: 2x6 boards over joists, level with the floor less the drop, on a flush beam.
+  const deckTop = addition.floor === 'deck' ? -addition.deck.drop : null;
+  const deckJoistTop = deckTop === null ? null : deckTop - PLY;
+  const deckBeamBottom = deckJoistTop === null ? null : deckJoistTop - LUMBER[addition.deck.joist].width;
+  // The piers rise to the deck beam, unless a deck post of MIN_POST or more fits under it.
+  const natural = grade + foundation.pier.aboveGrade;
+  const pierTop = deckBeamBottom === null || deckBeamBottom - natural >= MIN_POST ? natural : deckBeamBottom;
+  // The posts stand on the slab, on the piers, or on the deck beam over the piers.
+  const postBottom = addition.floor === 'slab' ? grade : (deckJoistTop ?? pierTop);
   const postLength = beamTop - beamDepth - postBottom;
-  if (postLength < MIN_POST) {
-    warn('The posts would be shorter than 12 in. Lower the pitch or the drop, or make the lean-to shallower.');
+  if (postLength < NEAR) {
+    leaveOut('The beam is at or below the post bases. Lower the pitch or the drop, or make the lean-to shallower.');
     return;
   }
-  const clear = beamTop - beamDepth - grade;
+  if (postLength < MIN_POST) warn(`The posts are only ${formatInches(postLength)} long.`);
+  const clear = beamTop - beamDepth - (deckTop ?? grade);
   if (clear < HEADROOM) warn(`The clear height under the beam is ${formatLength(clear)}, less than 6' 8".`);
 
   const degrees = `${((angle * 180) / Math.PI).toFixed(1)}°`;
@@ -229,9 +248,9 @@ function frameLeanTo(
       board('B', 'beam', addition.beam, false, to - from, at(from, outer, beamTop - beamDepth), alongWall);
     }
   }
-  for (const u of posts) {
-    board('P', 'post', addition.post, true, postLength, at(u - post / 2, line + post / 2, postBottom), { length: UP, width: frame.u, thick: frame.v });
-  }
+  const postAxes = { length: UP, width: frame.u, thick: frame.v };
+  const onDeck = deckTop === null ? undefined : 'Stands on the deck beam, over the pier.';
+  for (const u of posts) board('P', 'post', addition.post, true, postLength, at(u - post / 2, line + post / 2, postBottom), postAxes, onDeck);
 
   const fasciaThick = addition.fascia === 'none' ? 0 : LUMBER[addition.fascia].thick;
   if (addition.fascia !== 'none') {
@@ -247,15 +266,102 @@ function frameLeanTo(
     out.solids.push({ id: nextId('SL'), label: 'Slab', layer: 'foundation', material: 'concrete', shape: { kind: 'box', min, max } });
   } else {
     const { pier } = foundation;
+    // At least the pier depth below grade, and below its top.
+    const base = Math.min(grade, pierTop) - pier.depth;
     for (const u of posts) {
       out.solids.push({
         id: nextId('PR'),
         label: `Pier, ${pier.diameter}" diameter`,
         layer: 'foundation',
         material: 'concrete',
-        shape: { kind: 'cylinder', base: at(u, line, grade - pier.depth), radius: pier.diameter / 2, height: pier.depth + pier.aboveGrade },
+        shape: { kind: 'cylinder', base: at(u, line, base), radius: pier.diameter / 2, height: pierTop - base },
       });
     }
+  }
+
+  let deck: LeanTo['deck'] = null;
+  if (deckTop !== null && deckJoistTop !== null && deckBeamBottom !== null) {
+    // A ledger on the floor framing and joists in hangers carry the boards. The joists hang from a
+    // flush beam on the post line. The beam bears on the piers, or on deck posts on the piers, and
+    // the posts stand on it over them, so each load runs straight down.
+    const { joist, oc } = addition.deck;
+    const [joistTop, joistBottom] = [deckJoistTop, deckBeamBottom];
+    // The ledger bears on the floor framing: the wall sheathing starts above it.
+    const ledgerFace = PLY;
+    // Plies enough to bear the post's full width.
+    const plies = Math.max(2, Math.ceil(post / PLY - NEAR));
+    const [beamInner, beamOuter] = [line - (plies * PLY) / 2, line + (plies * PLY) / 2];
+    const seated = pierTop === joistBottom;
+    if (joistBottom < grade) warn(`The deck framing runs ${formatInches(grade - joistBottom)} below grade.`);
+    const joists = [u0, u1 - PLY];
+    for (let index = 1; u0 + index * oc < u1; index++) {
+      const from = u0 + index * oc - PLY / 2;
+      if (from >= u0 + PLY && from + PLY <= u1 - PLY) joists.push(from);
+    }
+    joists.sort((first, second) => first - second);
+    const joistCenters = joists.map((u) => u + PLY / 2);
+    for (const [from, to] of splitPlate([u0, u1], maxStock(joist), joistCenters)) {
+      board('DL', 'ledger.deck', joist, true, to - from, at(from, ledgerFace, joistBottom), alongWall, 'Lag-bolt into the floor framing, two at each joist.');
+    }
+    for (const u of joists) {
+      board('DJ', 'joist.deck', joist, true, beamInner - ledgerFace, at(u, ledgerFace, joistBottom), { length: outward, width: UP, thick: frame.u }, 'Joist hangers at both ends.');
+    }
+    const beamNote = seated ? 'Bears on the piers; the posts stand on it.' : 'Bears on the deck posts; the posts above stand on it.';
+    for (let ply = 1; ply <= plies; ply++) {
+      for (const [from, to] of splitPlate([u0, u1], maxStock(joist), posts)) {
+        board('DB', 'beam.deck', joist, true, to - from, at(from, beamInner + ply * PLY, joistBottom), alongWall, beamNote);
+      }
+    }
+    if (!seated) {
+      for (const u of posts) board('DP', 'post', addition.post, true, joistBottom - pierTop, at(u - post / 2, line + post / 2, pierTop), postAxes, 'Under the deck beam.');
+    }
+
+    // Boards along the wall from the floor framing out past the beam, 1/4 in apart. A board the posts
+    // reach from one edge is notched around them; one they cover or stand inside is cut between them.
+    const boardWidth = LUMBER['2x6'].width;
+    const rows = Math.ceil((beamOuter + DECK_GAP) / (boardWidth + DECK_GAP));
+    const postSpans: Span[] = posts.map((u) => [u - post / 2, u + post / 2]);
+    const flat = { length: frame.u, width: outward, thick: UP };
+    for (let row = 0; row < rows; row++) {
+      const x = row * (boardWidth + DECK_GAP);
+      const [low, high] = [Math.max(x, line - post / 2), Math.min(x + boardWidth, line + post / 2)];
+      for (const [from, to] of splitPlate([u0, u1], maxStock('2x6'), joistCenters)) {
+        const hits = high - low > NEAR ? postSpans.filter(([start, end]) => start < to - NEAR && end > from + NEAR) : [];
+        const [inner, outer] = [low <= x + NEAR, high >= x + boardWidth - NEAR];
+        if (hits.length === 0) {
+          board('DK', 'decking', '2x6', true, to - from, at(from, x, joistTop), flat);
+        } else if (inner !== outer) {
+          const notches = hits.map(([start, end]): Span => [Math.max(start, from) - from, Math.min(end, to) - from]);
+          const points = notchedBoard(to - from, boardWidth, high - low, inner, notches);
+          out.members.push({
+            id: nextId('DK'),
+            assembly,
+            role: 'decking',
+            size: '2x6',
+            treated: true,
+            length: to - from,
+            origin: at(from, x, deckTop),
+            axes: { length: frame.u, width: outward, thick: DOWN },
+            profile: { points, depth: PLY },
+            note: 'Notch around the posts.',
+          });
+        } else {
+          let start = from;
+          for (const [left, right] of [...hits].sort((first, second) => first[0] - second[0])) {
+            if (left > start + NEAR) board('DK', 'decking', '2x6', true, left - start, at(start, x, joistTop), flat, 'Cut to fit between the posts.');
+            start = Math.max(start, right);
+          }
+          if (to > start + NEAR) board('DK', 'decking', '2x6', true, to - start, at(start, x, joistTop), flat, 'Cut to fit between the posts.');
+        }
+      }
+    }
+    deck = {
+      joist,
+      plies,
+      joistSpan: beamInner - ledgerFace,
+      beamTributary: (beamInner - ledgerFace) / 2 + (beamOuter - beamInner),
+      seats: seated ? posts.length : 0,
+    };
   }
 
   if (metal) {
@@ -306,5 +412,27 @@ function frameLeanTo(
     postSpacing: (run - post) / (count - 1),
     beamTributary: (line - (extension ? 0 : start)) / 2 + (tail - line),
     lags: extension ? 0 : 2 * studs.length,
+    deck,
   });
+}
+
+/**
+ * The outline of a deck board `length` long and `width` wide, with `notches` (spans along it) cut
+ * `depth` in from its inner edge, or its outer edge. Points on a straight run go, so a notch at an
+ * end leaves no sliver.
+ */
+function notchedBoard(length: number, width: number, depth: number, inner: boolean, notches: readonly Span[]): Point[] {
+  const sorted = [...notches].sort((first, second) => first[0] - second[0]);
+  const points: Point[] = inner
+    ? [[0, 0], ...sorted.flatMap(([from, to]): Point[] => [[from, 0], [from, depth], [to, depth], [to, 0]]), [length, 0], [length, width], [0, width]]
+    : [[0, 0], [length, 0], [length, width], ...[...sorted].reverse().flatMap(([from, to]): Point[] => [[to, width], [to, width - depth], [from, width - depth], [from, width]]), [0, width]];
+  const straight = (list: Point[], index: number) => {
+    const [before, point, after] = [list[(index + list.length - 1) % list.length], list[index], list[(index + 1) % list.length]];
+    return Math.abs((point[0] - before[0]) * (after[1] - point[1]) - (point[1] - before[1]) * (after[0] - point[0])) < 1e-9;
+  };
+  let result = points;
+  for (let index = result.findIndex((_, at) => straight(result, at)); index >= 0; index = result.findIndex((_, at) => straight(result, at))) {
+    result = result.filter((_, at) => at !== index);
+  }
+  return result;
 }

@@ -34,7 +34,8 @@ export const ROOF_LOADS = [20, 30, 40, 50, 60, 70] as const;
 export const ROOF_DEAD_LOADS = [10, 15, 20] as const;
 export const LOFT_USES = ['storage', 'sleeping'] as const;
 export const LEAN_TO_POSTS = ['4x4', '6x6'] as const;
-export const LEAN_TO_FLOORS = ['none', 'slab'] as const;
+export const LEAN_TO_FLOORS = ['none', 'slab', 'deck'] as const;
+export const RAMP_MATERIALS = ['wood', 'concrete'] as const;
 export const LEAN_TO_ROOFING = ['sheathing', 'metal'] as const;
 export const ATTACHMENTS = ['soffit', 'extension'] as const;
 export const PURLINS = ['1x4', '2x4'] as const;
@@ -242,8 +243,41 @@ const addition = z.strictObject({
   beam: twoBy.default('2x8'),
   beamPlies: count(1, 3).default(2),
   floor: z.enum(LEAN_TO_FLOORS).default('none'),
+  // A deck on joists from a ledger on the shed's floor framing to a beam on the piers, under the posts.
+  deck: z
+    .strictObject({
+      joist: twoBy.default('2x8'),
+      oc: spacing.default(16),
+      drop: len(0, 24).default(0), // shed floor surface to the deck surface
+    })
+    .prefault({}),
 });
 export type Addition = z.infer<typeof addition>;
+
+// A ramp from the floor down to grade: deck boards on sloped stringers.
+const ramp = z
+  .strictObject({
+    // The opening the ramp follows: centered on its RO, `margin` wider on each side. An index into
+    // `openings`, then into that row's `at`. Null: placed by `wall`, `along`, `at`, and `width`.
+    opening: z.strictObject({ row: count(0, 999), index: count(0, 999) }).nullable().default(null),
+    margin: len(0, 48).default(6),
+    wall: z.enum(WALLS).default('front'),
+    // As for an opening, to the ramp's center or near edge. A ramp may run past a corner.
+    along: z.enum(ALONG).default('percent'),
+    at: z.number().default(50),
+    width: len(12, 480).default(48),
+    slope: z.number().min(1, 'Min 1').max(12, 'Max 12').default(4), // run per unit of rise
+    belowGrade: len(0, 48).default(0), // grade to the ramp's foot, where lower ground starts
+    // wood: 2x6 boards on stringers. concrete: a wedge poured over a base `thickness` deep.
+    material: z.enum(RAMP_MATERIALS).default('wood'),
+    stringer: twoBy.default('2x6'),
+    oc: spacing.default(16),
+    thickness: len(3.5, 12).default(4), // concrete under the foot
+  })
+  .refine((ramp) => ramp.along !== 'percent' || (ramp.at >= 0 && ramp.at <= 100), { message: '0% to 100%', path: ['at'] });
+export type Ramp = z.infer<typeof ramp>;
+/** A ramp with every default. */
+export const newRamp = (): Ramp => ramp.parse({});
 
 /** Model sides whose eave a lean-to roof extension takes over. */
 export const extensionSides = (additions: readonly Addition[]): Set<Addition['side']> =>
@@ -313,6 +347,7 @@ export const shedSchema = z.strictObject({
   openings: z.array(opening).default([]),
   roof: roof.prefault({}),
   additions: z.array(addition).default([]),
+  ramps: z.array(ramp).default([]),
   finishes: finishes.prefault({}),
   loads: loads.prefault({}),
   catalog: catalog.prefault({}),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
 import { frameRoof } from '../src/core/gen/roof';
-import { corners, layerOf, type Member, type Role } from '../src/core/member';
+import { corners, layerOf, LEFT_OUT, type Member, type Role } from '../src/core/member';
 
 // 8 x 10 ft, 2x4 walls with 92-5/8 in studs and a cap plate: plate tops at 97-1/8 in.
 // Gable 6/12, 2x6 rafters at 24 in (seat 3-1/2, plumb 6.149), 2x8 ridge. The rafter top edge is at
@@ -49,10 +49,12 @@ describe('collar ties', () => {
     expect(collars[0].note).toBe('Ends cut 26.6° to the roof line.');
   });
 
-  it('warns and leaves collar ties out when they would hit the ridge board', () => {
+  it('leaves collar ties out when they would hit the ridge board, outlined at their height', () => {
     const { members, warnings } = roofOf({ collarTies: { height: 20 } });
     expect(ofRole(members, 'tie.collar')).toHaveLength(0);
-    expect(warnings[0].message).toBe('Collar ties 20" above the plate hit the ridge board. Lower them.');
+    expect(warnings[0].message).toBe(`Collar ties 20" above the plate hit the ridge board. Lower them. ${LEFT_OUT}`);
+    expect(warnings[0].missing?.assembly).toBe('roof');
+    expect(warnings[0].missing?.outline.map(([, , z]) => z)).toEqual([117.125, 117.125, 117.125, 117.125]);
   });
 });
 
@@ -248,18 +250,25 @@ describe('loft openings', () => {
     expect(xs(ofRole(members, 'joist.loft'))).toEqual([3.5, 15.25, 31.25, 47.25, 95.25, 111.25, 115]);
   });
 
-  it('warns about long headers, hatches near the eaves, and overlapping hatches', () => {
+  it('warns about long headers and short tails, and leaves out hatches that collide', () => {
+    // Hung joists run from 5 in to 91 in front to back. Hatch 3's front header would start at 1 in;
+    // hatch 4's at 7 in, which leaves 2 in tail joists.
     const hatches = [
       { x: 30, y: 30, width: 60, depth: 30 },
       { x: 40, y: 30, width: 24, depth: 30 },
       { x: 100, y: 4, width: 12, depth: 30 },
+      { x: 100, y: 10, width: 12, depth: 30 },
     ];
-    const { warnings } = roofOf({ loft: { ...hung, hatches } });
-    expect(warnings).toEqual([
+    const { members, warnings } = roofOf({ loft: { ...hung, hatches } });
+    expect(warnings.map(({ source, message }) => ({ source, message }))).toEqual([
       { source: 'Hatch 1', message: 'The 60" hatch headers are longer than 4 ft. Check their size.' },
-      { source: 'Hatch 2', message: 'The hatch overlaps another hatch.' },
-      { source: 'Hatch 3', message: 'The hatch is too close to the eaves to leave tail joists.' },
+      { source: 'Hatch 2', message: `The hatch overlaps another hatch. ${LEFT_OUT}` },
+      { source: 'Hatch 3', message: `The hatch headers reach past the ends of the loft joists. ${LEFT_OUT}` },
+      { source: 'Hatch 4', message: 'The shortest tail joist is 2" long.' },
     ]);
+    expect(ofRole(members, 'trimmer.loft')).toHaveLength(8);
+    // At the joist tops, the wall top.
+    expect(warnings[2].missing).toEqual({ assembly: 'loft', outline: [[100, 4, 97.125], [112, 4, 97.125], [112, 34, 97.125], [100, 34, 97.125]] });
   });
 });
 

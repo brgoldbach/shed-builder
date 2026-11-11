@@ -50,6 +50,7 @@ export interface Drawing {
   dims: Dimension[];
   labels: { at: Point; text: string; room: number }[]; // room: inches of width the label may take
   outlines: Point[][]; // dashed references, such as the footprint
+  missing: Point[][]; // parts left out because their framing would collide, drawn in red
   notes: string[];
   wireframe?: boolean; // outlines only, so lower parts show through
 }
@@ -139,8 +140,8 @@ export function shapesOf(
   return [...context.map((member) => memberShape(member, 'context').shape), ...sorted.map(({ shape }) => shape)];
 }
 
-/** Lower-left and upper-right corners around the shapes. */
-export function bounds(shapes: readonly Shape[]): { min: Point; max: Point } {
+/** Lower-left and upper-right corners around the shapes and the `loops`. */
+export function bounds(shapes: readonly Shape[], loops: readonly (readonly Point[])[] = []): { min: Point; max: Point } {
   const points = shapes.flatMap(({ outline }) =>
     outline.kind === 'polygon'
       ? outline.points
@@ -149,6 +150,7 @@ export function bounds(shapes: readonly Shape[]): { min: Point; max: Point } {
           [outline.center[0] + outline.radius, outline.center[1] + outline.radius] as const,
         ],
   );
+  points.push(...loops.flat());
   const xs = points.map(([x]) => x);
   const ys = points.map(([, y]) => y);
   return { min: [Math.min(...xs), Math.min(...ys)], max: [Math.max(...xs), Math.max(...ys)] };

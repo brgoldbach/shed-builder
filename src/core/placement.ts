@@ -1,4 +1,5 @@
 import type { Opening, ShedConfig } from './config';
+import type { Naming } from './naming';
 import { formatInches } from './units';
 
 type Along = Opening['along'];
@@ -30,3 +31,7 @@ export function evenPercents(count: number): number[] {
 export function positionText(along: Along, value: number): string {
   return along === 'percent' ? `${value}%` : `${formatInches(value)} from ${along}`;
 }
+
+/** One position of an opening row, as warnings and notes name it: "window 24x36 (front 50%)". */
+export const openingLabel = (names: Naming, row: Opening, position: number) =>
+  `${row.type} (${names.side(row.wall)} ${positionText(row.along, position)})`;

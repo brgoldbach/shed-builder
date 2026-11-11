@@ -1,8 +1,8 @@
 import { LUMBER, stockFor, type LumberSize, type TwoBy } from '../catalog';
 import { WALLS, type Opening, type OpeningType, type ShedConfig } from '../config';
-import { ASSEMBLIES, type Member, type Role, type Solid, type Vec3, type Warning } from '../member';
+import { ASSEMBLIES, LEFT_OUT, type Assembly, type Member, type Role, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
-import { positionText, roOffset } from '../placement';
+import { openingLabel, roOffset } from '../placement';
 import { formatInches } from '../units';
 
 export type Wall = (typeof WALLS)[number];
@@ -68,6 +68,14 @@ function at(frame: Frame, u: number, v: number, z: number): Vec3 {
     frame.origin[1] + frame.u[1] * u + frame.v[1] * v,
     z,
   ];
+}
+
+/** A warning for an opening left out: its RO on the wall's outside face, `span` long. */
+export function leftOut({ label, type, row, position }: Placed, assembly: Assembly, frame: Frame, span: number, message: string): Warning {
+  const left = roOffset(row.along, position, span, type.width);
+  const [right, bottom, top] = [left + type.width, row.sill, row.sill + type.height];
+  const outline = [at(frame, left, 0, bottom), at(frame, right, 0, bottom), at(frame, right, 0, top), at(frame, left, 0, top)];
+  return { source: label, message: `${message} ${LEFT_OUT}`, missing: { assembly, outline } };
 }
 
 /** On a slab, the size of the PT mud sill under each wall's bottom plate; null for none. */
@@ -156,12 +164,12 @@ export interface Placed {
 
 export function placements(config: ShedConfig): Placed[] {
   const types = new Map(config.openingTypes.map((type) => [type.name, type]));
-  const { side } = naming(config);
+  const names = naming(config);
   return config.openings
     .filter((row) => row.enabled)
     .flatMap((row) =>
       row.at.map((position) => ({
-        label: `${row.type} (${side(row.wall)} ${positionText(row.along, position)})`,
+        label: openingLabel(names, row, position),
         type: types.get(row.type)!,
         row,
         position,
@@ -187,6 +195,14 @@ export function resolveHeader(type: OpeningType, walls: ShedConfig['walls']): He
   const main = style === 'flat' ? thick : width;
   const depth = main + PLY * (Number(plateBelow) + Number(plateAbove));
   return { style, size, plies: HEADER_PLIES[style], plateBelow, plateAbove, depth };
+}
+
+/** Plies thicker than the wall stack from its outside face and stand proud of its inside face. */
+export function warnThickHeader(header: Header, wallDepth: number, warn: (message: string) => void) {
+  const proud = header.plies * LUMBER[header.size].thick - wallDepth;
+  if (header.style !== 'flat' && proud > NEAR) {
+    warn(`${header.plies} plies of ${header.size} are thicker than the wall. They stand ${formatInches(proud)} proud of its inside face.`);
+  }
 }
 
 /** A placed opening that fits its wall or gable, with the framing positions resolved. */
@@ -226,6 +242,7 @@ function fitOpening(
   context: WallContext,
   blocked: readonly Span[],
   warn: (message: string) => void,
+  leaveOut: (message: string) => null,
 ): FittedOpening | null {
   const { walls } = context.config;
   const offset = roOffset(row.along, position, context.span, type.width);
@@ -233,27 +250,18 @@ function fitOpening(
 
   const { jacks, side, zone } = openingZone(type, offset, walls);
   if (zone[0] < context.start || zone[1] > context.end) {
-    warn(`The framing runs past the wall end. The king and jacks need ${formatInches(side)} on each side of the RO.`);
-    return null;
+    return leaveOut(`The framing runs past the wall end. The king and jacks need ${formatInches(side)} on each side of the RO.`);
   }
-  if (blocked.some((span) => overlaps(span, zone))) {
-    warn('The framing overlaps a corner or another opening.');
-    return null;
-  }
+  if (blocked.some((span) => overlaps(span, zone))) return leaveOut('The framing overlaps a corner or another opening.');
 
   const header = resolveHeader(type, walls);
-  if (header.style !== 'flat' && header.plies * LUMBER[header.size].thick > context.depth) {
-    warn(`${header.plies} plies of ${header.size} are thicker than the wall.`);
-    return null;
-  }
   let roTop = sill + type.height;
   const gap = context.plateUnder - roTop - header.depth;
   if (gap < 0) {
-    warn(
+    return leaveOut(
       `The header does not fit. RO top ${formatInches(roTop)} plus ${formatInches(header.depth)} of header ` +
         `is above the top plate at ${formatInches(context.plateUnder)}.`,
     );
-    return null;
   }
   if (gap > 0 && gap < MIN_CRIPPLE) {
     roTop += gap;
@@ -266,11 +274,9 @@ function fitOpening(
   let sillBottom: number | null = null;
   if (sill > 0) {
     sillBottom = sill - walls.sillPlies * PLY;
-    if (sillBottom < context.base) {
-      warn('The rough sill is below the top of the bottom plate.');
-      return null;
-    }
+    if (sillBottom < context.base) return leaveOut('The rough sill is below the top of the bottom plate.');
   }
+  warnThickHeader(header, context.depth, warn);
 
   if (header.style === 'flat' && isEave(context.wall)) warn('A flat header is on a bearing wall.');
   const headroom = context.wallTop - roTop;
@@ -387,7 +393,11 @@ function frameWall(
   for (const candidate of placed) {
     const blocked = [...occupied, ...fitted.map((other) => other.zone)];
     const warn = (message: string) => warnings.push({ source: candidate.label, message });
-    const fit = fitOpening(candidate, context, blocked, warn);
+    const leaveOut = (message: string) => {
+      warnings.push(leftOut(candidate, assembly, frame, span, message));
+      return null;
+    };
+    const fit = fitOpening(candidate, context, blocked, warn, leaveOut);
     if (fit) fitted.push(fit);
   }
 
@@ -515,10 +525,12 @@ export function openingBoards(
     flat('H', 'header', headerSpan, level);
     level += PLY;
   } else {
-    // Plies start at the outside face. The last of 2 or more sits at the inside face, behind the spacer.
+    // Plies start at the outside face. The last of 2 or more sits at the inside face, behind the
+    // spacer, unless the plies are thicker than the wall.
     const { thick, width } = LUMBER[header.size];
+    const spaced = header.plies * thick <= depth;
     for (let index = 0; index < header.plies; index++) {
-      const v = index > 0 && index === header.plies - 1 ? depth - thick : index * thick;
+      const v = spaced && index > 0 && index === header.plies - 1 ? depth - thick : index * thick;
       boards.push({
         code: 'H',
         role: 'header',

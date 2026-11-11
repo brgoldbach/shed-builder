@@ -34,5 +34,6 @@
     "rakeLadder": { "onEndRafter": true },
     "highSide": "front"
   },
+  "ramps": [{ "opening": { "row": 2, "index": 0 }, "slope": 3 }],
   "finishes": { "siding": "board-batten", "roofColor": "#2f4a3a" }
 }

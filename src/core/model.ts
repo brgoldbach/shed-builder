@@ -1,6 +1,7 @@
 import type { ShedConfig } from './config';
 import { frameAdditions, type LeanTo } from './gen/additions';
 import { frameFloor } from './gen/floor';
+import { frameRamps } from './gen/ramps';
 import { frameRoof, type RoofPlane } from './gen/roof';
 import { frameSheathing } from './gen/sheathing';
 import { frameWalls, type RoughOpening } from './gen/walls';
@@ -23,13 +24,14 @@ export function buildModel(config: ShedConfig): Model {
   const roof = frameRoof(config);
   const shed = [...floor.members, ...walls.members, ...roof.members];
   const additions = frameAdditions(config, roof, shed);
-  const members = [...shed, ...additions.members];
+  const ramps = frameRamps(config, shed);
+  const members = [...shed, ...additions.members, ...ramps.members];
   const openings = [...walls.openings, ...roof.openings];
   const planes = [...roof.planes, ...additions.planes];
   return {
     members,
-    solids: [...floor.solids, ...walls.solids, ...additions.solids, ...frameSheathing(config, members, openings, planes, roof.deck)],
-    warnings: [...walls.warnings, ...roof.warnings, ...additions.warnings],
+    solids: [...floor.solids, ...walls.solids, ...additions.solids, ...ramps.solids, ...frameSheathing(config, members, openings, planes, roof.deck)],
+    warnings: [...walls.warnings, ...roof.warnings, ...additions.warnings, ...ramps.warnings],
     openings,
     planes,
     rafterSpan: roof.rafterSpan,

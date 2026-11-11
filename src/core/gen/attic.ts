@@ -1,12 +1,12 @@
 import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
-import type { Assembly, Member, Point, Role, Vec3, Warning } from '../member';
+import { LEFT_OUT, type Assembly, type Member, type Point, type Role, type Vec3, type Warning } from '../member';
 import { formatInches } from '../units';
 import { clipBelow, degrees, idMaker, planeMember, type Slope } from './section';
 import { splitPlate } from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
-const MIN_TAIL = 3; // shortest tail joist between a hatch header and the eave
+const MIN_TAIL = 3; // a shorter tail joist between a hatch header and the eave gets a warning
 const LONG_HEADER = 48; // a longer hatch header gets a warning to check its size
 const NEAR = 0.01;
 const X: Vec3 = [1, 0, 0];
@@ -15,6 +15,7 @@ const UP: Vec3 = [0, 0, 1];
 type Span = readonly [number, number];
 type Base = { id: string; assembly: Assembly; role: Role; size: LumberSize };
 type Warn = (source: string, message: string) => void;
+type LeaveOut = (source: string, assembly: Assembly, message: string, outline: Vec3[]) => void;
 type Rect = { min: Point; max: Point };
 
 /** The loft deck in plan: `min` to `max` less the holes, laid on the joists at `bottom`. */
@@ -52,6 +53,8 @@ export function frameAttic(
   const members: Member[] = [];
   const warnings: Warning[] = [];
   const warn: Warn = (source, message) => warnings.push({ source, message });
+  const leaveOut: LeaveOut = (source, assembly, message, outline) =>
+    warnings.push({ source, message: `${message} ${LEFT_OUT}`, missing: { assembly, outline } });
   const plate = slope.bottom(slope.seat); // where the rafters bear
   const ridgeTop = slope.top(width / 2 - PLY / 2);
   // The gable-end rafter pairs stand on the gable framing and get no ties.
@@ -100,7 +103,11 @@ export function frameAttic(
     const bottom = collar.height === 'auto' ? auto : plate + collar.height;
     const extent = level.span(bottom);
     if (bottom + depth > ridgeBottom + 1e-9) {
-      warn('Roof', `Collar ties ${formatInches(bottom - plate)} above the plate hit the ridge board. Lower them.`);
+      // Where the ties would be: level at their bottom, across the common rafters.
+      const [x0, x1] = commons.length > 0 ? [commons[0], commons[commons.length - 1] + 2 * PLY] : [0, config.length];
+      const [y0, y1] = level.span(bottom);
+      const outline: Vec3[] = [[x0, y0, bottom], [x1, y0, bottom], [x1, y1, bottom], [x0, y1, bottom]];
+      leaveOut('Roof', 'roof', `Collar ties ${formatInches(bottom - plate)} above the plate hit the ridge board. Lower them.`, outline);
     } else if (extent[1] - extent[0] >= PLY) {
       commons.forEach((x, index) => {
         if (index % collar.every !== 0) return;
@@ -112,7 +119,7 @@ export function frameAttic(
 
   let deck: Deck | null = null;
   if (roof.loft.enabled) {
-    const loft = frameLoft(config, slope, rafters, wallDepth, wallTop, kneeBase !== null, level, warn);
+    const loft = frameLoft(config, slope, rafters, wallDepth, wallTop, kneeBase !== null, level, warn, leaveOut);
     members.push(...loft.members);
     deck = loft.deck;
   }
@@ -130,6 +137,7 @@ function frameLoft(
   raised: boolean,
   level: Level,
   warn: Warn,
+  leaveOut: LeaveOut,
 ): { members: Member[]; deck: Deck | null } {
   const { width, length, roof, catalog } = config;
   const { loft } = roof;
@@ -188,22 +196,27 @@ function frameLoft(
     const right = clear(hatch.x + hatch.width, 2, 1);
     const front = hatch.y - 2 * PLY; // outer face of the front header
     const back = hatch.y + hatch.depth + 2 * PLY; // outer face of the back header
+    const [x1, y1, z] = [hatch.x + hatch.width, hatch.y + hatch.depth, bottom + joistDepth];
+    const skip = (message: string) =>
+      leaveOut(source, 'loft', message, [[hatch.x, hatch.y, z], [x1, hatch.y, z], [x1, y1, z], [hatch.x, y1, z]]);
     if (left < inner[0] || right + 2 * PLY > inner[1]) {
-      warn(source, 'The hatch and its trimmers do not fit between the ends of the loft floor.');
+      skip('The hatch and its trimmers do not fit between the ends of the loft floor.');
       return;
     }
-    if (front - extent[0] < MIN_TAIL || extent[1] - back < MIN_TAIL) {
-      warn(source, 'The hatch is too close to the eaves to leave tail joists.');
+    const tail = Math.min(front - extent[0], extent[1] - back);
+    if (tail < NEAR) {
+      skip('The hatch headers reach past the ends of the loft joists.');
       return;
     }
     if (hatches.some((other) => left < other.right + 2 * PLY && right + 2 * PLY > other.left)) {
-      warn(source, 'The hatch overlaps another hatch.');
+      skip('The hatch overlaps another hatch.');
       return;
     }
     if (lapping && Math.min(slope.bottom(front), slope.bottom(width - back)) < bottom + joistDepth) {
-      warn(source, 'The hatch headers would hit the rafters. Move the hatch away from the eaves.');
+      skip('The hatch headers would hit the rafters. Move the hatch away from the eaves.');
       return;
     }
+    if (tail < MIN_TAIL) warn(source, `The shortest tail joist is ${formatInches(tail)} long.`);
     const headerLength = right - left - 2 * PLY;
     if (headerLength > LONG_HEADER) {
       warn(source, `The ${formatInches(headerLength)} hatch headers are longer than 4 ft. Check their size.`);

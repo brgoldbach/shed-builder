@@ -8,6 +8,7 @@ import {
   type OpeningType,
   type ShedConfig,
 } from '../core/config';
+import { withOpeningRow, withoutOpeningRow } from '../core/gen/ramps';
 import { wallTops } from '../core/gen/walls';
 import { naming } from '../core/naming';
 import { evenPercents, positionFor, roOffset, wallSpan } from '../core/placement';
@@ -249,10 +250,11 @@ const defaultSill = (type: OpeningType) =>
 export function OpeningRowsEditor({ value, onChange }: SectionProps<ShedConfig>) {
   const names = value.openingTypes.map((type) => type.name);
   const setRows = (openings: Opening[]) => onChange({ ...value, openings });
+  // Ramps that follow a row keep their positions through its edits.
   const update =
     (index: number): Edit<Opening> =>
     (next) =>
-      setRows(value.openings.map((row, at) => (at === index ? next : row)));
+      onChange(withOpeningRow(value, index, next));
 
   if (names.length === 0) return <p className="muted hint">Add an opening type first.</p>;
 
@@ -277,7 +279,7 @@ export function OpeningRowsEditor({ value, onChange }: SectionProps<ShedConfig>)
           config={value}
           names={names}
           onChange={update(index)}
-          onRemove={() => setRows(value.openings.filter((_, at) => at !== index))}
+          onRemove={() => onChange(withoutOpeningRow(value, index))}
         />
       ))}
       <div className="add-row">

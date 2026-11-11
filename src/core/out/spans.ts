@@ -3,7 +3,7 @@ import type { ShedConfig } from '../config';
 import type { RoughOpening } from '../gen/walls';
 import { corners, type Member, type Warning } from '../member';
 import type { Model } from '../model';
-import type { Naming } from '../naming';
+import { capitalize, type Naming } from '../naming';
 import { formatLength } from '../units';
 
 // Load cases, psf, from AWC Span Tables for Joists and Rafters 2021, Tables A-1 to A-4.
@@ -163,7 +163,7 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
     );
   }
 
-  for (const { side, addition, rafterSpan, postSpacing, beamTributary } of model.leanTos) {
+  for (const { side, addition, rafterSpan, postSpacing, beamTributary, deck } of model.leanTos) {
     const name = `${capitalize(names.side(side))} lean-to`;
     joists(`${name} rafters`, addition.rafter, addition.oc, rafterSpan, rafterLoad, roofDuration, `${roofLabel}, L/${RAFTER_LIMIT}`);
     const feet = beamTributary / 12;
@@ -180,6 +180,14 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
       240,
       `${roofLabel} over ${formatLength(beamTributary)}, L/240`,
     );
+    if (deck) {
+      const floorBasis = `${FLOOR.live} psf live + ${FLOOR.dead} psf dead`;
+      joists(`${name} deck joists`, deck.joist, addition.deck.oc, deck.joistSpan, FLOOR, 1, `${floorBasis}, L/${FLOOR.limit}`);
+      const deckFeet = deck.beamTributary / 12;
+      const deckLoad = { total: (FLOOR.live + FLOOR.dead) * deckFeet, live: FLOOR.live * deckFeet, floorLive: true };
+      const { thick: ply, width: deckDepth } = LUMBER[deck.joist];
+      beam(`${name} deck beam`, `${deck.plies}-ply ${deck.joist}`, deck.joist, deck.plies * ply, deckDepth, postSpacing, deckLoad, FLOOR.limit, `${floorBasis} over ${formatLength(deck.beamTributary)}, L/${FLOOR.limit}`);
+    }
   }
 
   if (foundation.type === 'pier') {
@@ -224,7 +232,6 @@ export function spanWarnings(checks: readonly SpanCheck[], config: ShedConfig): 
   );
 }
 
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** Overlapping ranges joined, in order. */
 function mergeRanges(ranges: readonly (readonly [number, number])[]): [number, number][] {

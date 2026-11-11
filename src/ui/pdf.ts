@@ -32,6 +32,7 @@ const STYLE = `
 .wireframe .shape { fill: none; }
 .cut-mark { fill: none; stroke: #000000; stroke-width: 0.75; }
 .outline { fill: none; stroke: #777777; stroke-dasharray: 6 4; }
+.missing { fill: none; stroke: #cc0000; stroke-width: 1.5; stroke-dasharray: 4 3; }
 .dim line { stroke: #555555; stroke-width: 0.75; }
 text { fill: #000000; font-family: helvetica; font-size: 9px; }
 .mark { fill: #555555; font-size: 7px; }

@@ -3,7 +3,7 @@
   "name": "10x16 loft shed",
   "width": 120,
   "length": 192,
-  "foundation": { "type": "skid", "skid": { "size": "4x6", "count": 3 } },
+  "foundation": { "type": "skid", "skid": { "size": "4x6", "count": 3 }, "pier": { "aboveGrade": 2 } },
   "floor": { "blocking": true },
   "openingTypes": [
     { "name": "door 36", "kind": "door", "width": 38, "height": 82.25 },
@@ -36,6 +36,8 @@
     },
     "kneeWalls": { "enabled": true, "height": 36 }
   },
+  "additions": [{ "side": "back", "depth": 72, "floor": "deck", "deck": { "joist": "2x6" } }],
+  "ramps": [{ "opening": { "row": 0, "index": 0 } }],
   "finishes": { "siding": "t1-11" },
   "loads": { "loft": "sleeping" }
 }

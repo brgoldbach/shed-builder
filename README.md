@@ -76,9 +76,9 @@ A failed build leaves the last good deployment live. To push without a deploymen
 
 | Tab | Content |
 |---|---|
-| Form (left) | Size, front (eave wall or gable end), precut stud height, foundation, floor, walls, openings, roof, loft, knee walls, lean-tos, finishes, loads, species, and stock lengths. Each section, group, and list card folds closed to a one-line summary. The loft, knee walls, and ties show their fields only when switched on. |
-| 3D | Each member and sheet, by layer: foundation, floor, walls, gable ends, loft, knee walls, roof, rake ladders, lean-tos, sheathing, siding, roofing, and doors and windows. Framing and Finished switch between the bare frame and the finished look, in the colors under Finishes. A click on a member selects its cut-list line and shows the piece laid flat, with its cut dimensions. |
-| Framing | Foundation plan, an elevation of each wall, gable end, and knee wall, loft and roof plans, a building section, a rafter detail, and a sheet that shows how cut lengths are measured, dimensioned. Zoom opens a drawing to pan and zoom. Download PDF writes the set to scale on Letter or Tabloid sheets, with title blocks. |
+| Form (left) | Size, front (eave wall or gable end), precut stud height, foundation, floor, walls, openings, roof, loft, knee walls, lean-tos and their decks, ramps, finishes, loads, species, and stock lengths. Undo and Redo in the header step back and forward through changes. Each section, group, and list card folds closed to a one-line summary. The loft, knee walls, and ties show their fields only when switched on. |
+| 3D | Each member and sheet, by layer: foundation, floor, walls, gable ends, loft, knee walls, roof, rake ladders, lean-tos, ramps, sheathing, siding, roofing, and doors and windows. A part left out because its framing would collide shows as a red outline. Framing and Finished switch between the bare frame and the finished look, in the colors under Finishes. A click on a member selects its cut-list line and shows the piece laid flat, with its cut dimensions. |
+| Framing | Foundation plan, a plan of lean-to decks and ramps, an elevation of each wall, gable end, and knee wall, loft and roof plans, a building section, a rafter detail, and a sheet that shows how cut lengths are measured, dimensioned. Zoom opens a drawing to pan and zoom. Download PDF writes the set to scale on Letter or Tabloid sheets, with title blocks. |
 | Cut list | Each part by mark, with its cut notes. Lengths run long point to long point along the board. A click on a line shows the piece laid flat, with its cut dimensions. Print or CSV. |
 | BOM | Lumber by stock length with a cutting plan, sheets, concrete, hardware, and roofing, each with a cost from the unit prices under Lumber catalog in the form, and a total. Print or CSV. |
 | Warnings | Framing problems, and span checks from the AWC span equations with NDS 2018 values for No. 2 lumber |
@@ -114,19 +114,7 @@ The app follows [Semantic Versioning](https://semver.org/). `package.json` holds
 the header shows it. Click it to read the changelog. [CHANGELOG.md](CHANGELOG.md) lists the changes
 in each release. Each release has a `vX.Y.Z` tag on `main`.
 
-## Project layout
+## Development
 
-| Path | Content |
-|---|---|
-| `src/core` | Config schema, lumber catalog, framing generators (`gen/`), and outputs (`out/`): cut list, BOM, span checks, CSV |
-| `src/drawings` | Framing drawings, in inches |
-| `src/ui` | React user interface |
-| `src/view3d` | Three.js scene |
-| `presets` | Example designs |
-| `tests` | Unit tests. `tests/golden` holds the expected cut list, BOM, costs, warnings, and span checks of each preset and of the designs in `tests/fixtures`. |
-| `setup.sh`, `start.sh` | Set up and start the app |
-| `scripts` | The Node part of the setup |
-| `.nvmrc` | The Node version for hosts and version managers |
-
-When a change alters a preset's output on purpose, review the golden-file diff, then update the
-files with `npx vitest run -u`.
+[docs/DEVELOPER.md](docs/DEVELOPER.md) describes the structure, conventions, recipes for common
+changes, tests, and the release steps. [AGENTS.md](AGENTS.md) holds the short rules for coding agents.

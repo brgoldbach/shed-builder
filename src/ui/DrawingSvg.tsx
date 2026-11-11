@@ -35,7 +35,7 @@ function upright(dx: number, dy: number): number {
  * 900 px. Dimension tiers, text, and margins keep their px sizes at any scale.
  */
 export function layoutOf(drawing: Drawing, fixedScale?: number) {
-  const { min, max } = bounds(drawing.shapes);
+  const { min, max } = bounds(drawing.shapes, [...drawing.outlines, ...drawing.missing]);
   const scale = fixedScale ?? Math.min(MAX_WIDTH / (max[0] - min[0]), MAX_HEIGHT / (max[1] - min[1]), MAX_SCALE);
 
   // Offset of each side tier from the drawing, and the room each side needs.
@@ -88,6 +88,9 @@ export function DrawingSvg({ drawing, selected, onPick, scale: fixedScale, zoom 
       ))}
       {drawing.outlines.map((outline, index) => (
         <polygon key={index} className="outline" points={outline.map((point) => px(point).join(',')).join(' ')} />
+      ))}
+      {drawing.missing.map((outline, index) => (
+        <polygon key={`missing-${index}`} className="missing" points={outline.map((point) => px(point).join(',')).join(' ')} />
       ))}
       {drawing.labels.map(({ at, text, room }) => {
         // Clear of the RO height dimension inside the opening's left edge.

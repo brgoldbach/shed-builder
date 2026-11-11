@@ -44,10 +44,11 @@ describe('lumber packing', () => {
     const bom = bomOf(config);
     // 10 rafters and 2 fly rafters; the PT 2x8 girders split over the piers.
     expect(bom.lumber.find(({ size, treated }) => size === '2x8' && !treated)!.tooLong).toHaveLength(12);
-    expect(bom.warnings[0]).toEqual({
-      source: 'RF-1',
-      message: 'The 2x8 at 150-1/4" is longer than the longest stock, 144". Splice it or order it long.',
-    });
+    // One warning for each cut line.
+    expect(bom.warnings).toEqual([
+      { source: 'RF-1', message: 'The 10 pieces of 2x8 at 150-1/4" are longer than the longest stock, 144". Splice them or order them long.' },
+      { source: 'RF-2', message: 'The 2 pieces of 2x8 at 150-1/4" are longer than the longest stock, 144". Splice them or order them long.' },
+    ]);
   });
 });
 

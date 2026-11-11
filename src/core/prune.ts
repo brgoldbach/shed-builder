@@ -1,4 +1,5 @@
 import { shedSchema, type ShedConfig } from './config';
+import { rampPlace } from './gen/ramps';
 
 const LADDER = 1.5; // the shortest rake overhang that frames a rake ladder, as in gen/roof.ts
 
@@ -18,7 +19,7 @@ export function pruneConfig(config: ShedConfig): ShedConfig {
   // Open metal roofing has no sheathing; a lean-to without metal takes the main roof's.
   const sheathed = roof.roofing !== 'metal' || additions.some(({ roofing }) => roofing !== 'metal');
   // Lean-to posts stand on piers or a slab sized by the main foundation's settings.
-  const leanToPiers = additions.some(({ floor }) => floor === 'none');
+  const leanToPiers = additions.some(({ floor }) => floor !== 'slab');
   const leanToSlab = additions.some(({ floor }) => floor === 'slab');
   const placed = new Set(config.openings.map(({ type }) => type));
 
@@ -57,6 +58,15 @@ export function pruneConfig(config: ShedConfig): ShedConfig {
         ...(addition.roofing === 'metal' ? [] : ['purlin' as const, 'purlinSpacing' as const]),
         ...(addition.length === 'full' ? ['center' as const] : []),
         ...(addition.attach === 'extension' ? ['drop' as const] : []),
+        ...(addition.floor === 'deck' ? [] : ['deck' as const]),
+      ]),
+    ),
+    // A ramp that follows an opening takes its place and width from it. One whose opening is gone
+    // keeps its own place, and its link for the warning.
+    ramps: config.ramps.map((ramp) =>
+      omit(ramp, [
+        ...(ramp.opening === null ? (['opening', 'margin'] as const) : rampPlace(config, ramp).lost ? (['margin'] as const) : (['wall', 'along', 'at', 'width'] as const)),
+        ...(ramp.material === 'concrete' ? (['stringer', 'oc'] as const) : (['thickness'] as const)),
       ]),
     ),
     finishes: omit(finishes, [

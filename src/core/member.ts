@@ -14,6 +14,7 @@ export const LAYERS = {
   roof: 'Roof',
   rake: 'Rake ladders',
   additions: 'Lean-tos',
+  ramps: 'Ramps',
   sheathing: 'Sheathing',
   siding: 'Siding',
   roofing: 'Roofing',
@@ -39,6 +40,7 @@ export const ASSEMBLIES = {
   'addition.back': { label: 'Back lean-to', prefix: 'AB', layer: 'additions' },
   'addition.left': { label: 'Left lean-to', prefix: 'AL', layer: 'additions' },
   'addition.right': { label: 'Right lean-to', prefix: 'AR', layer: 'additions' },
+  ramp: { label: 'Ramps', prefix: 'RP', layer: 'ramps' },
 } as const satisfies Record<string, { label: string; prefix: string; layer: Layer }>;
 export type Assembly = keyof typeof ASSEMBLIES;
 
@@ -83,6 +85,11 @@ export const ROLES = {
   'joist.end': 'End joist',
   'joist.floor': 'Floor joist',
   blocking: 'Blocking',
+  'ledger.deck': 'Deck ledger',
+  'joist.deck': 'Deck joist',
+  'beam.deck': 'Deck beam ply',
+  decking: 'Deck board',
+  stringer: 'Ramp stringer',
 } as const;
 export type Role = keyof typeof ROLES;
 
@@ -110,11 +117,19 @@ export interface Solid {
   sheet?: SheetKey; // the stock sheet a panel is cut from
 }
 
-/** A design problem found while framing. `source` names the opening or part. */
+/**
+ * A design problem found while framing. `source` names the opening or part. `missing` is a part
+ * left out because its framing would collide: a closed loop, drawn in red in 3D and on the
+ * drawings of its assembly.
+ */
 export interface Warning {
   source: string;
   message: string;
+  missing?: { assembly: Assembly; outline: Vec3[] };
 }
+
+/** Ends the message of a warning with `missing`. */
+export const LEFT_OUT = 'It is left out: red in 3D and on the drawings.';
 
 /**
  * One piece of lumber in building coordinates (inches, x along the length, y front to back, z up

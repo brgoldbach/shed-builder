@@ -3,6 +3,52 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Developer documents:** `docs/DEVELOPER.md` describes the structure, conventions, decisions,
+  recipes for common changes, tests, and releases. It links a detailed document for each subsystem:
+  the design model, framing, lean-tos and finishes, outputs, drawings, and the user interface.
+  `AGENTS.md` holds the short rules for coding agents.
+- **Undo and redo:** buttons in the header, or Ctrl+Z and Ctrl+Shift+Z (Cmd on a Mac). Each change
+  to the design is a step, a loaded file or link too. In a text box, the keys undo the typing.
+- **Ramps:** a Ramps list in the form. A ramp runs from the floor down to its foot, at grade or a
+  set depth below it, for lower ground beside the shed. Wood: PT 2x6 deck boards on sloped PT
+  stringers that butt the floor framing, with a stringer size and spacing. Concrete: a wedge from
+  the foundation's edge over a base under the foot, with its concrete in the BOM. A ramp can follow
+  an opening: it centers on that opening's RO, wider by a margin on each side, and moves and resizes
+  when the opening changes, to another wall too. Or place it freely by wall, position, and width.
+  The cut list, BOM, 3D, and a new "Decks and ramps" sheet show it. A ramp with too little rise is
+  left out in red.
+- **Lean-to deck:** a third lean-to floor choice. PT 2x6 deck boards, notched around the posts, on
+  joists that hang from a ledger on the shed's floor framing and from a flush beam on the post line.
+  The beam bears on the piers, which rise to meet it, or on deck posts where the floor is high. The
+  lean-to posts stand on the beam over each pier, so each load runs straight down. Set the joist
+  size, spacing, and a drop below the shed floor. Span checks cover the deck joists and beam, and
+  the BOM counts the hangers, ledger lags, and beam seats.
+- **Lean-to piers on other foundations:** on a skid or slab shed, the Foundation section now shows
+  the pier settings that lean-to posts use, and the slab thickness for a lean-to slab.
+
+### Changed
+
+- **Parts that do not fit:** the app builds what you enter wherever the parts can exist, with a
+  warning. A header thicker than the wall now stands proud of the wall's inside face. A short hatch
+  tail joist and a short lean-to post are now built. An opening, hatch, collar ties, or lean-to
+  whose framing would collide is still left out, and now shows as a red outline in 3D and on its
+  drawings.
+
+- **Lean-to and ramp cards:** each card folds its settings into groups with a one-line summary:
+  Size, Roof, Posts and beam, and Floor for a lean-to; Place, Slope, and Build for a ramp.
+
+### Fixed
+
+- **Lean-to with no roof over its wall:** a below-soffit lean-to on a wall that the main roof does
+  not reach past, such as a gable end with no rake overhang, got no ledger height and broken
+  geometry. It is now left out in red, with a warning.
+- **Long-piece warnings:** a cut line with pieces longer than the longest stock gave one warning
+  for each piece. It now gives one warning for the line, with the piece count.
+
 ## [0.5.0] - 2026-11-10
 
 ### Added

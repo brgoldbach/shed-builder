@@ -60,6 +60,7 @@ import { naming, type Naming } from '../core/naming';
 import { formatInches, formatLength, formatMoney } from '../core/units';
 import { AdditionsEditor } from './AdditionsEditor';
 import { OpeningRowsEditor, OpeningTypesEditor } from './OpeningsEditor';
+import { RampsEditor } from './RampsEditor';
 
 type Foundation = ShedConfig['foundation'];
 type Floor = ShedConfig['floor'];
@@ -105,7 +106,7 @@ const HARDWARE_PRICE_LABELS = {
   postCap: 'Post cap',
   joistHanger: 'Joist hanger',
   doubleHanger: 'Double joist hanger',
-  lag: 'Ledger lag screw',
+  lag: 'Lag screw',
 };
 const ROOFING_PRICE_LABELS = { shingles: 'Shingles, per sq ft', metal: 'Metal panels, per sq ft', dripEdge: 'Drip edge, per ft' };
 
@@ -160,7 +161,12 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
           {value.studHeight === 'custom' ? ', cut to length.' : ' precuts.'}
         </p>
       </Section>
-      <FoundationSection value={value.foundation} onChange={set('foundation')} />
+      <FoundationSection
+        value={value.foundation}
+        onChange={set('foundation')}
+        leanToPiers={value.additions.some(({ floor }) => floor !== 'slab')}
+        leanToSlab={value.additions.some(({ floor }) => floor === 'slab')}
+      />
       {value.foundation.type !== 'slab' && <FloorSection value={value.floor} onChange={set('floor')} />}
       <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} gable={value.roof.style === 'gable'} names={names} />
       <OpeningsSection value={value} onChange={onChange} />
@@ -168,6 +174,9 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       {value.roof.style === 'gable' && <LoftSection value={value.roof} onChange={set('roof')} names={names} />}
       <Section title="Lean-tos" brief={count(value.additions.length, 'lean-to')}>
         <AdditionsEditor value={value} onChange={onChange} />
+      </Section>
+      <Section title="Ramps" brief={count(value.ramps.length, 'ramp')}>
+        <RampsEditor value={value} onChange={onChange} />
       </Section>
       <FinishesSection value={value} onChange={onChange} />
       <LoadsSection value={value} onChange={onChange} />
@@ -182,7 +191,8 @@ const FOUNDATION_BRIEFS: Record<Foundation['type'], (foundation: Foundation) => 
   slab: ({ slab }) => `${formatInches(slab.thickness)} slab`,
 };
 
-function FoundationSection({ value, onChange }: SectionProps<Foundation>) {
+// Lean-to posts stand on piers, or on a slab, sized here even when the shed has another foundation.
+function FoundationSection({ value, onChange, leanToPiers, leanToSlab }: SectionProps<Foundation> & { leanToPiers: boolean; leanToSlab: boolean }) {
   const set = setter(value, onChange);
   const skid = setter(value.skid, set('skid'));
   const pier = setter(value.pier, set('pier'));
@@ -224,6 +234,18 @@ function FoundationSection({ value, onChange }: SectionProps<Foundation>) {
           <LengthField label="Anchor bolt spacing" value={value.slab.anchorSpacing} onChange={slab('anchorSpacing')} />
           <LengthField label="Bolt to plate end" value={value.slab.anchorEndDistance} onChange={slab('anchorEndDistance')} />
         </>
+      )}
+      {value.type !== 'pier' && leanToPiers && (
+        <Group title="Lean-to piers" brief={`${value.pier.diameter}" diameter`}>
+          <SelectField label="Pier diameter (in)" value={value.pier.diameter} options={PIER_DIAMETERS} onChange={pier('diameter')} />
+          <LengthField label="Depth below grade" value={value.pier.depth} onChange={pier('depth')} />
+          <LengthField label="Height above grade" value={value.pier.aboveGrade} onChange={pier('aboveGrade')} />
+        </Group>
+      )}
+      {value.type !== 'slab' && leanToSlab && (
+        <Group title="Lean-to slab" brief={formatInches(value.slab.thickness)}>
+          <LengthField label="Thickness" value={value.slab.thickness} onChange={slab('thickness')} />
+        </Group>
       )}
     </Section>
   );

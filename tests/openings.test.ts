@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { shedSchema } from '../src/core/config';
 import { frameWalls } from '../src/core/gen/walls';
 import { buildModel } from '../src/core/model';
-import type { Member, Role } from '../src/core/member';
+import { LEFT_OUT, type Member, type Role } from '../src/core/member';
 import { evenPercents } from '../src/core/placement';
 
 // 8 x 10 ft, 2x4 at 16 in o.c., 92-5/8 in studs: top plate underside at 94-1/8 in.
@@ -84,10 +84,11 @@ describe('headers', () => {
     expect(plies[0].origin[1]).toBe(0);
   });
 
-  it('skips a triple 2x girder in a 2x4 wall, with a warning', () => {
+  it('builds a triple 2x girder in a 2x4 wall proud of its inside face, with a warning', () => {
     const { members, warnings } = frame([windowRow], { openingTypes: withType('window', { girder: 'triple' }) });
-    expect(ofRole(members, 'header')).toHaveLength(0);
-    expect(warnings[0].message).toBe('3 plies of 2x8 are thicker than the wall.');
+    // From the front wall's outside face at y = 0: plies at 0, 1-1/2, and 3, 1 in past the 3-1/2 in wall.
+    expect(sorted(ofRole(members, 'header').map((ply) => ply.origin[1]))).toEqual([0, 1.5, 3]);
+    expect(warnings[0].message).toBe('3 plies of 2x8 are thicker than the wall. They stand 1" proud of its inside face.');
   });
 
   it('frames a triple girder in a 2x6 wall with the last ply at the inside face', () => {
@@ -179,10 +180,12 @@ describe('opening rules', () => {
     expect(warnings[0].message).toContain('does not fit');
   });
 
-  it('skips an opening that overlaps another', () => {
+  it('leaves out an opening that overlaps another, outlined on the wall face', () => {
     const { members, warnings } = frame([{ ...windowRow, at: [48, 60] }]);
     expect(ofRole(members, 'king')).toHaveLength(2);
     expect(warnings[0]).toMatchObject({ source: 'window (front 60" from left)', message: expect.stringContaining('overlaps') });
+    // The RO on the front wall's outside face, y = 0: 60 to 84-1/2 along, 46 to 82-1/2 up.
+    expect(warnings[0].missing).toEqual({ assembly: 'wall.front', outline: [[60, 0, 46], [84.5, 0, 46], [84.5, 0, 82.5], [60, 0, 82.5]] });
   });
 
   it('skips an opening whose framing runs past the wall end', () => {
@@ -249,12 +252,13 @@ describe('gable openings', () => {
     const { warnings, openings } = buildModel(config({ sill: 108 }));
     expect(openings).toEqual([]);
     expect(warnings.map((warning) => warning.message)).toEqual([
-      'The header does not fit. RO top 120" plus 1-1/2" of header is above the gable top plate at 120-7/16".',
+      `The header does not fit. RO top 120" plus 1-1/2" of header is above the gable top plate at 120-7/16". ${LEFT_OUT}`,
     ]);
   });
 
   it('leaves out an opening whose king lands on the ridge post', () => {
     const { warnings } = buildModel(config({ along: 'left', at: [61] }));
-    expect(warnings.map((warning) => warning.message)).toEqual(['The kings or jacks land on the ridge post. Move the opening.']);
+    expect(warnings.map((warning) => warning.message)).toEqual([`The kings or jacks land on the ridge post. Move the opening. ${LEFT_OUT}`]);
+    expect(warnings[0].missing?.assembly).toBe('gable.right');
   });
 });

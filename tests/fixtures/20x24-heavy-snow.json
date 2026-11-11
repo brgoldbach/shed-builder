@@ -24,6 +24,7 @@
     "rakeOverhang": 0,
     "rafterTies": { "every": 2, "height": 12 }
   },
+  "ramps": [{ "opening": { "row": 0, "index": 0 }, "slope": 6 }],
   "loads": { "roof": 70, "roofDead": 20 },
   "catalog": { "species": "dfl", "maxLength": 144 }
 }

@@ -1,6 +1,6 @@
 import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import type { ShedConfig } from '../config';
-import type { Assembly, Member, Point, Role, Solid, Vec3 } from '../member';
+import { corners, type Assembly, type Member, type Point, type Role, type Solid, type Vec3 } from '../member';
 import { formatInches } from '../units';
 import { idMaker, planeMember } from './section';
 import { splitPlate } from './walls';
@@ -164,4 +164,11 @@ export function frameFloor(config: ShedConfig): { members: Member[]; solids: Sol
     }
   }
   return { members, solids };
+}
+
+/** Ground level: the slab top, the skid bottoms, or the pier tops less their height above grade. */
+export function gradeOf(config: ShedConfig, framing: readonly Member[]): number {
+  if (config.foundation.type === 'slab') return 0;
+  const lowest = Math.min(...framing.filter(({ assembly }) => assembly === 'foundation').flatMap((member) => corners(member).map(([, , z]) => z)));
+  return config.foundation.type === 'pier' ? lowest - config.foundation.pier.aboveGrade : lowest;
 }

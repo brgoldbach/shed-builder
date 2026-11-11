@@ -85,6 +85,7 @@ export function pieceDrawing(member: Member, mark?: string): Drawing {
     dims: pieceDims(outline),
     labels: [],
     outlines: [],
+    missing: [],
     notes: [LENGTH_RULE, ...(member.note ? [member.note] : [])],
   };
 }
@@ -132,5 +133,5 @@ export function cutLengthKey(members: readonly Member[], marks: ReadonlyMap<stri
         `${formatInches(long)} and ${formatInches(short)}.`,
     );
   }
-  return { id: 'cut-lengths', title: 'Measuring cut lengths', shapes, dims, labels: [], outlines: [], notes };
+  return { id: 'cut-lengths', title: 'Measuring cut lengths', shapes, dims, labels: [], outlines: [], missing: [], notes };
 }

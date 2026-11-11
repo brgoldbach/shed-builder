@@ -8,6 +8,7 @@ import { degrees, idMaker, planeMember, type Pitch, type Plane, type Slope } fro
 import {
   headerOf,
   inGable,
+  leftOut,
   openingBoards,
   openingZone,
   placements,
@@ -15,6 +16,7 @@ import {
   splitPlate,
   wallFrames,
   wallTops,
+  warnThickHeader,
   type FittedOpening,
   type Placed,
   type RoughOpening,
@@ -392,46 +394,35 @@ function fitGableOpening(
   room: GableRoom,
   others: readonly FittedOpening[],
   warn: (message: string) => void,
+  leaveOut: (message: string) => null,
 ): FittedOpening | null {
   const offset = roOffset(row.along, position, room.span, type.width);
   const { jacks, side, zone } = openingZone(type, offset, walls);
   const overlaps = ([low, high]: Span) => low < zone[1] && high > zone[0];
   if (zone[0] < room.clear || zone[1] > room.span - room.clear) {
-    warn(`The framing runs past the gable. The king and jacks need ${formatInches(side)} on each side of the RO.`);
-    return null;
+    return leaveOut(`The framing runs past the gable. The king and jacks need ${formatInches(side)} on each side of the RO.`);
   }
-  if (others.some((other) => overlaps(other.zone))) {
-    warn('The framing overlaps another opening.');
-    return null;
-  }
+  if (others.some((other) => overlaps(other.zone))) return leaveOut('The framing overlaps another opening.');
   const { post } = room;
   if (post && overlaps(post) && (post[0] < offset || post[1] > offset + type.width)) {
-    warn('The kings or jacks land on the ridge post. Move the opening.');
-    return null;
+    return leaveOut('The kings or jacks land on the ridge post. Move the opening.');
   }
   const header = resolveHeader(type, walls);
-  if (header.style !== 'flat' && header.plies * LUMBER[header.size].thick > LUMBER[walls.stud].width) {
-    warn(`${header.plies} plies of ${header.size} are thicker than the wall.`);
-    return null;
-  }
   const roTop = row.sill + type.height;
   // The gable top plates are lowest over the header's outer ends.
   const clearance = Math.min(room.top(zone[0] + PLY), room.top(zone[1] - PLY));
   if (roTop + header.depth > clearance) {
-    warn(
+    return leaveOut(
       `The header does not fit. RO top ${formatInches(roTop)} plus ${formatInches(header.depth)} of header ` +
         `is above the gable top plate at ${formatInches(clearance)}.`,
     );
-    return null;
   }
   let sillBottom: number | null = null;
   if (row.sill > room.plateTop + NEAR) {
     sillBottom = row.sill - walls.sillPlies * PLY;
-    if (sillBottom < room.plateTop - NEAR) {
-      warn('The rough sill is below the top of the end-wall plate.');
-      return null;
-    }
+    if (sillBottom < room.plateTop - NEAR) return leaveOut('The rough sill is below the top of the end-wall plate.');
   }
+  warnThickHeader(header, LUMBER[walls.stud].width, warn);
   return { label, type, offset, sill: row.sill, jacks, zone, roTop, header, sillBottom };
 }
 
@@ -515,7 +506,12 @@ function frameGableEnds(
     const room: GableRoom = { plateTop, clear, span: width, top, post };
     const fitted: FittedOpening[] = [];
     for (const candidate of placed.filter(({ row }) => row.wall === end.wall)) {
-      const fit = fitGableOpening(candidate, walls, room, fitted, (message) => warnings.push({ source: candidate.label, message }));
+      const warn = (message: string) => warnings.push({ source: candidate.label, message });
+      const leaveOut = (message: string) => {
+        warnings.push(leftOut(candidate, end.assembly, frames[end.wall], width, message));
+        return null;
+      };
+      const fit = fitGableOpening(candidate, walls, room, fitted, warn, leaveOut);
       if (fit) fitted.push(fit);
     }
     for (const fit of fitted) {

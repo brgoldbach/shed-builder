@@ -13,6 +13,7 @@ import {
   Group,
   HemisphereLight,
   LineBasicMaterial,
+  LineLoop,
   LineSegments,
   Matrix4,
   Mesh,
@@ -212,6 +213,7 @@ export class FramingScene {
   private readonly members = new Group();
   private readonly solids = new Group(); // not pickable
   private readonly finishes = new Group(); // not pickable
+  private readonly missing = new Group(); // left-out parts as red loops; not pickable
   private readonly finishMaterials = new Map<string, MeshStandardMaterial>();
   private readonly textures = new Map<string, CanvasTexture | null>();
   private readonly grid = new GridHelper(1200, 100, 0x8a8a84, 0x8a8a84);
@@ -226,6 +228,8 @@ export class FramingScene {
     sheet: new MeshStandardMaterial({ color: 0xd8b27a, roughness: 0.9, transparent: true, opacity: 0.6 }),
     steel: new MeshStandardMaterial({ color: 0x5a5f66, roughness: 0.4, metalness: 0.6 }),
     edges: new LineBasicMaterial({ color: 0x3b2f22, transparent: true, opacity: 0.5 }),
+    // Drawn over everything, so a left-out part shows through the framing and finishes.
+    missing: new LineBasicMaterial({ color: 0xd0302a, depthTest: false }),
   };
   private selection: ReadonlySet<string> = new Set();
   private trim: MeshStandardMaterial | null = null;
@@ -248,7 +252,7 @@ export class FramingScene {
     this.grid.rotateX(Math.PI / 2);
     (this.grid.material as LineBasicMaterial).transparent = true;
     (this.grid.material as LineBasicMaterial).opacity = 0.25;
-    this.scene.add(new HemisphereLight(0xffffff, 0x8a7a66, 2), sun, this.grid, this.members, this.solids, this.finishes);
+    this.scene.add(new HemisphereLight(0xffffff, 0x8a7a66, 2), sun, this.grid, this.members, this.solids, this.finishes, this.missing);
 
     this.renderer.domElement.addEventListener('pointerdown', this.handlePointerDown);
     this.renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
@@ -256,9 +260,23 @@ export class FramingScene {
     this.resizeObserver.observe(host);
   }
 
-  /** Show the framing, sheet goods, and finishes. A `trimColor` paints the fascia and fly rafters. */
-  setModel(members: readonly Member[], solids: readonly Solid[], finishes: readonly FinishPart[] = [], trimColor: string | null = null) {
+  /**
+   * Show the framing, sheet goods, finishes, and the `missing` loops of left-out parts. A
+   * `trimColor` paints the fascia and fly rafters.
+   */
+  setModel(
+    members: readonly Member[],
+    solids: readonly Solid[],
+    finishes: readonly FinishPart[] = [],
+    trimColor: string | null = null,
+    missing: readonly (readonly Vec3[])[] = [],
+  ) {
     this.clearModel();
+    for (const loop of missing) {
+      const line = new LineLoop(new BufferGeometry().setFromPoints(loop.map((point) => new Vector3(...point))), this.materials.missing);
+      line.renderOrder = 1;
+      this.missing.add(line);
+    }
     this.trim?.dispose();
     this.trim = trimColor ? new MeshStandardMaterial({ color: trimColor, roughness: 0.8 }) : null;
     for (const solid of solids) this.solids.add(this.solidMesh(solid));
@@ -427,7 +445,7 @@ export class FramingScene {
   }
 
   private clearModel() {
-    for (const group of [this.members, this.solids, this.finishes]) {
+    for (const group of [this.members, this.solids, this.finishes, this.missing]) {
       for (const mesh of group.children as Mesh[]) {
         mesh.geometry.dispose();
         (mesh.children[0] as LineSegments | undefined)?.geometry.dispose();

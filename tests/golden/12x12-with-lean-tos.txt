@@ -64,7 +64,9 @@ AR-4      3  2x10            144"  Beam ply
 AR-5      3  6x6 PT     57-13/16"  Post
 WARNING Front lean-to: The clear height under the beam is 4' 1-3/4", less than 6' 8".
 WARNING Right lean-to: The clear height under the beam is 4' 9-13/16", less than 6' 8".
+WARNING Ramp 1: The floor is 0" above the ramp's foot, too low for stringers under the boards. It is left out: red in 3D and on the drawings.
 SOLID Anchor bolt, 1/2" x13
+SOLID Concrete ramp x1
 SOLID Pier, 10" diameter x5
 SOLID Roof sheathing, 7/16" OSB x9
 SOLID Slab x2
@@ -90,6 +92,7 @@ STOCK 2x10 12' 0" x3
 STOCK 6x6 PT 16' 0" x1
 SHEETS 7/16" OSB, 4×8 x21
 ITEM Concrete, slab: 4.05 cu yd
+ITEM Concrete, ramp: 0.25 cu yd
 ITEM Concrete, 5 piers: 0.37 cu yd
 ITEM Form tube, 10": 5 ea
 ITEM Anchor bolt, 1/2", with nut and washer: 13 ea
@@ -105,10 +108,10 @@ ITEM Roof area, metal panels: 308.2 sq ft
 ITEM Drip edge: 124.3 ft
 COST lumber $985.11
 COST sheets $346.50
-COST concrete $850.25
+COST concrete $922.25
 COST hardware $278.20
 COST roofing $965.65
-COST total $3,425.71
+COST total $3,497.71
 SPAN Rafters: 2x6 at 24" o.c. 67-3/4" of 140-11/16" (bending)
 SPAN door 36 header (left wall): 2-ply 2x8 38" of 203-5/8" (bending)
 SPAN Front lean-to rafters: 2x6 at 24" o.c. 92-3/4" of 140-11/16" (bending)

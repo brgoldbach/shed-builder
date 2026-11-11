@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { APP_VERSION, parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
-import { LAYERS, layerOf, type Layer } from '../core/member';
+import { ASSEMBLIES, LAYERS, layerOf, type Layer } from '../core/member';
 import { buildFinishes } from '../core/gen/finishes';
 import { buildModel } from '../core/model';
 import { naming } from '../core/naming';
@@ -18,6 +18,7 @@ import { CutListTable } from './CutListTable';
 import { SpanTable } from './SpanTable';
 import { DesignForm } from './DesignForm';
 import { FramingView } from './FramingView';
+import { record, redo, startHistory, undo, type UndoHistory } from './history';
 import { PieceInfo } from './PieceInfo';
 import { View3D } from './View3D';
 
@@ -76,11 +77,19 @@ function download(filename: string, text: string, type = 'application/json') {
   setTimeout(() => URL.revokeObjectURL(url));
 }
 
+// A change that leaves the design as it was is not an undo step.
+const change = (next: ShedConfig) => (designs: UndoHistory<ShedConfig>) =>
+  JSON.stringify(next) === JSON.stringify(designs.present) ? designs : record(designs, next);
+
+// Text boxes keep the browser's own undo for the text being typed.
+const TEXT_INPUTS = new Set(['text', 'number', 'search', 'email', 'url', 'tel', 'password']);
+
 const fileName = (name: string, suffix: string) =>
   `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'shed'}.${suffix}`;
 
 export function App() {
-  const [config, setConfig] = useState(restore);
+  const [designHistory, setDesignHistory] = useState(() => startHistory(restore()));
+  const config = designHistory.present;
   // Remounts the form after a load, so no field keeps a draft from the old design.
   const [revision, setRevision] = useState(0);
   const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
@@ -116,6 +125,10 @@ export function App() {
   const shownSolids = useMemo(() => model.solids.filter((solid) => !hidden.has(solid.layer)), [model, hidden]);
   const finishes = useMemo(() => buildFinishes(config, model), [config, model]);
   const shownFinishes = useMemo(() => finishes.filter((part) => !hidden.has(part.layer)), [finishes, hidden]);
+  const shownMissing = useMemo(
+    () => model.warnings.flatMap(({ missing }) => (missing && !hidden.has(ASSEMBLIES[missing.assembly].layer) ? [missing.outline] : [])),
+    [model, hidden],
+  );
   const selectedLine = cutList.find((line) => line.mark === selected);
   const selectedIds = useMemo(() => new Set(selectedLine?.ids), [selectedLine]);
   const toggle = (mark: string | null) => setSelected((current) => (current === mark ? null : mark));
@@ -154,7 +167,7 @@ export function App() {
       }
       const question = `Open the shared design "${result.config.name}"? It replaces the design in this browser. Save yours first to keep it.`;
       if (hadDesign && !confirm(question)) return;
-      setConfig(result.config);
+      setDesignHistory(change(result.config));
       setRevision((count) => count + 1);
       setLoadError(null);
     }
@@ -162,6 +175,22 @@ export function App() {
     window.addEventListener('hashchange', openLink);
     return () => window.removeEventListener('hashchange', openLink);
   }, [hadDesign]);
+
+  // Ctrl+Z undoes; Ctrl+Shift+Z or Ctrl+Y redoes. Cmd on a Mac.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      const { target } = event;
+      if (target instanceof HTMLTextAreaElement || (target instanceof HTMLInputElement && TEXT_INPUTS.has(target.type))) return;
+      const key = event.key.toLowerCase();
+      const step = key === 'z' ? (event.shiftKey ? redo : undo) : key === 'y' ? redo : null;
+      if (!step) return;
+      event.preventDefault();
+      setDesignHistory(step);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   function copyLink(link: string) {
     navigator.clipboard.writeText(link).then(
@@ -177,12 +206,12 @@ export function App() {
   function edit(next: ShedConfig): string | null {
     const result = shedSchema.safeParse(next);
     if (!result.success) return result.error.issues[0].message;
-    setConfig(result.data);
+    setDesignHistory(change(result.data));
     return null;
   }
 
   function replace(next: ShedConfig) {
-    setConfig(next);
+    setDesignHistory(change(next));
     setRevision((count) => count + 1);
     setLoadError(null);
   }
@@ -212,6 +241,12 @@ export function App() {
         {changelogOpen && <ChangelogDialog onClose={() => setChangelogOpen(false)} />}
         <span className="muted title">{config.name}</span>
         <div className="actions">
+          <button title="Undo (Ctrl+Z)" disabled={designHistory.past.length === 0} onClick={() => setDesignHistory(undo)}>
+            Undo
+          </button>
+          <button title="Redo (Ctrl+Shift+Z)" disabled={designHistory.future.length === 0} onClick={() => setDesignHistory(redo)}>
+            Redo
+          </button>
           <select
             value=""
             aria-label="New from preset"
@@ -283,6 +318,7 @@ export function App() {
             members={shown}
             solids={shownSolids}
             finishes={shownFinishes}
+            missing={shownMissing}
             trimColor={hidden.has('siding') ? null : config.finishes.trimColor}
             front={config.front}
             toolbar={

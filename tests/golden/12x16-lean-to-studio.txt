@@ -56,6 +56,8 @@ RF-3      2  2x8         189-3/4"  Fly rafter. No birdsmouth. Both ends square c
 RF-4     14  2x4           6-1/2"  Lookout
 RF-5      9  2x4             184"  Purlin
 RF-6      9  2x4              24"  Purlin
+RP-1     23  2x6 PT           50"  Deck board
+RP-2      4  2x6 PT    131-11/16"  Ramp stringer. Plumb cut 18.4° at the floor framing, lagged to it. Level cut on grade.
 SOLID Pier, 12" diameter x15
 SOLID Subfloor, 23/32" T&G (3/4") x7
 SOLID Wall sheathing, 7/16" OSB x34
@@ -72,6 +74,9 @@ STOCK 2x8 16' 0" x16
 STOCK 2x8 14' 0" x1
 STOCK 2x4 16' 0" x9
 STOCK 2x4 7' 8-5/8" x3
+STOCK 2x6 PT 16' 0" x4
+STOCK 2x6 PT 14' 0" x6
+STOCK 2x6 PT 7' 8-5/8" x1
 SHEETS 7/16" OSB, 4×8 x27
 SHEETS 23/32" T&G (3/4"), 4×8 x7
 ITEM Concrete, 15 piers: 1.6 cu yd
@@ -79,14 +84,15 @@ ITEM Form tube, 12": 15 ea
 ITEM Hurricane tie, rafter to plate: 26 ea
 ITEM Post base, 6x6: 15 ea
 ITEM Post cap, 6x6: 15 ea
+ITEM Ramp lag screw, 1/2": 8 ea
 ITEM Roof area, metal panels: 274.1 sq ft
 ITEM Drip edge: 66.3 ft
-COST lumber $1,432.34
+COST lumber $1,607.52
 COST sheets $683.50
 COST concrete $504.00
-COST hardware $289.50
+COST hardware $299.50
 COST roofing $579.13
-COST total $3,488.46
+COST total $3,673.64
 SPAN Rafters: 2x8 at 16" o.c. 133" of 218-3/16" (bending)
 SPAN Floor joists: 2x8 at 16" o.c. 64-1/2" of 147-3/8" (deflection)
 SPAN window 36x48 header (front wall): 2-ply 2x8 36" of 106-7/16" (bending)

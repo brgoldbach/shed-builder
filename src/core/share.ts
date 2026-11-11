@@ -18,11 +18,13 @@ const SAMPLE = shedSchema.parse({
   openingTypes: [{ name: 'item', kind: 'door', width: 36, height: 80 }],
   openings: [{ type: 'item', wall: 'front', at: [50] }],
   additions: [{ side: 'front' }],
+  ramps: [{}],
 });
 const ITEMS: Record<string, { item: JsonObject; keep: string[] }> = {
   openingTypes: { item: SAMPLE.openingTypes[0] as unknown as JsonObject, keep: ['name', 'kind', 'width', 'height'] },
   openings: { item: SAMPLE.openings[0] as unknown as JsonObject, keep: ['type', 'wall', 'at'] },
   additions: { item: SAMPLE.additions[0] as unknown as JsonObject, keep: ['side'] },
+  ramps: { item: SAMPLE.ramps[0] as unknown as JsonObject, keep: [] },
 };
 
 // The design without the values equal to their defaults. Arrays stay whole.

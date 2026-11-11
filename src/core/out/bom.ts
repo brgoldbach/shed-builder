@@ -1,6 +1,6 @@
 import { SHEETS, stockFor, type LumberSize, type SheetKey } from '../catalog';
 import type { Prices, ShedConfig } from '../config';
-import type { Member, Solid, Warning } from '../member';
+import type { Member, Point, Solid, Warning } from '../member';
 import type { Model } from '../model';
 import { formatInches, formatMoney } from '../units';
 
@@ -74,11 +74,15 @@ export interface Bom {
 /** Materials to buy for the model. `marks` maps member ids to cut-list marks, for warnings. */
 export function buildBom(config: ShedConfig, model: Model, marks: ReadonlyMap<string, string>): Bom {
   const lumber = lumberGroups(config, model.members);
+  // One warning for each cut line: its pieces share a size and length.
   const warnings = lumber.flatMap(({ size, tooLong }) => {
-    const longest = Math.max(...onePiece(config, size));
-    return tooLong.map(({ id, length }) => ({
-      source: marks.get(id) ?? id,
-      message: `The ${size} at ${formatInches(length)} is longer than the longest stock, ${formatInches(longest)}. Splice it or order it long.`,
+    const longest = formatInches(Math.max(...onePiece(config, size)));
+    return [...Map.groupBy(tooLong, ({ id }) => marks.get(id) ?? id)].map(([source, [{ length }, ...others]]) => ({
+      source,
+      message:
+        others.length === 0
+          ? `The ${size} at ${formatInches(length)} is longer than the longest stock, ${longest}. Splice it or order it long.`
+          : `The ${others.length + 1} pieces of ${size} at ${formatInches(length)} are longer than the longest stock, ${longest}. Splice them or order them long.`,
     }));
   });
   const { prices } = config.catalog;
@@ -96,6 +100,9 @@ export function buildBom(config: ShedConfig, model: Model, marks: ReadonlyMap<st
 }
 
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
+// Shoelace formula, for a simple polygon.
+const area = (points: readonly Point[]) =>
+  Math.abs(sum(points.map(([x, y], index) => x * points[(index + 1) % points.length][1] - points[(index + 1) % points.length][0] * y))) / 2;
 const each = (quantity: number, price: number, unit = 'each'): Cost => ({ total: quantity * price, basis: `${formatMoney(price)} ${unit}` });
 const onePiece = ({ catalog }: ShedConfig, size: LumberSize) => stockFor(catalog, size, Math.max(catalog.maxLength, catalog.maxOnePiece));
 const round = (value: number, places: number) => Math.round(value * 10 ** places) / 10 ** places;
@@ -234,7 +241,7 @@ function concrete(solids: readonly Solid[], prices: Prices): Line[] {
     const { shape } = solid;
     if (shape.kind === 'box') return (shape.max[0] - shape.min[0]) * (shape.max[1] - shape.min[1]) * (shape.max[2] - shape.min[2]);
     if (shape.kind === 'cylinder') return Math.PI * shape.radius ** 2 * shape.height;
-    return 0;
+    return area(shape.outline) * shape.thick;
   };
   const { bag, readyMix, formTube } = prices.concrete;
   const pour = (item: string, parts: Solid[]) => {
@@ -250,6 +257,8 @@ function concrete(solids: readonly Solid[], prices: Prices): Line[] {
   };
   const slab = poured.filter(({ shape }) => shape.kind === 'box');
   if (slab.length > 0) pour('Concrete, slab', slab);
+  const ramps = poured.filter(({ shape }) => shape.kind === 'panel');
+  if (ramps.length > 0) pour(ramps.length === 1 ? 'Concrete, ramp' : `Concrete, ${ramps.length} ramps`, ramps);
   const piers = poured.filter(({ shape }) => shape.kind === 'cylinder');
   if (piers.length > 0) {
     pour(`Concrete, ${piers.length} piers`, piers);
@@ -288,7 +297,7 @@ function hardware(config: ShedConfig, model: Model): Line[] {
     `One at each rafter seat: ${seats} per main rafter${leanTos.length ? '; per lean-to rafter, 1 on its beam and 1 on the main wall for an extension' : ''}.`,
   );
   for (const [size, posts] of Map.groupBy(model.members.filter(({ role }) => role === 'post'), ({ size }) => size)) {
-    add(`Post base, ${size}`, posts.length, price.postBase, 'Set in the pier, or anchored to the slab.');
+    add(`Post base, ${size}`, posts.length, price.postBase, 'Set in the pier, or anchored to the slab or a deck beam.');
     add(`Post cap, ${size}`, posts.length, price.postCap, 'To the girder or beam.');
   }
 
@@ -299,8 +308,9 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   const singles = new Map<string, number>();
   const single = (size: string, quantity: number) => singles.set(size, (singles.get(size) ?? 0) + quantity);
   single(loft.joist, count('tail.loft') * (hung ? 2 : 1) + (hung ? 2 * count('joist.loft') : 0));
-  // Below-soffit lean-to rafters hang from their ledgers.
+  // Below-soffit lean-to rafters hang from their ledgers. Deck joists hang at both ends.
   leanTos.filter(({ extension }) => !extension).forEach(({ rafters }) => rafters.forEach(({ size }) => single(size, 1)));
+  model.members.filter(({ role }) => role === 'joist.deck').forEach(({ size }) => single(size, 2));
   for (const [size, quantity] of singles) add(`Joist hanger, ${size}`, quantity, price.joistHanger);
   add(`Joist hanger, double ${loft.joist}`, count('header.loft') + (hung ? count('trimmer.loft') + count('edge.loft') : 0), price.doubleHanger);
   add(
@@ -309,6 +319,11 @@ function hardware(config: ShedConfig, model: Model): Line[] {
     price.lag,
     'Two at each main-wall stud behind a lean-to ledger.',
   );
+  add('Deck ledger lag screw, 1/2"', 2 * count('joist.deck'), price.lag, 'Two at each deck joist, into the floor framing.');
+  for (const { deck } of model.leanTos) {
+    if (deck) add(`Beam seat, ${deck.plies}-ply ${deck.joist}`, deck.seats, price.postCap, 'On each pier, under the deck beam.');
+  }
+  add('Ramp lag screw, 1/2"', 2 * count('stringer'), price.lag, 'Two at each ramp stringer, into the floor framing.');
   return lines;
 }
 

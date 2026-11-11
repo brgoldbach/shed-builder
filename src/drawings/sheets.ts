@@ -3,7 +3,7 @@ import type { ShedConfig } from '../core/config';
 import { wallFrames, type RoughOpening, type Wall } from '../core/gen/walls';
 import { corners, panelCorners, type Assembly, type Member, type Point, type Role, type Solid, type Vec3 } from '../core/member';
 import type { Model } from '../core/model';
-import type { Naming } from '../core/naming';
+import { capitalize, type Naming } from '../core/naming';
 import { formatInches } from '../core/units';
 import { depthOf, project, shapesOf, type Dimension, type Drawing, type View } from './drawing';
 import { cutLengthKey } from './piece';
@@ -35,6 +35,7 @@ export function buildDrawings(
   const drawings = [
     foundationPlan(context),
     floorPlan(context),
+    deckPlan(context),
     ...names.sides.map((wall) => wallElevation(context, wall)),
     ...names.sides.filter((wall) => UPPER[wall].startsWith('gable')).map((wall) => upperElevation(context, wall)),
     loftPlan(context),
@@ -63,8 +64,12 @@ const extentOf = (view: View, members: readonly Member[]) =>
 const pitchText = ({ roof }: ShedConfig) => `Pitch ${roof.pitch}/12 (${((Math.atan(roof.pitch / 12) * 180) / Math.PI).toFixed(1)}°).`;
 
 function makeDrawing(id: string, title: string, parts: Partial<Drawing> & Pick<Drawing, 'shapes'>): Drawing {
-  return { id, title, dims: [], labels: [], outlines: [], notes: [], ...parts };
+  return { id, title, dims: [], labels: [], outlines: [], missing: [], notes: [], ...parts };
 }
+
+// The parts of the chosen assemblies that are left out, as seen in `view`.
+const missingIn = (model: Model, view: View, shows: (assembly: Assembly) => boolean): Point[][] =>
+  model.warnings.flatMap(({ missing }) => (missing && shows(missing.assembly) ? [missing.outline.map((point) => project(view, point))] : []));
 
 // Plans look down with the user's front at the bottom.
 function planView({ front, width }: ShedConfig): View {
@@ -154,6 +159,8 @@ function foundationPlan({ config, model, marks }: Context): Drawing {
     shapes: shapesOf(view, members, solids, marks),
     dims,
     outlines: [outline],
+    // A ramp left out shows here too: a design without deck or ramp framing has no decks sheet.
+    missing: missingIn(model, view, (assembly) => assembly === 'ramp'),
     notes,
     wireframe: true,
   });
@@ -174,6 +181,45 @@ function floorPlan({ config, model, marks }: Context): Drawing | null {
   return makeDrawing('floor', 'Floor framing plan', {
     shapes: shapesOf(view, members, [], marks),
     dims: [...runningLayout(view, joists, box.min), ...overall(box, 2)],
+    notes,
+  });
+}
+
+const DECK_FRAMING = new Set<Role>(['ledger.deck', 'joist.deck', 'beam.deck', 'stringer']);
+
+// Lean-to decks and ramps in plan, without their boards, with the posts the deck beams bolt to.
+function deckPlan({ config, model, names, marks }: Context): Drawing | null {
+  const framing = model.members.filter((member) => DECK_FRAMING.has(member.role));
+  const concrete = model.solids.filter(({ layer }) => layer === 'ramps');
+  if (framing.length === 0 && concrete.length === 0) return null;
+  const view = planView(config);
+  const decked = new Set(framing.map(({ assembly }) => assembly));
+  const posts = model.members.filter((member) => member.role === 'post' && decked.has(member.assembly));
+  const outline = footprint(config, view);
+  const box = boxOf([
+    ...outline,
+    ...[...framing, ...posts].flatMap((member) => corners(member).map((point) => project(view, point))),
+    ...concrete.flatMap(({ shape }) => (shape.kind === 'panel' ? panelCorners(shape).map((point) => project(view, point)) : [])),
+  ]);
+  const notes = [
+    ...model.leanTos.flatMap(({ side, addition, deck }) =>
+      deck
+        ? [`${capitalize(names.side(side))} lean-to deck: PT ${deck.joist} joists at ${addition.deck.oc}" o.c. in hangers, 2x6 deck boards.`]
+        : [],
+    ),
+    ...config.ramps.map((ramp, index) => {
+      const foot = ramp.belowGrade > 0 ? ` Its foot is ${formatInches(ramp.belowGrade)} below grade.` : '';
+      return ramp.material === 'concrete'
+        ? `Ramp ${index + 1}: concrete, 1 in ${ramp.slope}, over a ${formatInches(ramp.thickness)} base.${foot}`
+        : `Ramp ${index + 1}: PT ${ramp.stringer} stringers at ${ramp.oc}" o.c., 1 in ${ramp.slope}, 2x6 deck boards.${foot}`;
+    }),
+    'The dashed line is the outside of the walls.',
+  ];
+  return makeDrawing('decks', 'Decks and ramps', {
+    shapes: shapesOf(view, [...framing, ...posts], concrete, marks),
+    dims: overall(box, 1),
+    outlines: [outline],
+    missing: missingIn(model, view, (assembly) => assembly === 'ramp'),
     notes,
   });
 }
@@ -235,6 +281,7 @@ function wallElevation({ config, model, names, marks }: Context, wall: Wall): Dr
     shapes: shapesOf(view, framing, [], marks, { context }),
     dims: panelDims(view, framing, openings, { origin: plates.min[0], span: [plates.min[0], plates.max[0]], base: 0 }),
     labels: openingLabels(openings),
+    missing: missingIn(model, view, (assembly) => assembly === `wall.${wall}`),
     notes: [
       `${config.walls.stud} studs at ${config.walls.oc}" o.c.`,
       'Layout and RO (rough opening) positions run from the left end of the bottom plate, viewed from outside.',
@@ -292,6 +339,7 @@ function upperElevation({ config, model, names, marks }: Context, wall: Wall): D
     shapes: shapesOf(view, framing, deck, marks, { context }),
     dims: panelDims(view, framing, openings, { origin: plates.min[0], span: [plates.min[0], plates.max[0]], base: box.min[1] }),
     labels: openingLabels(openings),
+    missing: missingIn(model, view, (other) => other === assembly),
     notes,
   });
 }
@@ -307,6 +355,7 @@ function loftPlan({ config, model, marks }: Context): Drawing | null {
     shapes: shapesOf(view, members, [], marks),
     dims: [...runningLayout(view, joists, boxOf(footprint(config, view)).min), ...overall(box, 2)],
     outlines: [footprint(config, view)],
+    missing: missingIn(model, view, (assembly) => assembly === 'loft'),
     notes: [`${loft.joist} loft joists at ${loft.oc}" o.c.`, 'Layout runs to the near edge of each joist. The dashed line is the outside of the walls.'],
   });
 }
@@ -328,6 +377,7 @@ function roofPlan({ config, model, marks }: Context): Drawing {
       ...overall(box, 3),
     ],
     outlines: [outline],
+    missing: missingIn(model, view, (assembly) => assembly.startsWith('addition')),
     notes: [
       `${roof.rafter} rafters at ${roof.oc}" o.c. ${pitchText(config)}`,
       'Layout runs from the end wall to the near edge of each rafter. The dashed line is the outside of the walls.',
@@ -369,6 +419,7 @@ function buildingSection({ config, model, names, marks }: Context): Drawing {
   return makeDrawing('section', 'Building section', {
     shapes: shapesOf(view, members, solids, marks, { section: true }),
     dims,
+    missing: missingIn(model, view, (assembly) => assembly === 'roof'),
     notes: [
       `Through the rafters ${formatInches(cut)} from the ${names.side('left')} end, viewed from the ${names.side('left')} end. ${pitchText(config)}`,
       'Members cut by the section show an X.',

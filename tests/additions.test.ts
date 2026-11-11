@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseConfig, shedSchema } from '../src/core/config';
-import type { Member, Role } from '../src/core/member';
+import { corners, type Member, type Role } from '../src/core/member';
 import { buildModel } from '../src/core/model';
 import { buildBom } from '../src/core/out/bom';
 import { naming } from '../src/core/naming';
@@ -160,5 +160,86 @@ describe('lean-to outputs', () => {
     // cripple above the header starts at 89-1/2, over it. Back: 2 corner studs and 7 studs.
     expect(model.leanTos.map(({ lags }) => lags)).toEqual([22, 18]);
     expect(quantity('Ledger lag screw, 1/2"')).toBe(40);
+  });
+});
+
+describe('lean-to left out', () => {
+  it('leaves out a below-soffit lean-to where the main roof does not reach past the wall', () => {
+    // No rake overhang: nothing of the main roof is over the left gable end's face.
+    const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, rakeOverhang: 0 }, additions: [{ side: 'left' }] });
+    const leftOut = buildModel(config);
+    expect(leftOut.members.filter(({ assembly }) => assembly === 'addition.left')).toEqual([]);
+    const warning = leftOut.warnings.find(({ source }) => source === 'Left lean-to');
+    expect(warning?.message).toContain('does not reach past the wall');
+    expect(warning?.missing?.assembly).toBe('addition.left');
+  });
+});
+
+describe('lean-to deck', () => {
+  // Front, 72 in deep on 4x4 posts centered 70-1/4 out. 2x8 joists under 2x6 boards, level with the
+  // floor. Out from the front wall is -y. Grade is at the skid bottoms, -11-23/32.
+  const config = withLeanTo({ side: 'front', depth: 72, floor: 'deck' });
+  const deckModel = buildModel(config);
+  const deck = deckModel.members.filter(({ assembly }) => assembly === 'addition.front');
+  const range = (members: Member[], axis: number) => {
+    const values = members.flatMap((member) => corners(member).map((point) => point[axis]));
+    return [Math.min(...values), Math.max(...values)];
+  };
+
+  it('hangs joists from a ledger on the floor framing to a flush beam on the post line', () => {
+    const ledger = ofRole(deck, 'ledger.deck');
+    // On the floor framing, under the wall sheathing, its top under the boards.
+    expect([range(ledger, 1), range(ledger, 2)]).toEqual([[-1.5, 0], [-8.75, -1.5]]);
+    const joists = ofRole(deck, 'joist.deck');
+    expect(joists).toHaveLength(9);
+    expect(joists.every(({ length, treated }) => length === 66.5 && treated)).toBe(true);
+    // Three plies, 68 to 72-1/2 out: wide enough to bear the 3-1/2 in posts.
+    expect(ofRole(deck, 'beam.deck').map((ply) => range([ply], 1))).toEqual([[-69.5, -68], [-71, -69.5], [-72.5, -71]]);
+  });
+
+  it('seats the beam on piers that rise to it, and stands the posts on the beam', () => {
+    // An 8 in pier top, at -3-23/32, is over the beam bottom at -8-3/4: the piers stop at the beam.
+    const piers = deckModel.solids.filter(({ label }) => label.startsWith('Pier'));
+    expect(piers).toHaveLength(3);
+    for (const { shape } of piers) expect(shape).toMatchObject({ kind: 'cylinder', height: 38.96875, base: [expect.any(Number), expect.any(Number), -47.71875] });
+    const posts = ofRole(deck, 'post');
+    expect(posts.map((post) => range([post], 2)[0])).toEqual([-1.5, -1.5, -1.5]);
+    expect(deckModel.warnings.some(({ message }) => message.includes('pier'))).toBe(false);
+  });
+
+  it('stands deck posts under the beam where the floor is high', () => {
+    // On 24 in posts over the piers, the pier tops are at -37-15/32: 28-23/32 under the beam.
+    const high = shedSchema.parse({ ...config, foundation: { type: 'pier', pier: { post: '4x4', postLength: 24 } } });
+    const posts = ofRole(buildModel(high).members, 'post').filter(({ assembly }) => assembly === 'addition.front');
+    expect(posts.filter(({ note }) => note === 'Under the deck beam.').map(({ length }) => length)).toEqual([28.71875, 28.71875, 28.71875]);
+    expect(posts.filter(({ note }) => note === 'Stands on the deck beam, over the pier.')).toHaveLength(3);
+  });
+
+  it('lays 2x6 boards level with the floor, notched where the posts reach an edge', () => {
+    const boards = ofRole(deck, 'decking');
+    expect(boards).toHaveLength(13);
+    expect(range(boards, 2)).toEqual([-1.5, 0]);
+    // Rows 63-1/4 to 68-3/4 and 69 to 74-1/2 out; the posts stand 68-1/2 to 72.
+    const [outer, inner] = boards.filter(({ note }) => note === 'Notch around the posts.');
+    expect(outer.profile?.points).toContainEqual([0, 5.25]);
+    expect(inner.profile?.points).toContainEqual([0, 3]);
+    expect([outer.length, inner.length]).toEqual([120, 120]);
+  });
+
+  it('measures headroom from the deck', () => {
+    expect(deckModel.warnings.find(({ message }) => message.startsWith('The clear height'))?.message).toBe(
+      'The clear height under the beam is 4\' 11-9/16", less than 6\' 8".',
+    );
+  });
+
+  it('checks the deck joists and beam, and counts hangers, lags, and beam seats', () => {
+    const checks = checkSpans(config, deckModel, naming(config));
+    expect(checks.find(({ member }) => member === 'Front lean-to deck joists')).toMatchObject({ lumber: '2x8 at 16" o.c.', span: 66.5 });
+    expect(checks.find(({ member }) => member === 'Front lean-to deck beam')).toMatchObject({ lumber: '3-ply 2x8', span: 58.25 });
+    const { hardware } = buildBom(config, deckModel, new Map());
+    const quantity = (item: string) => hardware.find((line) => line.item === item)?.quantity;
+    expect(quantity('Joist hanger, 2x8')).toBe(18);
+    expect(quantity('Deck ledger lag screw, 1/2"')).toBe(18);
+    expect(quantity('Beam seat, 3-ply 2x8')).toBe(3);
   });
 });

@@ -755,6 +755,14 @@ button {
   pointer-events: none;
 }
 
+.drawing .missing {
+  fill: none;
+  stroke: var(--error);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
 .drawing .dim line {
   stroke: var(--muted);
   stroke-width: 0.75;

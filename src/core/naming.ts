@@ -7,7 +7,7 @@ type Side = 'front' | 'back' | 'left' | 'right';
 // their front, and its front eave wall is on their right.
 const GABLE_FRONT: Record<Side, Side> = { left: 'front', right: 'back', front: 'right', back: 'left' };
 const SIDE_ORDER: Side[] = ['front', 'back', 'left', 'right'];
-const KIND_ORDER = ['foundation', 'floor', 'wall', 'gable', 'roof', 'loft', 'knee', 'addition'];
+const KIND_ORDER = ['foundation', 'floor', 'wall', 'gable', 'roof', 'loft', 'knee', 'addition', 'ramp'];
 const KIND_WORDS: Record<string, (side: string) => { label: string; prefix: string }> = {
   wall: (side) => ({ label: `${side} wall`, prefix: `${side[0].toUpperCase()}W` }),
   gable: (side) => ({ label: `${side} gable end`, prefix: `G${side[0].toUpperCase()}` }),
@@ -15,7 +15,7 @@ const KIND_WORDS: Record<string, (side: string) => { label: string; prefix: stri
   addition: (side) => ({ label: `${side} lean-to`, prefix: `A${side[0].toUpperCase()}` }),
 };
 
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** The user's names for the model's sides and assemblies. */
 export interface Naming {
