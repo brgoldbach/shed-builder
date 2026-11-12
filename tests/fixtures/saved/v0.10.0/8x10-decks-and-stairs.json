@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "name": "8x10 decks and stairs",
+  "width": 96,
+  "length": 120,
+  "foundation": {
+    "type": "pier",
+    "pier": {
+      "aboveGrade": 18
+    }
+  },
+  "openingTypes": [
+    {
+      "name": "shed door 64x76",
+      "kind": "door",
+      "width": 64,
+      "height": 76
+    },
+    {
+      "name": "window 24x36",
+      "kind": "window",
+      "width": 24,
+      "height": 36
+    }
+  ],
+  "openings": [
+    {
+      "type": "shed door 64x76",
+      "wall": "left",
+      "at": [
+        50
+      ]
+    },
+    {
+      "type": "window 24x36",
+      "wall": "front",
+      "sill": 46.25,
+      "along": "left",
+      "at": [
+        48
+      ]
+    }
+  ],
+  "roof": {
+    "rafter": "2x4",
+    "ridge": "2x6"
+  },
+  "additions": [
+    {
+      "side": "left",
+      "floor": "deck",
+      "deck": {
+        "joist": "2x8",
+        "oc": 16,
+        "boards": "5/4x6",
+        "drop": 15,
+        "support": "piers",
+        "join": "continue"
+      }
+    },
+    {
+      "side": "right",
+      "depth": 72,
+      "floor": "slab"
+    }
+  ],
+  "ramps": [
+    {
+      "kind": "stairs",
+      "opening": {
+        "row": 0,
+        "index": 0
+      }
+    },
+    {
+      "from": "lean-to",
+      "opening": {
+        "row": 0,
+        "index": 0
+      }
+    },
+    {
+      "kind": "stairs",
+      "from": "lean-to",
+      "wall": "right",
+      "belowGrade": 16
+    }
+  ]
+}

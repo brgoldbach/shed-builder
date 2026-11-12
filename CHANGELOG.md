@@ -3,7 +3,7 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.10.0] - 2026-11-12
 
 ### Added
 
@@ -366,6 +366,7 @@ First release.
   next to `schemaVersion` 1.
 - **Setup:** `npm run setup` checks Node, installs, tests, and builds.
 
+[0.10.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.10.0
 [0.9.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.9.0
 [0.8.2]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.2
 [0.8.1]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.1
