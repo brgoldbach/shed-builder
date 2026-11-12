@@ -9,7 +9,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  actions: write
 
 jobs:
   bump:
@@ -64,17 +63,19 @@ jobs:
         run: |
           git config user.name "$ACTOR"
           git config user.email "$ACTOR_ID+$ACTOR@users.noreply.github.com"
-          git commit -am "Release $VERSION"
+          git add -A
+          git commit -m "Release $VERSION"
           git push origin "HEAD:refs/heads/$BRANCH"
-      # A push by this workflow starts no workflows, so start the required gate check here.
-      - name: Run the gate
-        env:
-          BRANCH: ${{ steps.pr.outputs.branch }}
-        run: gh workflow run gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
       - name: Reply
         env:
           VERSION: ${{ steps.prepare.outputs.version }}
-        run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "Added the commit \"Release $VERSION\". Merging this pull request releases $VERSION. To change the version, revert that commit, then comment again."
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "Added the commit \"Release $VERSION\". Next:
+
+          1. Select \"Approve workflows to run\", so \`gate\` checks that commit.
+          2. When \`gate\` passes, merge. The merge releases $VERSION.
+
+          To change the version, revert that commit, then comment again."
       - name: Reply with the problem
         if: failure()
         env:

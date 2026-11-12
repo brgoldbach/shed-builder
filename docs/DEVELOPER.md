@@ -154,6 +154,10 @@ does not load back to the same design, the full pruned design goes in instead.
 
 `pruneConfig` must not change the output. The prune test builds each design before and after.
 
+Files from earlier releases must keep loading (`tests/saved.test.ts`). A change that makes one fail
+needs `schemaVersion` 2 and a step in `parseConfig` that upgrades version 1. Each release adds
+copies of the presets and test designs that changed (`scripts/release.mjs prepare`).
+
 ## Drawings and PDF
 
 A `Drawing` holds shapes (projected members and solids), dimensions (`chain`, `running`,
@@ -237,7 +241,9 @@ share link exists, the last sheet holds it as a QR code.
 | Test | Checks |
 |---|---|
 | `tests/golden.test.ts` | Cut list, warnings, parts, stock, sheets, counted items, costs, and span checks of each design in `tests/designs.ts`, against `tests/golden/*.txt`. |
-| `tests/every-design.test.ts` | On each design: unique member ids, positive lengths, angled pieces within their board width, one cut line for each member, unique marks, and only finite numbers in every output. |
+| `tests/every-design.test.ts` | `designProblems` (`tests/design-checks.ts`) on each design: no throw, unique member ids, positive lengths, angled pieces within their board width, one cut line for each member, unique marks, only finite numbers in every output, and no empty drawing. |
+| `tests/saved.test.ts` | Each file in `tests/fixtures/saved/vX.Y.Z/` loads and passes `designProblems`. These are the presets and test designs as each release had them. |
+| `tests/random.test.ts` | `designProblems` on 300 random designs: each a test design with 1 to 6 settings changed, kept only when the schema accepts it (`tests/random-designs.ts`, fixed seed). About 4 s. |
 | `tests/prune.test.ts`, `tests/share.test.ts` | Each design builds the same after pruning, and loads back from its file and link. |
 | `tests/history.test.ts` | Undo and redo steps. |
 | Other `tests/*.test.ts` | One file for each generator or output, with hand-checked values. |
@@ -246,6 +252,10 @@ share link exists, the last sheet holds it as a QR code.
 option, set it in a fixture, or add a fixture and list it in `DESIGNS`.
 
 When a change alters a golden file on purpose, read the diff, then run `npx vitest run -u`.
+
+When a random design fails, its test name gives the index, and the message gives the compact
+design. Add that design to `tests/fixtures` with the fix. To search further, change the seed or
+the count for one run; do not commit a count that slows the gate.
 
 The gate is `npm run gate`: the tests, lint, the type check, and the build. Run it before each
 commit. It also runs in two other places:
@@ -276,9 +286,12 @@ Any pull request to `main` can be a release. You choose the version.
    or `major` to count up from the current version. Only the repo owner's comment works.
 2. `.github/workflows/release-command.yml` adds the commit "Release X.Y.Z" to the pull request's
    branch: the version in `package.json` and `package-lock.json`, `[Unreleased]` in CHANGELOG.md
-   dated as the version, and its link line. It replies in the pull request, and starts `gate` on
-   the new commit, because a push by a workflow starts no workflows.
-3. Merge the pull request.
+   dated as the version, its link line, and copies of changed designs in
+   `tests/fixtures/saved/vX.Y.Z/`. It replies in the pull request.
+3. Select "Approve workflows to run" on the pull request. The workflow's built-in token pushed the
+   commit, so GitHub treats it as a first-time contributor and holds `gate` until you approve.
+   A personal access token would avoid this step; the repo does not use one.
+4. When `gate` passes, merge the pull request.
 
 The merge changes the version on `main`, so `.github/workflows/release.yml` then:
 

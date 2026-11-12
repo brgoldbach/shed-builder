@@ -4,8 +4,6 @@ on:
   pull_request:
   push:
     branches: [main]
-  # The release command starts it: its push to a pull request branch starts no workflows.
-  workflow_dispatch:
 
 permissions:
   contents: read

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "12x20 garage on slab",
+  "width": 144,
+  "length": 240,
+  "studHeight": 104.625,
+  "foundation": { "type": "slab" },
+  "openingTypes": [
+    { "name": "door garage 9x7", "kind": "overhead", "width": 108, "height": 84, "header": "2x12" },
+    { "name": "door 36", "kind": "door", "width": 38, "height": 82.25 },
+    { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 }
+  ],
+  "openings": [
+    { "type": "door garage 9x7", "wall": "left", "at": [50] },
+    { "type": "door 36", "wall": "front", "along": "right", "at": [22] },
+    { "type": "window 24x36", "wall": "back", "sill": 46.25, "along": "left", "at": [108] }
+  ],
+  "roof": { "style": "gable", "pitch": 6, "rafter": "2x6", "oc": 16, "ridge": "2x8" }
+}
