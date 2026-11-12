@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- A design saved in the browser that no longer loads is kept, not lost. The app opens the first
+  preset, shows why the saved design did not load, and offers it as a download. Before, the first
+  autosave wrote over it with no message.
+- An error in the app shows a recovery page, not a blank page. It offers the design as a download,
+  a reload, which opens the last design that worked, and a new design.
+
 ### Changed
 
 - Development only: a comment `/release X.Y.Z` (or `patch`, `minor`, `major`) on a pull request

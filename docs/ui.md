@@ -18,7 +18,9 @@ in the browser, in a file, or in a link: there is no server.
 | File | Content |
 |---|---|
 | `index.html` | The page shell: `<div id="root">` and the module script `/src/main.tsx`. |
-| `src/main.tsx` | Mounts `App` in `StrictMode` and imports `app.css`. |
+| `src/main.tsx` | Mounts `App` in `StrictMode` and `ErrorBoundary`, and imports `app.css`. |
+| `src/ui/ErrorBoundary.tsx` | The recovery page when a render throws. |
+| `src/ui/autosave.ts` | `restore`, `save`, the backup key, `setAside`. |
 | `src/ui/App.tsx` | App state, undo keys, autosave, files, presets, links, tabs, 3D layers, selection. |
 | `src/ui/history.ts` | `UndoHistory`, `startHistory`, `record`, `undo`, `redo`. |
 | `src/ui/fields.tsx` | `Edit`, `SectionProps`, `setter`, the `Section`, `Group`, and `Card` folds, and the field components. |
@@ -49,7 +51,7 @@ designHistory.present = config
   ├─ useMemo ─▶ model ─▶ cutList ─▶ markOf ─▶ drawings, bom
   │              ├─▶ spans, finishes
   │              └─▶ shown, shownSolids, shownFinishes, shownMissing ─▶ View3D
-  ├─ effect ──▶ localStorage 'shed-builder.config'
+  ├─ effect ──▶ save ──▶ localStorage 'shed-builder.config'
   └─ effect ──▶ designToLink ─▶ shareLink ─▶ Copy link, PDF QR sheet
 ```
 
@@ -57,15 +59,16 @@ designHistory.present = config
 
 | State | Initial value | Purpose |
 |---|---|---|
-| `designHistory` | `startHistory(restore())` | The design and its undo steps. `config` is `designHistory.present`. |
+| `start` | `restore(browserStore())` | The stored design, `hadDesign`, and why it did not load. |
+| `designHistory` | `startHistory(start.config)` | The design and its undo steps. `config` is `designHistory.present`. |
 | `revision` | `0` | The `key` of `DesignForm`. A load adds 1, which remounts the form. |
-| `loadError` | `null` | `{ file, errors }` for the error banner. |
+| `loadError` | From `start.errors`, else `null` | `{ file, errors, stored? }` for the error banner. |
 | `tab` | `'3d'` | The selected tab. |
 | `phone` | `matchMedia(PHONE).matches` | From `usePhone`. True at 760 px wide and below. |
 | `layersOpen` | `false` | On a phone: the layer list is open. |
 | `selected` | `null` | The selected cut-list mark, for example `RF-2`. |
 | `hidden` | `new Set(VIEWS.Framing)` | The hidden 3D layers. |
-| `hadDesign` | `saved() !== null` | Storage held a design at mount. A link asks before it replaces the design only when true. |
+| `hadDesign` | `start.hadDesign` | Storage held a design at mount. A link asks before it replaces the design only when true. |
 | `shareLink` | `null` | The link for Copy link and the PDF's last sheet. |
 | `copied` | `false` | Shows "Link copied" for 2000 ms. |
 | `changelogOpen` | `false` | Shows `ChangelogDialog`. |
@@ -250,17 +253,22 @@ The compact form and the link format are in [design-model.md](design-model.md).
 
 ### Autosave and restore
 
-1. `saved()` reads `localStorage` key `shed-builder.config` (`STORAGE_KEY`). It returns `null`
-   when the key is absent or storage is blocked.
-2. `restore()` parses the text with `parseConfigText`. It returns the design, or `PRESETS[0]`
-   ("8x10 gable on skids") when there is no text or the text does not parse.
-3. An effect on `[config]` writes `serializeConfig(config)` to the key. A blocked storage throws,
-   and the effect ignores it: autosave is off.
+`src/ui/autosave.ts` owns the storage keys. Each read and write catches a blocked storage.
+
+1. `restore(browserStore())` reads `localStorage` key `shed-builder.config` and parses it with
+   `parseConfigText`. It returns `{ config, hadDesign, errors }`.
+2. No text gives `PRESETS[0]` ("8x10 gable on skids"). Text that does not parse also gives
+   `PRESETS[0]`, with its `errors`. `restore` first copies that text to
+   `shed-builder.config.backup`, so the first autosave cannot destroy it.
+3. `App` starts `loadError` from `errors`, with `stored: true`. The banner then explains that the
+   first preset opened, and offers "Download the saved design" (the backup text as it is).
+4. An effect on `[config]` calls `save`, which writes `serializeConfig(config)` to the key.
 
 | Edge case | Result |
 |---|---|
 | Storage is blocked, as in some private windows. | The app starts from `PRESETS[0]`. Autosave fails each time, with no message. |
-| The stored text does not parse. | The app starts from `PRESETS[0]` with no message. The first autosave writes over the stored text. |
+| The stored text does not parse. | The app starts from `PRESETS[0]`, with the banner and its download. The backup keeps the text until another stored design fails to load. |
+| A render throws. | `ErrorBoundary` (`src/main.tsx`) shows "Shed Builder stopped", the message, and the version. The throwing render commits nothing, so autosave still holds the last design that rendered. Download the design, Reload, or Start a new design (`setAside` moves the stored design to the backup, then reloads). |
 | Two tabs are open. | Each tab writes its own design to the same key. The last write wins. `App` does not listen for the `storage` event. |
 
 ### Save
@@ -351,7 +359,7 @@ contexts. A dev server opened by a LAN address over HTTP is not.
 
 ### Change it safely
 
-- Keep `STORAGE_KEY` as `shed-builder.config`. A new key loses every user's autosaved design.
+- Keep `STORAGE_KEY` in `autosave.ts` as `shed-builder.config`. A new key loses every user's autosaved design.
 - A change to the file format needs an upgrade step in `parseConfig`. See
   [design-model.md](design-model.md).
 - Test a link from the hosted site or from `npm run preview`, not only from the dev server.

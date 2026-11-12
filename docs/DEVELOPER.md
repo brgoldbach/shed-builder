@@ -101,7 +101,9 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/drawings/drawing.ts` | The `Drawing` type, projection of members and solids into a view. |
 | `src/drawings/piece.ts` | A piece laid flat and dimensioned, and the cut-length key sheet. |
 | `src/drawings/scale.ts` | Plan scales, and the pick of the largest scale that fits a sheet. |
-| `src/ui/App.tsx` | App state, tabs, autosave, file open and save, share link. |
+| `src/ui/App.tsx` | App state, tabs, file open and save, share link. |
+| `src/ui/autosave.ts` | Autosave: `restore`, `save`, and the backup of a stored design that does not load. |
+| `src/ui/ErrorBoundary.tsx` | The recovery page when a render throws: download, reload, or start a new design. |
 | `src/ui/DesignForm.tsx` | The settings form, one section component for each part of the config. |
 | `src/ui/fields.tsx` | Field components and the `Section`, `Group`, and `Card` folds. |
 | `src/ui/OpeningsEditor.tsx`, `AdditionsEditor.tsx`, `RampsEditor.tsx` | List editors for opening types, placements, lean-tos, and ramps. |
@@ -142,7 +144,7 @@ tops less their height above grade. The floor surface is z = 0.
 
 | Form | Content | Code |
 |---|---|---|
-| Autosave | The full design, in `localStorage` key `shed-builder.config`. A setting you switch away from keeps its value. | `serializeConfig` |
+| Autosave | The full design, in `localStorage` key `shed-builder.config`. A setting you switch away from keeps its value. A stored design that does not load goes to `shed-builder.config.backup`, and the banner offers it as a download. | `src/ui/autosave.ts` |
 | Saved file | The pruned design, without default values. | `designFileText` |
 | Share link | `#design=` and the compact JSON, deflate-raw compressed, base64url. | `designToLink`, `designFromLink` |
 
