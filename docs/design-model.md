@@ -575,7 +575,8 @@ a step that upgrades the old shape.
 ### 6.3 Remove or rename a field
 
 Strict objects reject an unknown key, so an old file with the old key fails to load. This applies
-to autosave too: `restore` in `App.tsx` then falls back to the first preset.
+to autosave too: `restore` (`src/ui/autosave.ts`) then opens the first preset, keeps the old text
+in the backup key, and the banner offers it as a download.
 
 1. Change the field in `shedSchema`.
 2. Write an upgrade step beside `keepWallHeight`. It takes `unknown`, finds the old shape by its
@@ -859,7 +860,7 @@ was too dense to scan. The drawing sheets do not change.
 | Where | `localStorage` key `shed-builder.config` | `<slug>.shed.json`, where the user keeps it | The address after `#design=`, and the PDF's QR sheet |
 | Written | After each change, and once at page load | On Save | After each change, into `shareLink`. Copy link copies it. |
 | Read | At page load | On Open, or a file dropped on the app | At page load, and on `hashchange` |
-| Load error | Silent: the first preset loads | Banner `Cannot load <file name>`, with each error | Banner `Cannot load the shared link`, with each error |
+| Load error | Banner `Cannot load the design saved in this browser`, with each error and a download of the text; the first preset loads | Banner `Cannot load <file name>`, with each error | Banner `Cannot load the shared link`, with each error |
 | Asks first | No | No | Yes, when the browser had an autosave at page load |
 
 **Decision.** Autosave keeps the full design, so a setting you switch away from keeps its value.
@@ -873,14 +874,16 @@ contract keeps the build output the same.
 
 Autosave:
 
-1. At start, `restore()` reads `shed-builder.config` and parses it with `parseConfigText`.
-2. No text, a parse failure, or blocked storage gives `PRESETS[0]`.
-3. An effect on `config` writes `serializeConfig(config)`. It also runs once at page load.
-4. When storage is blocked, the read returns `null` and the write fails without a message. Autosave
+1. At start, `restore` reads `shed-builder.config` and parses it with `parseConfigText`.
+2. No text, or blocked storage, gives `PRESETS[0]`.
+3. A parse failure also gives `PRESETS[0]`. `restore` first copies the text to
+   `shed-builder.config.backup`, and the banner shows the errors with a download of that text.
+4. An effect on `config` writes `serializeConfig(config)`. It also runs once at page load.
+5. When storage is blocked, the read returns `null` and the write fails without a message. Autosave
    is then off.
 
-An autosave that fails to parse is lost: the effect in step 3 writes the first preset over it at
-page load, with no message.
+The backup holds one design, the latest that failed to load or that the user set aside from the
+error page.
 
 Save: `download(fileName(config.name, 'shed.json'), designFileText(config))`. `fileName` makes the
 name lower case. It changes each run of characters other than `a`–`z` and `0`–`9` to `-`, and

@@ -3,7 +3,15 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.8.2] - 2026-11-12
+
+### Fixed
+
+- A design saved in the browser that no longer loads is kept, not lost. The app opens the first
+  preset, shows why the saved design did not load, and offers it as a download. Before, the first
+  autosave wrote over it with no message.
+- An error in the app shows a recovery page, not a blank page. It offers the design as a download,
+  a reload, which opens the last design that worked, and a new design.
 
 ### Changed
 
@@ -275,6 +283,7 @@ First release.
   next to `schemaVersion` 1.
 - **Setup:** `npm run setup` checks Node, installs, tests, and builds.
 
+[0.8.2]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.2
 [0.8.1]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.1
 [0.8.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.0
 [0.7.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.7.0

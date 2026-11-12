@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { APP_VERSION, parseConfigText, serializeConfig, shedSchema, type ShedConfig } from '../core/config';
+import { APP_VERSION, parseConfigText, shedSchema, type ShedConfig } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
 import { ASSEMBLIES, LAYERS, layerOf, type Layer } from '../core/member';
 import { buildFinishes } from '../core/gen/finishes';
@@ -12,6 +12,7 @@ import { checkSpans, spanWarnings } from '../core/out/spans';
 import { PRESETS } from '../core/presets';
 import { designFileText, designFromLink, designToLink, LINK_KEY, linkData } from '../core/share';
 import { buildDrawings } from '../drawings/sheets';
+import { backupDesign, browserStore, restore, save } from './autosave';
 import { BomView } from './BomView';
 import { ChangelogDialog } from './ChangelogDialog';
 import { CutListTable } from './CutListTable';
@@ -35,7 +36,6 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-const STORAGE_KEY = 'shed-builder.config';
 const PHONE = '(max-width: 760px)'; // the phone layout's breakpoint in app.css
 
 function usePhone(): boolean {
@@ -54,21 +54,6 @@ const VIEWS = {
   Finished: ['sheathing'],
 } as const satisfies Record<string, readonly Layer[]>;
 
-function saved(): string | null {
-  try {
-    return localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null; // Storage is blocked.
-  }
-}
-
-// The saved design, or the first preset when there is none or storage is blocked.
-function restore(): ShedConfig {
-  const text = saved();
-  const result = text === null ? null : parseConfigText(text);
-  return result?.ok ? result.config : PRESETS[0];
-}
-
 // A change that leaves the design as it was is not an undo step.
 const change = (next: ShedConfig) => (designs: UndoHistory<ShedConfig>) =>
   JSON.stringify(next) === JSON.stringify(designs.present) ? designs : record(designs, next);
@@ -80,11 +65,15 @@ const fileName = (name: string, suffix: string) =>
   `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'shed'}.${suffix}`;
 
 export function App() {
-  const [designHistory, setDesignHistory] = useState(() => startHistory(restore()));
+  const [start] = useState(() => restore(browserStore()));
+  const [designHistory, setDesignHistory] = useState(() => startHistory(start.config));
   const config = designHistory.present;
   // Remounts the form after a load, so no field keeps a draft from the old design.
   const [revision, setRevision] = useState(0);
-  const [loadError, setLoadError] = useState<{ file: string; errors: string[] } | null>(null);
+  // `stored`: the design saved in this browser did not load, and its text is in the backup.
+  const [loadError, setLoadError] = useState<{ file: string; errors: string[]; stored?: boolean } | null>(() =>
+    start.errors && { file: 'the design saved in this browser', errors: start.errors, stored: true },
+  );
   const [tab, setTab] = useState<TabId>('3d');
   const phone = usePhone();
   // The Design tab exists only on a phone: elsewhere the form is always in view.
@@ -93,7 +82,7 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<Layer>>(new Set(VIEWS.Framing));
   // A shared link replaces a design only after asking, unless this browser had none.
-  const [hadDesign] = useState(() => saved() !== null);
+  const { hadDesign } = start;
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
@@ -127,13 +116,7 @@ export function App() {
   const selectedMember = selectedLine && model.members.find((member) => member.id === selectedLine.ids[0]);
   const pickInfo = selectedLine && selectedMember && <PieceInfo line={selectedLine} member={selectedMember} names={names} onClose={() => setSelected(null)} />;
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, serializeConfig(config));
-    } catch {
-      // Storage is blocked. Autosave is off.
-    }
-  }, [config]);
+  useEffect(() => save(browserStore(), config), [config]);
 
   useEffect(() => {
     let current = true;
@@ -283,6 +266,10 @@ export function App() {
                 <li key={error}>{error}</li>
               ))}
             </ul>
+            {loadError.stored && <p>The app opened the first preset. The saved design stays in this browser's backup until another design fails to load.</p>}
+            {loadError.stored && (
+              <button onClick={() => download('saved-design.shed.json', backupDesign(browserStore()) ?? '')}>Download the saved design</button>
+            )}
             <button onClick={() => setLoadError(null)}>Dismiss</button>
           </div>
         )}

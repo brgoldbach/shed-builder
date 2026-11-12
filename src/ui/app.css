@@ -194,6 +194,18 @@ button {
   padding-left: 18px;
 }
 
+.crash {
+  max-width: 40rem;
+  margin: 10vh auto 0;
+  padding: 0 16px;
+}
+
+.crash .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .fold > summary,
 .fold.off {
   display: flex;
