@@ -19,6 +19,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Development only: `npm run test:ui` runs a browser test of the built app in Chromium: the load,
   the 3D view, an edit, both downloads, and a stored design that does not load. A GitHub workflow
   job runs it on each pull request.
+- The 3D view loads as a separate part of the app, so the form is ready sooner. The first download
+  is 151 kB smaller before the form shows (gzip: 329 kB, now 178 kB).
 
 ### Fixed
 

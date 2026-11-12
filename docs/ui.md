@@ -25,7 +25,7 @@ the config, and the tabs show the outputs. `FramingScene` draws the model in 3D.
 | `src/ui/fields.tsx` | `Edit`, `SectionProps`, `setter`, the `Section`, `Group`, and `Card` folds, and the field components. |
 | `src/ui/DesignForm.tsx` | One component for each form section, `PriceGroup`, and `HatchesEditor`. |
 | `src/ui/OpeningsEditor.tsx`, `AdditionsEditor.tsx`, `RampsEditor.tsx` | The list editors: opening types and rows, lean-tos, ramps. |
-| `src/ui/View3D.tsx` | The React host of `FramingScene`, with Fit view and Download 3D. |
+| `src/ui/View3D.tsx` | The React host of `FramingScene`, with Fit view and Download 3D. Loaded on demand. |
 | `src/view3d/scene.ts` | `FramingScene`: meshes, materials, textures, red loops, pick, camera fit, disposal. |
 | `src/view3d/export.ts` | `toGlb`: the shown pieces as binary glTF. Loaded on demand. |
 | `src/ui/FramingView.tsx`, `DrawingSvg.tsx`, `pdf.ts` | The Framing tab. See [drawings.md](drawings.md). |
@@ -381,6 +381,11 @@ with its position, not with its item.
 passes it, and it renders on demand only: there is no animation loop.
 
 ### `View3D`
+
+`App` loads `View3D` with `React.lazy`, so it and Three.js are a chunk of their own, about 600 kB.
+The main chunk, about 560 kB, draws the form first. Until the chunk loads, `Suspense` shows
+"Loading 3D…" in the empty viewport. The viewport takes its size from the layout, not from its
+content, so nothing moves when the canvas comes in.
 
 `View3D` makes one `FramingScene` at mount and calls `dispose()` at unmount. A change of `members`,
 `solids`, `finishes`, `trimColor`, or `missing` calls `setModel`, which rebuilds every mesh. A

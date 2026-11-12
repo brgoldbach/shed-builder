@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { APP_VERSION, parseConfigText, shedSchema, type ShedConfig } from '../core/config';
 import { DISCLAIMER } from '../core/disclaimer';
 import { ASSEMBLIES, LAYERS, layerOf, type Layer } from '../core/member';
@@ -23,7 +23,9 @@ import { download } from './download';
 import { FramingView } from './FramingView';
 import { record, redo, startHistory, undo, type UndoHistory } from './history';
 import { PieceInfo } from './PieceInfo';
-import { View3D } from './View3D';
+
+// Three.js is most of the app's code. In its own chunk, it loads after the form can work.
+const View3D = lazy(() => import('./View3D').then((module) => ({ default: module.View3D })));
 
 // On a phone the form is a tab of its own; on a wider screen it stays beside the workspace.
 const TABS = [
@@ -310,52 +312,54 @@ export function App() {
       <main className="workspace">
         <p className="notice print-only">{DISCLAIMER}</p>
         <section className="panel viewport" role="tabpanel" hidden={view !== '3d'}>
-          <View3D
-            members={shown}
-            solids={shownSolids}
-            finishes={shownFinishes}
-            missing={shownMissing}
-            trimColor={hidden.has('siding') ? null : config.finishes.trimColor}
-            front={config.front}
-            glbName={fileName(config.name, 'glb')}
-            toolbar={
-              <div className={layersOpen ? 'layer-toggles open' : 'layer-toggles'}>
-                {(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((name) => (
-                  <button
-                    key={name}
-                    aria-pressed={hidden.size === VIEWS[name].length && VIEWS[name].every((layer) => hidden.has(layer))}
-                    onClick={() => setHidden(new Set(VIEWS[name]))}
-                  >
-                    {name}
+          <Suspense fallback={<p className="loading-3d muted">Loading 3D…</p>}>
+            <View3D
+              members={shown}
+              solids={shownSolids}
+              finishes={shownFinishes}
+              missing={shownMissing}
+              trimColor={hidden.has('siding') ? null : config.finishes.trimColor}
+              front={config.front}
+              glbName={fileName(config.name, 'glb')}
+              toolbar={
+                <div className={layersOpen ? 'layer-toggles open' : 'layer-toggles'}>
+                  {(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((name) => (
+                    <button
+                      key={name}
+                      aria-pressed={hidden.size === VIEWS[name].length && VIEWS[name].every((layer) => hidden.has(layer))}
+                      onClick={() => setHidden(new Set(VIEWS[name]))}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                  {/* On a phone the layer list folds behind this button. */}
+                  <button className="layers-button" aria-expanded={layersOpen} onClick={() => setLayersOpen((open) => !open)}>
+                    Layers
                   </button>
-                ))}
-                {/* On a phone the layer list folds behind this button. */}
-                <button className="layers-button" aria-expanded={layersOpen} onClick={() => setLayersOpen((open) => !open)}>
-                  Layers
-                </button>
-                {(Object.keys(LAYERS) as Layer[]).map((layer) => (
-                  <label key={layer}>
-                    <input
-                      type="checkbox"
-                      checked={!hidden.has(layer)}
-                      onChange={() =>
-                        setHidden((current) => {
-                          const next = new Set(current);
-                          if (!next.delete(layer)) next.add(layer);
-                          return next;
-                        })
-                      }
-                    />
-                    {LAYERS[layer]}
-                  </label>
-                ))}
-              </div>
-            }
-            selected={selectedIds}
-            onPick={(id) => toggle(id && (markOf.get(id) ?? null))}
-          >
-            {pickInfo && <div className="pick-info">{pickInfo}</div>}
-          </View3D>
+                  {(Object.keys(LAYERS) as Layer[]).map((layer) => (
+                    <label key={layer}>
+                      <input
+                        type="checkbox"
+                        checked={!hidden.has(layer)}
+                        onChange={() =>
+                          setHidden((current) => {
+                            const next = new Set(current);
+                            if (!next.delete(layer)) next.add(layer);
+                            return next;
+                          })
+                        }
+                      />
+                      {LAYERS[layer]}
+                    </label>
+                  ))}
+                </div>
+              }
+              selected={selectedIds}
+              onPick={(id) => toggle(id && (markOf.get(id) ?? null))}
+            >
+              {pickInfo && <div className="pick-info">{pickInfo}</div>}
+            </View3D>
+          </Suspense>
         </section>
         <section className="panel framing" role="tabpanel" hidden={view !== 'framing'}>
           <FramingView
