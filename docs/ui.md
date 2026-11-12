@@ -1088,7 +1088,8 @@ The workspace disclaimer prints once at the top of each other tab. On the Framin
 `vite.config.ts` uses `defineConfig` from `vitest/config`. It adds `@vitejs/plugin-react`, and sets
 the test files to `tests/**/*.test.ts`. It sets no `base`, so the build expects the site root. The
 `?raw` import of CHANGELOG.md works in both the build and Vitest. `tsconfig.json` includes
-`vite/client` types for it.
+`vite/client` types for it. A small plugin writes `dist/version.txt` with the `package.json`
+version; the release workflow reads it from the live site.
 
 ### `setup.sh` and `start.sh`
 

@@ -47,7 +47,7 @@ browser. Cloudflare Workers hosts it free from the GitHub repo.
 
 | Branch | Cloudflare builds |
 |---|---|
-| `release` | The live site. Only a release moves this branch ([docs/DEVELOPER.md](docs/DEVELOPER.md#release)). |
+| `release` | The live site. Only the release workflow moves this branch ([docs/DEVELOPER.md](docs/DEVELOPER.md#release)). |
 | `main`, and each other branch | A preview copy with its own address. The live site does not change. The `main` preview shows the next release. |
 
 The app runs at https://shed-builder.brgoldbach73.workers.dev/.
@@ -71,7 +71,9 @@ Cloudflare dashboard holds the commands:
 4. If the site address does not open, open the Worker's Domains settings and turn on its
    `workers.dev` address.
 5. On GitHub, protect `release` against force pushes and deletion. Do not require a pull request
-   on it: a release pushes to it directly.
+   on it: the release workflow pushes to it directly.
+6. On GitHub, open Settings, then Actions, then General, and turn on "Allow GitHub Actions to
+   create and approve pull requests". The "prepare release" workflow needs it.
 
 A failed build, test, or lint check leaves the last good deployment live. The build check on a
 pull request links to its preview address.
