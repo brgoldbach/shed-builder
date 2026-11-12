@@ -122,6 +122,10 @@ const ROOFING_PRICE_LABELS = { shingles: 'Shingles, per sq ft', metal: 'Metal pa
 const sheetLabel = (key: (typeof SHEATHING)[number]) => (key === 'none' ? 'None' : SHEETS[key].label);
 const noneLabel = (option: string) => (option === 'none' ? 'None' : option);
 const count = (number: number, one: string, many = `${one}s`) => (number === 0 ? 'None' : `${number} ${number === 1 ? one : many}`);
+const rampsBrief = (ramps: ShedConfig['ramps']) =>
+  [count(ramps.filter(({ kind }) => kind === 'ramp').length, 'ramp'), count(ramps.filter(({ kind }) => kind === 'stairs').length, 'flight of stairs', 'flights of stairs')]
+    .filter((part) => part !== 'None')
+    .join(', ') || 'None';
 const spacing = (size: string, oc: number) => `${size} at ${oc}" o.c.`;
 const every = (pairs: number) => (pairs === 1 ? 'every pair' : `every ${pairs} pairs`);
 
@@ -196,7 +200,7 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       <Section title="Lean-tos" brief={count(value.additions.length, 'lean-to')}>
         <AdditionsEditor value={value} onChange={onChange} />
       </Section>
-      <Section title="Ramps" brief={count(value.ramps.length, 'ramp')}>
+      <Section title="Ramps and stairs" brief={rampsBrief(value.ramps)}>
         <RampsEditor value={value} onChange={onChange} />
       </Section>
       <FinishesSection value={value} onChange={onChange} />

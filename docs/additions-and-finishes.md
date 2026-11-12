@@ -207,6 +207,8 @@ rafters, posts, and deck joists from the members ([outputs.md](outputs.md) "Hard
 | `lags` | 2 per stud behind the ledger; 0 for an extension. |
 | `seats` | Rafter seats per rafter: 1 on the beam, plus 1 for an extension rafter with a birdsmouth on the main wall. |
 | `deck` | `DeckFacts` (section 2), or `null`. |
+| `floor` | `LeanToFloor`, for ramps and stairs at the deck or slab (section 3), or `null` with no floor: its kind, extent `u0..u1`, `face` (the deck beam's outer face, or the slab edge), `edge` (the outer deck board's edge, or the slab edge), `top` (`deckTop`, or grade), `under` (the deck board underside, or grade), and `inner` (the posts' inner face). |
+| `posts` | The post line out from the wall, the post width, and the post centers along it. |
 
 ### Decisions
 
@@ -308,6 +310,7 @@ boards on a gable end run out from the wall, across the joists, notched around t
 | `beamTributary` | `joistSpan / 2 + (beamOuter − beamInner)`; on a gable end `oc / 2 + (beamOuter − beamInner)` |
 | `seats` | The post count when the beam sits on the piers, else 0. |
 | `hangers`, `ledgerLags` | 2 per joist with a ledger; 0 on a gable end on the shed's foundation. |
+| `face`, `edge` | `beamOuter`, and the outer deck board's edge: the board rows on an eave side end past the beam by up to one board width. On a gable end the boards stop at `beamOuter`. |
 
 ### Decisions
 
@@ -328,11 +331,11 @@ boards on a gable end run out from the wall, across the joists, notched around t
   piers, as `frameLeanTo` does.
 - Keep `LeanTo.deck` in step with the members.
 
-## 3. Ramps
+## 3. Ramps and stairs
 
-`frameRamps(config, framing)` builds each `ramps` entry from the floor surface at a wall down to its
-foot. A ramp is wood or concrete. `slope` is the run per unit of rise. The ramp editor is in
-[ui.md](ui.md) "List editors".
+`frameRamps(config, framing, leanTos)` builds each `ramps` entry, a ramp or stairs (`kind`), down
+from an upper level at a wall to a lower one. A ramp is wood or concrete, at `slope`, the run per
+unit of rise. Stairs are wood, at a fixed step. The editor is in [ui.md](ui.md) "List editors".
 
 ### Placement
 
@@ -377,17 +380,50 @@ row:
 
 A ramp freed at a corner can get a negative `at`.
 
-### Height
+### Levels
 
-`foot = grade − belowGrade`, and `rise = −foot`: the floor surface to the foot. The slope angle is
-`atan(1 / slope)`. On a slab, the floor is at grade, so a ramp gets its rise only from `belowGrade`.
+`LeanTo.floor` (section 1) gives a lean-to's deck or slab. It meets an entry when it covers part of
+the entry's span on the same wall; `rampLeanToFloor` answers that from the design alone, for prune
+and the editor. `x` is out from the wall's outside face; `z = 0` is the shed floor surface.
+
+| `from` | A lean-to floor meets it | Upper level: `face`, `edge`, `top` | Down to |
+|---|---|---|---|
+| `floor` | No | 0, 0, 0: the floor framing, or the slab edge | The foot, `grade − belowGrade` |
+| `floor` | Yes | 0, 0, 0 | The lean-to floor's `top`. It must end short of the posts (`inner`), else it is left out. |
+| `lean-to` | Yes | The beam's outer face, the outer deck board's edge, `deckTop`; or the slab edge twice, at grade | The foot |
+| `lean-to` | No | As `floor`, with a warning | The foot |
+
+The stringers fasten at `face`; the surface starts at `edge`. Between them, under an outer deck
+board that runs past the beam, a ramp stringer's top is cut level at the board's underside
+(`under`). `rise = top − foot`. On a slab shed, or from a lean-to slab, the upper level is at grade,
+so the rise comes only from `belowGrade`. An entry with too little rise is left out in red. One
+that runs past the end of the lean-to floor, or meets an open lean-to's post, gets a warning.
 
 ### Wood
 
 | Part | Role, code | Rule |
 |---|---|---|
-| Stringers | `stringer`, `S`, PT | The ramp surface falls 1 in `slope` from the floor at `face = 0`: the floor framing, or the slab edge, which the wall sheathing does not cover. The stringer top lies one board thickness, square to the slope, under it: `top(x) = −(x − face) / slope − 1.5 / cos`. Plumb cut at the face: lagged to the floor framing, or anchored to the slab edge. Level cut at the foot (`clipBelow`). The o.c. rule across `[left, right]` at `oc`. |
-| Boards | `decking`, `B`, 2x6, PT | `rows = ⌊(slopeLength + 0.25) / 5.75⌋`, 1/4 in apart, with `slopeLength = slope × rise / cos`. Row `r` starts `r × 5.75` down the slope from the floor line at the framing face. Each row runs from `left` to `right`. The gap at the foot is less than one board and one gap. |
+| Stringers | `stringer`, `S`, PT | The ramp surface falls 1 in `slope` from `top` at `edge`. The stringer top lies one board thickness, square to the slope, under it: `top(x) = top − (x − edge) / slope − 1.5 / cos`. Plumb cut at `face`: lagged to the floor framing or a deck beam, or anchored to a slab edge. Level cut at the foot (`clipBelow`). The o.c. rule across `[left, right]` at `oc`. |
+| Boards | `decking`, `B`, 2x6, PT | `rows = ⌊(slopeLength + 0.25) / 5.75⌋`, 1/4 in apart, with `slopeLength = slope × rise / cos`. Row `r` starts `r × 5.75` down the slope from `edge`. Each row runs from `left` to `right`. The gap at the foot is less than one board and one gap. |
+
+### Stairs
+
+The step is fixed, with no settings:
+
+| Part | Role, code | Rule |
+|---|---|---|
+| Risers | | `n = ⌈rise / 7-1/2⌉`, each `rise / n`. Open. Under 2 risers, no stairs and a warning. |
+| Treads | `tread`, `T`, 5/4x6, PT | `n − 1` treads of two boards, 1/4 in apart: 11-1/4 in, the unit run. Tread `k` tops at `top − k × riser`, from `edge + (k − 1) × 11-1/4`. |
+| Stringers | `stringer.stair`, `S`, 2x12, PT | Cut: seats under the treads, the board's top edge through each seat's outer corner. Seat 1 runs back to `face`. Plumb cut at `face`, in a sloped hanger on wood, or anchored to a slab edge. Level cut at the foot. At least three, flush with each side, evenly spaced no more than 18 in apart. |
+
+| Warning | Source |
+|---|---|
+| Narrower than 36 in | IRC R311.7.1 |
+| 4 or more risers: a handrail | IRC R311.7.8 |
+| A total rise of 30 in or more: a stair guard | DCA6 Figure 30, IRC R312.1 |
+| Open risers more than 30 in above the ground below: a 4 in sphere must not pass | IRC R311.7.5.1 |
+| A stringer span over 6 ft | DCA6 Figure 28 |
+| A stringer under 5 in deep at its top, under a deck board that runs past the beam | DCA6 Figure 28 |
 
 ### Concrete
 
@@ -397,9 +433,12 @@ plane square to the wall, from the framing face at floor level, as wide as the r
 `base = foot − thickness`. The surface falls from the floor to the foot, over a flat base
 `thickness` under the foot. The wedge starts at the framing face, as a wood ramp does.
 
-The BOM counts ramp concrete and stringer lags ([outputs.md](outputs.md) "Concrete" and
-"Hardware"). The "Decks and ramps" sheet draws ramps and deck framing ([drawings.md](drawings.md)
-"Decks and ramps").
+Between `face` and `edge` the wedge top stays at `under`, as a ramp stringer does.
+
+`frameRamps` returns one `RampFacts` per built entry, in `Model.ramps`: its kind, its stringer
+count, what the stringer tops fasten to, and a summary line. The BOM counts the concrete and the
+fasteners from them ([outputs.md](outputs.md) "Concrete" and "Hardware"). The "Decks, ramps, and
+stairs" sheet draws them ([drawings.md](drawings.md) "Decks, ramps, and stairs").
 
 ### Decisions
 
@@ -411,10 +450,15 @@ The BOM counts ramp concrete and stringer lags ([outputs.md](outputs.md) "Concre
 | A ramp can run below grade to a foot, and it can be concrete. | Lower ground beside the shed, such as a drive beside a slab. |
 | A ramp with too little rise is left out in red. | Its stringers would collide with its boards. Concrete needs some rise. |
 | Whole boards only, from the top down. | The top board is level with the floor at the wall. |
+| An entry picks its upper level (`from`); the lower level follows. | Two entries cover both cases the user asked for: steps from the door down to a dropped deck, and a ramp from the deck edge to the drive. |
+| Stairs take the standard step, not a setting. | The user asked for it. A riser of 7-1/2 in, under the IRC 7-3/4 in, keeps the 5 in throat of a 2x12 cut stringer at an 11-1/4 in run. |
+| Stairs: 5/4x6 treads, open risers, and no pad, handrail, or guard members. | The user's choice. DCA6 Table 6 and Figure 29 allow 5/4 treads on cut stringers 18 in apart. The warnings name what the app leaves out. |
 
 ### Change it safely
 
 - Place every ramp through `rampPlace`. Do not read `ramp.wall` or `ramp.at` directly.
+- Keep `LeanTo.floor` in step with the deck and slab, and `rampLeanToFloor` in step with it: the
+  editor and prune show `from` only where the model can use it.
 - Send every opening row edit through `withOpeningRow` or `withoutOpeningRow`. A new edit that
   reorders rows must remap `ramp.opening` the same way.
 - A ramp becomes lost only when its opening changes outside those two functions, for example in a

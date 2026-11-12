@@ -11,7 +11,7 @@ the config, and the tabs show the outputs. `FramingScene` draws the model in 3D.
 | [design-model.md](design-model.md) | `shedSchema`, `pruneConfig`, the compact form, share links, the autosave format and keys. |
 | [drawings.md](drawings.md) | The Framing tab, `DrawingSvg`, the zoom viewer, the PDF. |
 | [outputs.md](outputs.md) | The cut list, BOM, span checks, and CSV that the tabs show. |
-| [additions-and-finishes.md](additions-and-finishes.md) | Lean-tos, ramps, and the finish parts that the 3D view draws. |
+| [additions-and-finishes.md](additions-and-finishes.md) | Lean-tos, ramps and stairs, and the finish parts that the 3D view draws. |
 
 ## Source map
 
@@ -24,7 +24,7 @@ the config, and the tabs show the outputs. `FramingScene` draws the model in 3D.
 | `src/ui/history.ts` | `UndoHistory`, `startHistory`, `record`, `undo`, `redo`. |
 | `src/ui/fields.tsx` | `Edit`, `SectionProps`, `setter`, the `Section`, `Group`, and `Card` folds, and the field components. |
 | `src/ui/DesignForm.tsx` | One component for each form section, `PriceGroup`, and `HatchesEditor`. |
-| `src/ui/OpeningsEditor.tsx`, `AdditionsEditor.tsx`, `RampsEditor.tsx` | The list editors: opening types and rows, lean-tos, ramps. |
+| `src/ui/OpeningsEditor.tsx`, `AdditionsEditor.tsx`, `RampsEditor.tsx` | The list editors: opening types and rows, lean-tos, ramps and stairs. |
 | `src/ui/View3D.tsx` | The React host of `FramingScene`, with Fit view and Download 3D. Loaded on demand. |
 | `src/view3d/scene.ts` | `FramingScene`: meshes, materials, textures, red loops, pick, camera fit, disposal. |
 | `src/view3d/export.ts` | `toGlb`: the shown pieces as binary glTF. Loaded on demand. |
@@ -347,7 +347,7 @@ with its position, not with its item.
 | `OpeningRowsEditor` | A row edit goes through `withOpeningRow`, and `×` through `withoutOpeningRow`. Both keep each ramp on its opening, or where it stood ([additions-and-finishes.md §3](additions-and-finishes.md#3-ramps)). |
 | `AdditionsEditor` | `+ Lean-to` adds a lean-to on the first free side, in the user's order. A mirrored lean-to takes two sides. With no free side, the button is gone. |
 | `AdditionsEditor` | A Side or Attachment choice that breaks a `shedSchema` rule snaps back, with the rule's message under the select. |
-| `RampsEditor` | The Follows choice "No opening: placed below" frees a ramp where it stands ([additions-and-finishes.md §3](additions-and-finishes.md#3-ramps)). A lost ramp shows "An opening that is gone" as its choice. |
+| `RampsEditor` | "+ Ramp" and "+ Stairs" add an entry; Kind switches it. The Follows choice "No opening: placed below" frees it where it stands ([additions-and-finishes.md §3](additions-and-finishes.md#3-ramps-and-stairs)). A lost entry shows "An opening that is gone" as its choice. "Starts at" shows only where `rampLeanToFloor` finds a lean-to deck or slab, and "Foot below grade" only when it ends on the ground. Stairs show their fixed step as text, with no Slope or Build groups. |
 
 ### Decisions
 

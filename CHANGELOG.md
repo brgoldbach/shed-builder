@@ -3,13 +3,19 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.10.0] - 2026-11-12
 
 ### Added
 
 - **Setting help:** a mouse resting for 1 s on a setting (its name, its box, or the `?` beside it)
   shows what it does in a floating box, and for a list with less plain choices, what each choice
   does. A click or tap on the `?` or on the name keeps the box open until the next click.
+- **Stairs, and ramps between levels:** each entry of "Ramps and stairs" is a ramp or stairs. Where
+  a lean-to has a deck or slab, "Starts at" picks the shed floor, down to that deck or slab, or the
+  deck or slab's outer edge, down to grade. Stairs take the standard step: equal risers of 7-1/2"
+  or less, 11-1/4" treads of two 5/4x6, and PT 2x12 cut stringers no more than 18" apart, with a
+  sloped hanger at the top. Warnings name a handrail, a guard, and riser fillers where the code
+  asks for them; the app does not build those.
 
 ### Changed
 
@@ -28,6 +34,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - A wood ramp on a slab got lag screws into floor framing in the BOM. It now gets concrete anchors
   into the slab edge, two at each stringer, at the anchor bolt price.
+- A ramp on a wall with a lean-to deck or slab ran through that floor. It now starts at the shed
+  floor and lands on the deck or slab, or starts at its edge.
 - The span check of a lean-to roof extension used the lean-to's rafter spacing. Each extension
   rafter sits beside a main rafter, so the check now uses the main spacing. Where that was wider,
   the old check could pass rafters that were too weak. An extension no longer shows "Rafter
@@ -358,6 +366,7 @@ First release.
   next to `schemaVersion` 1.
 - **Setup:** `npm run setup` checks Node, installs, tests, and builds.
 
+[0.10.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.10.0
 [0.9.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.9.0
 [0.8.2]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.2
 [0.8.1]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.1

@@ -174,36 +174,42 @@ export const EDITOR_HELP = {
     about: 'From the shed floor down to the deck surface. At 0 the deck is flush with the floor.',
   },
 
+  'ramps.kind': {
+    about: 'A ramp at the slope you set, or stairs at the standard step: equal risers of 7-1/2" or less, and 11-1/4" treads.',
+  },
   'ramps.opening': {
-    about: 'An opening for the ramp to follow. The ramp centers on it and moves with it.',
+    about: 'An opening to follow. It centers on the opening and moves with it.',
     options: {
-      free: 'The ramp has its own place: set the wall, position, and width below.',
-      gone: 'The opening the ramp followed is gone. Pick another, or "No opening: placed below".',
+      free: 'It has its own place: set the wall, position, and width below.',
+      gone: 'The opening it followed is gone. Pick another, or "No opening: placed below".',
     },
   },
   'ramps.margin': {
-    about: 'How far the ramp runs past each side of the opening it follows.',
+    about: 'How far it runs past each side of the opening it follows.',
   },
   'ramps.wall': {
-    about: 'The wall the ramp runs out from.',
+    about: 'The wall it runs out from.',
+  },
+  'ramps.from': {
+    about: 'Where it starts when a lean-to deck or slab meets it: at the shed floor, down to that deck or slab, or at its outer edge, down to grade.',
   },
   'ramps.along': {
     about: 'What the position measures from.',
   },
   'ramps.at:percent': {
-    about: 'The ramp center, as a percent of the wall length from the left corner.',
+    about: 'Its center, as a percent of the wall length from the left corner.',
   },
   'ramps.at:corner': {
-    about: "From the wall's corner to the ramp's near edge.",
+    about: "From the wall's corner to its near edge.",
   },
   'ramps.width': {
-    about: 'Width of the ramp along the wall.',
+    about: 'Its width along the wall.',
   },
   'ramps.slope': {
     about: 'Run for each unit of rise: at 12, the ramp runs out 12 in for each 1 in of drop. A larger number is gentler.',
   },
   'ramps.belowGrade': {
-    about: "How far the ramp's foot is below grade, for lower ground such as a drive.",
+    about: 'How far its foot is below grade, for lower ground such as a drive.',
   },
   'ramps.material': {
     about: 'What the ramp is made of.',

@@ -28,6 +28,19 @@ export interface LeanTo {
   lags: number; // two at each main-wall stud behind the ledger
   seats: number; // per rafter: 1 on the beam, and 1 on the main wall for an extension rafter with a birdsmouth there
   deck: DeckFacts | null;
+  floor: LeanToFloor | null;
+  posts: { x: number; width: number; us: number[] }; // the post line out from the wall, post centers along it
+}
+
+/** A lean-to's deck or slab, where ramps and stairs meet it. `x` values are out from the wall's outside face. */
+export interface LeanToFloor {
+  kind: 'deck' | 'slab';
+  span: [number, number]; // along the wall from its left corner, viewed from outside
+  face: number; // the deck beam's outer face, or the slab edge: the outer stringers fasten here
+  edge: number; // the floor surface's outer edge: the outer deck board, or the slab edge
+  top: number; // the floor surface
+  under: number; // the underside of the deck boards; the top of a slab
+  inner: number; // the posts' inner face: what starts at the shed floor must stop short of it
 }
 
 /** The main roof facts a lean-to builds against. */
@@ -358,5 +371,12 @@ function frameLeanTo(
     lags: extension ? 0 : 2 * studs.length,
     seats,
     deck,
+    floor:
+      deck && deckHeight
+        ? { kind: 'deck', span: [u0, u1], face: deck.face, edge: deck.edge, top: deckHeight.top, under: deckHeight.joistTop, inner: line - post / 2 }
+        : addition.floor === 'slab'
+          ? { kind: 'slab', span: [u0, u1], face: addition.depth, edge: addition.depth, top: grade, under: grade, inner: line - post / 2 }
+          : null,
+    posts: { x: line, width: post, us: posts },
   });
 }

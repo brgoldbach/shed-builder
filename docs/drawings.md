@@ -107,7 +107,7 @@ parts that the generators leave out are in
 | `loft` | Loft framing plan. |
 | `roof` | Building section. |
 | `addition.<side>` | Roof framing plan. |
-| `ramp` | Foundation plan, and decks and ramps. |
+| `ramp` | Foundation plan, and decks, ramps, and stairs. |
 
 ## 2. Views and projection
 
@@ -196,7 +196,7 @@ only on a 4-point polygon. The code does not test that the member crosses the cu
 |---|---|---|---|---|
 | 1 | `foundation` | Foundation plan | `foundationPlan` | Never |
 | 2 | `floor` | Floor framing plan | `floorPlan` | No `floor` members (a slab) |
-| 3 | `decks` | Decks and ramps | `deckPlan` | No deck or ramp framing, and no ramp concrete |
+| 3 | `decks` | Decks, ramps, and stairs | `deckPlan` | No deck, ramp, or stair framing, and no ramp concrete |
 | 4 | `wall-<wall>`, four sheets | `<Wall label>, from outside` | `wallElevation` | Never |
 | 5 | `gable-left`, `gable-right` | `<Gable label>, from outside` | `upperElevation` | No members in that gable assembly |
 | 6 | `loft` | Loft framing plan | `loftPlan` | No `loft` members |
@@ -237,7 +237,7 @@ Decisions:
 | Foundation, skids or piers | Tier 1: a chain across the lines, from footprint edge to footprint edge through each line center (each pier center on piers). On piers, also a chain along the lines through each pier center. Tier 2: `overall` of the footprint. |
 | Foundation, slab | Tier 2: `overall` of the footprint. |
 | Floor | Tier 1: running, from the floor framing corner to each `joist.floor` and `joist.end`. Tier 2: `overall` of the floor framing. |
-| Decks and ramps | Tier 1: `overall` of one box around the footprint, the framing, the posts, and the concrete panels. |
+| Decks, ramps, and stairs | Tier 1: `overall` of one box around the footprint, the framing, the posts, and the concrete panels. |
 | Wall, gable end, knee wall | `panelDims` (3.4). |
 | Loft | Tier 1: running, from the footprint corner to each `joist.loft`. Tier 2: `overall` of the loft and knee-wall members. |
 | Roof | Tier 1: running, from the footprint corner to each `rafter` of assembly `roof`. Tier 2: chains on the bottom and right, framing edge, footprint edges, framing edge: the overhangs and the walls. Tier 3: `overall` of the framing. |
@@ -265,9 +265,9 @@ the `FD` id prefix, or change this filter with it.
 - The loft plan draws the loft and the knee-wall members.
 - The roof plan draws every `roof` member and every lean-to member (`addition.*`).
 
-### 3.3 Decks and ramps (`deckPlan`, `decks`)
+### 3.3 Decks, ramps, and stairs (`deckPlan`, `decks`)
 
-The sheet shows, in plan: the `DECK_FRAMING` roles (deck ledgers, joists, beams, ramp stringers), a
+The sheet shows, in plan: the `DECK_FRAMING` roles (deck ledgers, joists, beams, ramp and stair stringers), a
 deck's own skids and girders, the `post` members of each assembly with deck framing, and the
 concrete ramp panels (layer `ramps`).
 
@@ -275,7 +275,7 @@ concrete ramp panels (layer `ramps`).
 - The shed's skids or girders that run on under a deck show on the foundation plan.
 - The lean-to deck note reads `<Side> lean-to deck: PT <joist> joists at <oc>" o.c., <boards> deck boards,
   on the shed's foundation.` (or `on piers.`). A deck on a slab-founded shed reads `on piers.`
-- Each ramp in `config.ramps` has a note, numbered from 1. A left-out ramp keeps its note.
+- Each built ramp or stairs has a note: its `RampFacts.summary`, with its number in `config.ramps`, its two levels, and its build. A left-out one has no note; its red outline and warning show it.
 
 Change safely: the dimension box and the bounds both include the footprint. The sheet then frames
 the whole shed, with the decks and ramps beside it.

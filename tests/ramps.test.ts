@@ -178,3 +178,83 @@ describe('ramp framing', () => {
     expect(concrete.find(({ item }) => item === 'Concrete, ramp')?.note).toBe('7.4 cu ft net, or 13 bags of 80 lb mix at 0.60 cu ft each.');
   });
 });
+
+describe('ramps and stairs between levels', () => {
+  // A 96 in deep lean-to on the left wall, the door's wall. Its deck beam is three 4x4-wide plies on
+  // the post line at 94-1/4: outer face 96-1/2. Seventeen rows of 5/4x6 at 5-3/4 reach 97-1/2.
+  const door = { opening: { row: 0, index: 0 } };
+  const withLeanTo = (floor: object, ramps: object[]) => withRamps(ramps, { additions: [{ side: 'left', depth: 96, ...floor }] });
+  const deck = (drop: number) => ({ floor: 'deck', deck: { drop } });
+  const hardware = (config: ReturnType<typeof withRamps>) =>
+    buildBom(config, buildModel(config), new Map()).hardware.filter(({ item }) => /Ramp|Stair/.test(item)).map(({ item, quantity }) => [item, quantity]);
+  const warningsOf = (config: ReturnType<typeof withRamps>) => buildModel(config).warnings.filter(({ source }) => /^(Ramp|Stairs) /.test(source)).map(({ message }) => message);
+
+  it('builds stairs from the floor down to a dropped deck, with equal risers and 5/4 treads', () => {
+    const config = withLeanTo(deck(15), [{ ...door, kind: 'stairs' }]);
+    const { members } = buildModel(config);
+    // 15 in of rise: two risers of 7-1/2. The 76 in width: (76 − 1-1/2) / 18 → 5 spaces, 6 stringers.
+    const stringers = ofRole(members, 'stringer.stair');
+    expect(stringers).toHaveLength(6);
+    expect(stringers[0].note).toBe('Cut stringer: 2 risers of 7-1/2", 1 tread of 11-1/4". Plumb cut 33.7° at the floor framing, in a sloped hanger. Level cut on the deck.');
+    const treads = ofRole(members, 'tread');
+    expect(treads.map(({ size }) => size)).toEqual(['5/4x6', '5/4x6']);
+    expect(range(treads, 2)[1]).toBeCloseTo(-7.5, 9);
+    expect(hardware(config)).toEqual([['Stair stringer hanger, sloped, 2x12', 6]]);
+  });
+
+  it("starts a ramp at the deck's outer board, its stringers lagged to the beam", () => {
+    const config = withLeanTo(deck(2), [{ ...door, from: 'lean-to' }]);
+    const { members } = buildModel(config);
+    // Out from the left wall is −x. The stringers start at the beam face, the surface at the outer board.
+    expect(range(ofRole(members, 'stringer'), 0)[1]).toBeCloseTo(-96.5, 9);
+    const boards = members.filter(({ assembly, role }) => assembly === 'ramp' && role === 'decking');
+    const top = boards.reduce((high, board) => (board.origin[2] > high.origin[2] ? board : high));
+    const angle = Math.atan(1 / 4);
+    expect(top.origin[0]).toBeCloseTo(-97.5 + 1.5 * Math.sin(angle), 9);
+    expect(top.origin[2]).toBeCloseTo(-2 - 1.5 * Math.cos(angle), 9);
+    expect(hardware(config)).toEqual([['Ramp lag screw, 1/2"', 12]]);
+  });
+
+  it("anchors stairs to a lean-to slab's edge, down to a foot below grade", () => {
+    const config = withLeanTo({ floor: 'slab' }, [{ ...door, kind: 'stairs', from: 'lean-to', belowGrade: 15 }]);
+    expect(ofRole(buildModel(config).members, 'stringer.stair')[0].note).toContain('at the slab edge, anchored to it');
+    expect(hardware(config)).toEqual([['Stair concrete anchor, 1/2"', 12]]);
+  });
+
+  it('warns that four risers need a handrail', () => {
+    // 11-23/32 + 12 in of rise: four risers of 5-15/16.
+    expect(warningsOf(withRamps([{ ...door, kind: 'stairs', belowGrade: 12 }]))).toEqual([
+      '4 risers need a handrail on one side (IRC R311.7.8). The app does not build it.',
+    ]);
+  });
+
+  it('builds no stairs for one step', () => {
+    expect(warningsOf(withLeanTo({ floor: 'slab' }, [{ ...door, kind: 'stairs', from: 'lean-to', belowGrade: 6 }]))).toEqual([
+      'The left lean-to slab is 6" above the foot of the stairs: one step at most, so the app builds no stairs.',
+    ]);
+  });
+
+  it('leaves out what does not fit on the lean-to floor, short of the posts', () => {
+    // 24 in of rise: four risers, three treads, 33-3/4 in out. The posts of a 36 in lean-to stand 32-1/2 in out.
+    const config = withRamps([{ ...door, kind: 'stairs' }], { additions: [{ side: 'left', depth: 36, ...deck(24) }] });
+    expect(warningsOf(config)).toEqual([
+      `It does not fit on the left lean-to deck: it reaches 33-3/4" out from the wall, and the posts stand 32-1/2" out. ${LEFT_OUT}`,
+    ]);
+  });
+
+  it('leaves out a ramp to a deck flush with the floor, as it has no rise', () => {
+    expect(warningsOf(withLeanTo(deck(0), [door]))).toEqual([`The floor is 0" above the ramp's foot, too low for stringers under the boards. ${LEFT_OUT}`]);
+  });
+
+  it("warns when a ramp from the floor meets an open lean-to's post", () => {
+    // The two posts stand at the corners, 1-3/4 and 94-1/4 along the wall. 1 in 12 runs 140 in out.
+    const config = withLeanTo({ floor: 'none' }, [{ wall: 'left', along: 'left', at: 70, width: 26, slope: 12 }]);
+    expect(warningsOf(config)).toEqual(['It meets a post of the left lean-to.']);
+  });
+
+  it('keeps only the settings stairs and lean-to starts use in a file or link', () => {
+    // Stairs take no ramp settings. A start at the lean-to stays only where a lean-to floor meets it.
+    expect(compactDesign(withRamps([{ ...door, kind: 'stairs', slope: 6, from: 'lean-to' }])).ramps).toEqual([{ ...door, kind: 'stairs' }]);
+    expect(compactDesign(withLeanTo(deck(2), [{ ...door, from: 'lean-to' }])).ramps).toEqual([{ ...door, from: 'lean-to' }]);
+  });
+});

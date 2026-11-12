@@ -42,6 +42,9 @@ export const LEAN_TO_FLOORS = ['none', 'slab', 'deck'] as const;
 export const DECK_SUPPORTS = ['piers', 'shed'] as const;
 export const DECK_JOINS = ['continue', 'separate'] as const;
 export const RAMP_MATERIALS = ['wood', 'concrete'] as const;
+export const RAMP_KINDS = ['ramp', 'stairs'] as const;
+// floor: from the shed floor at the wall. lean-to: from the outer edge of the lean-to's deck or slab.
+export const RAMP_STARTS = ['floor', 'lean-to'] as const;
 export const LEAN_TO_ROOFING = ['sheathing', 'metal'] as const;
 export const ATTACHMENTS = ['soffit', 'extension'] as const;
 export const PURLINS = ['1x4', '2x4'] as const;
@@ -280,9 +283,12 @@ const addition = z.strictObject({
 });
 export type Addition = z.infer<typeof addition>;
 
-// A ramp from the floor down to its foot: wood boards on sloped stringers, or a concrete wedge.
+// A ramp or stairs down from the shed floor or a lean-to floor: to the lean-to floor in its way, or
+// to its foot. A ramp is wood boards on sloped stringers, or a concrete wedge. Stairs are wood.
 const ramp = z
   .strictObject({
+    kind: z.enum(RAMP_KINDS).default('ramp'),
+    from: z.enum(RAMP_STARTS).default('floor'),
     // The opening the ramp follows: centered on its RO, `margin` wider on each side. An index into
     // `openings`, then into that row's `at`. Null: placed by `wall`, `along`, `at`, and `width`.
     opening: z.strictObject({ row: count(0, 999), index: count(0, 999) }).nullable().default(null),
