@@ -1081,6 +1081,7 @@ The workspace disclaimer prints once at the top of each other tab. On the Framin
 | `npm run preview` | `vite preview` | Serves `dist/`. |
 | `npm test` | `vitest run` | `tests/**/*.test.ts` in Node. |
 | `npm run lint` | `eslint .` | ESLint. |
+| `npm run gate` | `vitest run && eslint . && tsc && vite build` | The gate. |
 
 ### Vite
 
@@ -1122,7 +1123,7 @@ Both are POSIX `sh`, with `set -eu`, and `cd` to the repo first.
 |---|---|
 | `.nvmrc` | `26`: the Node version of the Cloudflare build. |
 | `engines.node` | `^22.12.0 \|\| ^24.0.0 \|\| >=26.0.0` |
-| Host | Cloudflare builds `main` with `npm ci` and `npm run build`, and serves `dist`. See [README.md](../README.md). |
+| Host | Cloudflare Workers builds with `npm ci` and `npm run gate`, and serves `dist` (`wrangler.jsonc`). `release` is the live site; `main` and each other branch get a preview. See [README.md](../README.md). |
 | Skip a deployment | `[skip ci]` in the commit message. |
 
 ### Browser features in use
@@ -1142,7 +1143,7 @@ Both are POSIX `sh`, with `set -eu`, and `cd` to the repo first.
    browser, so no test renders React, the DOM, or Three.js.
 2. Check the change at a wide width and at 760 px or below.
 3. Check it in the light and the dark color schemes.
-4. Run the gate: `npm test`, `npm run lint`, `npm run build`.
+4. Run the gate: `npm run gate`.
 5. Update this document in the same commit as a change it describes.
 
 | UI test | Checks |

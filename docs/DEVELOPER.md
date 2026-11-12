@@ -69,6 +69,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | Left out | The app builds what the user enters wherever the parts can exist, and warns. A part whose framing would collide is left out: its warning carries `missing`, a loop in model coordinates, and its message ends with `LEFT_OUT`. The 3D view and the drawings of `missing.assembly` draw the loop in red. |
 | Splices | `splitPlate` splits a long run at stud centers, at most `catalog.maxLength` apart. |
 | Comments | Comment intent only: a non-obvious rule, an equation, a units constraint. |
+| File size | Split a file when a change there is hard, not for its length. |
 
 ## Source map
 
@@ -242,7 +243,16 @@ option, set it in a fixture, or add a fixture and list it in `DESIGNS`.
 
 When a change alters a golden file on purpose, read the diff, then run `npx vitest run -u`.
 
-The gate before each commit: `npm test`, `npm run lint`, and `npm run build`.
+The gate is `npm run gate`: the tests, lint, the type check, and the build. Run it before each
+commit. It also runs in two other places:
+
+| Where | Effect |
+|---|---|
+| `.github/workflows/gate.yml`, on each pull request and each push to `main` | `main` requires a pull request with a passing `gate` check. |
+| The Cloudflare build commands | A failed gate leaves the last good deployment live, and makes no preview. |
+
+Lint also keeps `src/core` and `src/drawings` free of React, the DOM, and Three.js
+(`eslint.config.js`).
 
 ## Span checks
 
@@ -260,9 +270,14 @@ framing, pier bearing on soil, wind, uplift, wall bracing, or connections.
 2. In CHANGELOG.md, change `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`. Add the link line
    `[X.Y.Z]: https://github.com/brgoldbach/shed-builder/releases/tag/vX.Y.Z` above the older ones.
 3. Run the gate.
-4. Commit `Release X.Y.Z` on a branch, then fast-forward `main`.
-5. `git tag -a vX.Y.Z -m "Shed Builder X.Y.Z"`.
-6. Push `main`, then push the tag.
-7. `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <the version's changelog section> --verify-tag`.
+4. Commit `Release X.Y.Z` on a branch, and merge its pull request with a rebase.
+5. Pull `main`. `git tag -a vX.Y.Z -m "Shed Builder X.Y.Z"` on it.
+6. Push the tag.
+7. Check the `main` preview.
+8. `git push origin vX.Y.Z^{commit}:release`. This push deploys the live site.
+9. `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <the version's changelog section> --verify-tag`.
 
-Cloudflare builds and deploys each push to `main` (see README).
+Cloudflare deploys each push to `release`, and makes a preview of `main` and each other branch
+(see README). Step 8 must fast-forward `release`: never force-push it. A pull request into
+`release` does not work here, because a GitHub merge makes new commits, and the live commit
+would then differ from the tag.
