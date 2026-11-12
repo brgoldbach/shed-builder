@@ -109,6 +109,8 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/ui/pdf.ts` | The PDF plan set. Loaded only on demand, with jsPDF, svg2pdf.js, and qrcode-generator. |
 | `src/view3d/scene.ts` | `FramingScene`: meshes, finish textures, picking, camera fit. |
 | `src/view3d/export.ts` | `toGlb`: the shown 3D pieces as a binary glTF file. Loaded only on demand. |
+| `scripts/release.mjs`, `scripts/changelog.ts` | The release file edits: the version check, the CHANGELOG heading and link line, the release notes. |
+| `.github/workflows/` | `gate.yml`; `prepare-release.yml` and `release.yml` (see Release). |
 
 ## Build order
 
@@ -266,18 +268,33 @@ framing, pier bearing on soil, wind, uplift, wall bracing, or connections.
 
 ## Release
 
-1. `npm version X.Y.Z --no-git-tag-version`.
-2. In CHANGELOG.md, change `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`. Add the link line
-   `[X.Y.Z]: https://github.com/brgoldbach/shed-builder/releases/tag/vX.Y.Z` above the older ones.
-3. Run the gate.
-4. Commit `Release X.Y.Z` on a branch, and merge its pull request with a rebase.
-5. Pull `main`. `git tag -a vX.Y.Z -m "Shed Builder X.Y.Z"` on it.
-6. Push the tag.
-7. Check the `main` preview.
-8. `git push origin vX.Y.Z^{commit}:release`. This push deploys the live site.
-9. `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <the version's changelog section> --verify-tag`.
+A release is one workflow run and one pull request merge. You choose the version.
 
-Cloudflare deploys each push to `release`, and makes a preview of `main` and each other branch
-(see README). Step 8 must fast-forward `release`: never force-push it. A pull request into
-`release` does not work here, because a GitHub merge makes new commits, and the live commit
-would then differ from the tag.
+1. Check the `main` preview: it is the release.
+2. In GitHub Actions, run "prepare release" with the version `X.Y.Z`. It sets the version in
+   `package.json` and `package-lock.json`, dates `[Unreleased]` in CHANGELOG.md, adds the link
+   line, and opens the pull request "Release X.Y.Z". It also starts `gate` on that pull request,
+   because a pull request made by a workflow starts no workflows itself.
+3. Review the pull request, then merge it.
+
+The merge changes the version on `main`, so `.github/workflows/release.yml` then:
+
+1. Tags the merge commit `vX.Y.Z`, "Shed Builder X.Y.Z".
+2. Pushes that commit to `release`. Cloudflare deploys the push.
+3. Waits up to 15 min for `version.txt` on the live site to show `X.Y.Z`.
+4. Publishes the GitHub release, with the version's CHANGELOG section as its notes.
+
+| Problem | Action |
+|---|---|
+| "prepare release" stops: the version is not above the current one, or `[Unreleased]` is empty. | Correct the cause, then run it again. |
+| "prepare release" stops: the branch `version-X.Y.Z` exists. | Close its pull request, delete the branch, then run it again. |
+| Another pull request merges while the release pull request is open. | The same: close, delete, run again. |
+| The release workflow fails. | Read its log. Correct the cause, then select "Re-run failed jobs". Each step skips work already done. |
+| Cloudflare does not deploy the version. | Correct it in a new pull request, then release the next patch version. |
+
+`scripts/release.mjs` makes the file edits for both workflows: `prepare X.Y.Z` and `notes X.Y.Z`.
+If the workflows cannot run, do their steps by hand: `prepare` on a branch, its pull request,
+the tag, `git push origin 'vX.Y.Z^{commit}:release'`, and `gh release create` with `notes`.
+
+Never force-push `release`, and never merge a pull request into it. A GitHub merge makes new
+commits, so the live commit would then differ from the tag.

@@ -1,0 +1,88 @@
+name: release
+
+# A push to main that changes the version releases it. Each step skips work already done, so
+# "Re-run failed jobs" is safe.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+env:
+  SITE: https://shed-builder.brgoldbach73.workers.dev
+  SHA: ${{ github.sha }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.find.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Find the version to release
+        id: find
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "$version" = "$(git show "$BEFORE:package.json" | jq -r .version)" ]; then
+            echo "This push does not change the version. Nothing to release."
+            exit 0
+          fi
+          tagged=$(git rev-parse -q --verify "refs/tags/v$version^{commit}" || true)
+          if [ -n "$tagged" ] && [ "$tagged" != "$SHA" ]; then
+            echo "::error::v$version already tags $tagged. Choose a new version."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: find
+    if: needs.find.outputs.version
+    runs-on: ubuntu-latest
+    # Only releases join this group, so a later push to main cannot cancel a pending release.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    env:
+      VERSION: ${{ needs.find.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Tag the release
+        env:
+          ACTOR: ${{ github.actor }}
+          ACTOR_ID: ${{ github.actor_id }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then exit 0; fi
+          git config user.name "$ACTOR"
+          git config user.email "$ACTOR_ID+$ACTOR@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Shed Builder $VERSION" "$SHA"
+          git push origin "v$VERSION"
+      - name: Deploy (fast-forward release)
+        run: git push origin "$SHA:refs/heads/release"
+      - name: Wait for the live site
+        run: |
+          for attempt in $(seq 45); do
+            live=$(curl -fsS -H 'Cache-Control: no-cache' "$SITE/version.txt?check=$attempt" | head -c 40 || true)
+            if [ "$live" = "$VERSION" ]; then
+              echo "The live site serves $VERSION."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::After 15 min, $SITE/version.txt does not show $VERSION. Read the Cloudflare build of release."
+          exit 1
+      - name: Publish the GitHub release
+        run: |
+          if gh release view "v$VERSION" >/dev/null 2>&1; then exit 0; fi
+          node scripts/release.mjs notes "$VERSION" > notes.md
+          gh release create "v$VERSION" --title "v$VERSION" --notes-file notes.md --verify-tag
