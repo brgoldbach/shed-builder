@@ -3,7 +3,7 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] - 2026-11-12
 
 ### Added
 
@@ -23,6 +23,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   they need.
 - Development only: the Vite and Playwright configs have their own tsconfig with Node's types, and
   the gate checks it.
+- Development only: the workflows use `actions/checkout` and `actions/setup-node` v7, which run on
+  Node 24. GitHub had been forcing the v4 actions off the retired Node 20.
 
 ### Fixed
 
@@ -428,6 +430,7 @@ First release.
   next to `schemaVersion` 1.
 - **Setup:** `npm run setup` checks Node, installs, tests, and builds.
 
+[1.0.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v1.0.0
 [0.10.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.10.0
 [0.9.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.9.0
 [0.8.2]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.8.2
