@@ -202,11 +202,14 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
     const girders = model.members.filter(({ role, assembly }) => role === 'girder' && assembly === 'foundation');
     const lines = mergeRanges(girders.map((member) => extentOf([member], 1)));
     const centers = lines.map(([low, high]) => (low + high) / 2);
-    const piers = [...new Set(model.solids.flatMap(({ id, shape }) => (shape.kind === 'cylinder' && id.startsWith('FD') ? [Math.round(shape.base[0] * 16) / 16] : [])))].sort(
-      (first, second) => first - second,
-    );
-    // Pier center to pier center.
-    const span = Math.max(...piers.slice(1).map((x, index) => x - piers[index]));
+    const piers = model.solids.flatMap(({ id, shape }) => (shape.kind === 'cylinder' && id.startsWith('FD') ? [shape.base] : []));
+    // Pier center to pier center along each line: a deck that continues one line spaces its piers anew.
+    const spanOf = (center: number) => {
+      const xs = [
+        ...new Set(piers.filter(([, y]) => centers.every((other) => Math.abs(y - center) <= Math.abs(y - other))).map(([x]) => Math.round(x * 16) / 16)),
+      ].sort((first, second) => first - second);
+      return Math.max(...xs.slice(1).map((x, index) => x - xs[index]));
+    };
     const { thick, width: depth } = LUMBER[pier.girder];
     centers.forEach((center, index) => {
       // Floor from midway to each neighbor line, or to the floor edge.
@@ -223,7 +226,7 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
       };
       const name = wall ? `${capitalize(names.side(wall))} girder` : 'Inner girder';
       const basis = `Floor ${FLOOR.live} + ${FLOOR.dead} psf over ${formatLength(to - from)}${wall ? `; ${loadText(Boolean(loft), wall)}` : ''}, L/${FLOOR.limit}`;
-      beam(name, `${pier.girderPlies}-ply ${pier.girder}`, pier.girder, pier.girderPlies * thick, depth, span, load, FLOOR.limit, basis);
+      beam(name, `${pier.girderPlies}-ply ${pier.girder}`, pier.girder, pier.girderPlies * thick, depth, spanOf(center), load, FLOOR.limit, basis);
     });
   }
   return checks;

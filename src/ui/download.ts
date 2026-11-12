@@ -5,5 +5,6 @@ export function download(filename: string, data: BlobPart, type = 'application/j
   link.href = url;
   link.download = filename;
   link.click();
-  setTimeout(() => URL.revokeObjectURL(url));
+  // Safari can ask before it saves: the file must still be there when the user answers.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

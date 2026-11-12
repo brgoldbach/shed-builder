@@ -14,7 +14,7 @@ You need Git and Node.js with npm. Node must be 22.12 or later in the 22 line, a
 later.
 
 ```sh
-git clone git@github.com:brgoldbach/shed-builder.git
+git clone https://github.com/brgoldbach/shed-builder.git
 cd shed-builder
 ./setup.sh
 ./start.sh
@@ -38,7 +38,7 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 | `npm run preview` | Serves the `dist/` build |
 | `npm test` | Runs the unit and golden-file tests |
 | `npm run lint` | Runs ESLint |
-| `npm run gate` | Runs the tests, lint, the type check, and the build |
+| `npm run gate` | Runs the tests, lint, the type checks, and the build |
 | `npm run test:ui` | Runs the browser test in Chromium. First run `npx playwright install chromium`. |
 
 ## Hosting
@@ -123,3 +123,12 @@ in each release. Each release has a `vX.Y.Z` tag on `main`.
 
 [docs/DEVELOPER.md](docs/DEVELOPER.md) describes the structure, conventions, recipes for common
 changes, tests, and the release steps. [AGENTS.md](AGENTS.md) holds the short rules for coding agents.
+
+## Problems and license
+
+Report a problem or ask for a feature in [GitHub issues](https://github.com/brgoldbach/shed-builder/issues).
+Include the design file (Save) or the shared link, and what you expected.
+
+Shed Builder is under the [MIT license](LICENSE). The build writes `third-party-licenses.txt`, the
+license of each package in the bundle, and the site serves it beside the app. The changelog
+dialog links to it.

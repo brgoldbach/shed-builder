@@ -22,6 +22,7 @@ export function FramingView({
   const [zoomed, setZoomed] = useState<string | null>(null);
   const [paper, setPaper] = useState<keyof typeof PAPERS>('letter');
   const [making, setMaking] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const open = drawings.find(({ id }) => id === zoomed);
   const close = useCallback(() => setZoomed(null), []);
   return (
@@ -38,10 +39,13 @@ export function FramingView({
           disabled={making}
           onClick={async () => {
             setMaking(true);
+            setFailed(null);
             try {
               // Loaded on demand: the PDF library is large.
               const { downloadPlans } = await import('./pdf');
               await downloadPlans(drawings, designName, paper, pdfName, shareLink);
+            } catch (error) {
+              setFailed(`The PDF was not made: ${(error as Error).message}`);
             } finally {
               setMaking(false);
             }
@@ -49,6 +53,11 @@ export function FramingView({
         >
           {making ? 'Making PDF…' : 'Download PDF'}
         </button>
+        {failed && (
+          <small className="error" role="alert">
+            {failed}
+          </small>
+        )}
         <button onClick={() => window.print()}>Print</button>
       </div>
       {drawings.map((drawing) => (
@@ -82,6 +91,8 @@ function Viewer({ drawing, selected, onPick, onClose }: Omit<Props, 'drawings'> 
   const canvas = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<View | null>(null);
   const dragged = useRef(false);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const root = useRef<HTMLDivElement>(null);
   const { width, height } = layoutOf(drawing);
 
   const fit = useCallback(() => {
@@ -123,28 +134,61 @@ function Viewer({ drawing, selected, onPick, onClose }: Omit<Props, 'drawings'> 
     };
   }, [zoomAt, onClose]);
 
-  // A drag pans; a click with no drag still picks a member.
+  // One pointer drags to pan; two pinch to zoom about their midpoint. A click with no drag still
+  // picks a member. The first pointer down listens for all of them, until the last one is up.
   const startDrag = (event: ReactPointerEvent) => {
-    let last = { x: event.clientX, y: event.clientY };
+    const active = pointers.current;
+    active.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (active.size > 1) {
+      dragged.current = true;
+      return;
+    }
     let travel = 0;
     dragged.current = false;
-    const move = (moved: PointerEvent) => {
-      const [dx, dy] = [moved.clientX - last.x, moved.clientY - last.y];
-      travel += Math.hypot(dx, dy);
-      if (travel > 4) dragged.current = true;
-      last = { x: moved.clientX, y: moved.clientY };
-      setView((current) => current && { ...current, x: current.x + dx, y: current.y + dy });
+    const spread = () => {
+      const [first, second] = [...active.values()];
+      return { distance: Math.hypot(second.x - first.x, second.y - first.y), x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
     };
-    const end = () => {
+    const move = (moved: PointerEvent) => {
+      const last = active.get(moved.pointerId);
+      if (!last) return;
+      if (active.size === 1) {
+        const [dx, dy] = [moved.clientX - last.x, moved.clientY - last.y];
+        travel += Math.hypot(dx, dy);
+        if (travel > 4) dragged.current = true;
+        active.set(moved.pointerId, { x: moved.clientX, y: moved.clientY });
+        setView((current) => current && { ...current, x: current.x + dx, y: current.y + dy });
+        return;
+      }
+      const before = spread();
+      active.set(moved.pointerId, { x: moved.clientX, y: moved.clientY });
+      const after = spread();
+      if (before.distance === 0) return;
+      const box = canvas.current!.getBoundingClientRect();
+      zoomAt(after.distance / before.distance, { x: after.x - box.left, y: after.y - box.top });
+      setView((current) => current && { ...current, x: current.x + after.x - before.x, y: current.y + after.y - before.y });
+    };
+    const end = (ended: PointerEvent) => {
+      active.delete(ended.pointerId);
+      if (active.size > 0) return;
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
   };
 
+  // Focus moves into the viewer while it is open, and back to what opened it.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    root.current?.focus();
+    return () => opener?.focus();
+  }, []);
+
   return (
-    <div className="viewer" role="dialog" aria-label={drawing.title}>
+    <div ref={root} className="viewer" role="dialog" aria-modal="true" aria-label={drawing.title} tabIndex={-1}>
       <div className="viewer-bar">
         <strong>{drawing.title}</strong>
         <span className="muted">Scroll or pinch to zoom, drag to pan, Esc to close.</span>

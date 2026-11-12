@@ -20,7 +20,7 @@ the config, and the tabs show the outputs. `FramingScene` draws the model in 3D.
 | `src/main.tsx` | Mounts `App` in `StrictMode` and `ErrorBoundary`. |
 | `src/ui/App.tsx` | App state, undo keys, autosave, files, presets, links, tabs, 3D layers, selection. |
 | `src/ui/autosave.ts` | `restore`, `save`, the backup, `setAside`. It owns the storage keys. |
-| `src/ui/ErrorBoundary.tsx` | The recovery page when a render throws. |
+| `src/ui/ErrorBoundary.tsx` | The recovery page when a render throws, and `PanelBoundary`, which keeps a failed 3D view to its own panel. |
 | `src/ui/history.ts` | `UndoHistory`, `startHistory`, `record`, `undo`, `redo`. |
 | `src/ui/fields.tsx` | `Edit`, `SectionProps`, `setter`, the `Section`, `Group`, and `Card` folds, and the field components. |
 | `src/ui/DesignForm.tsx` | One component for each form section, `PriceGroup`, and `HatchesEditor`. |
@@ -197,11 +197,14 @@ The forms of the design, their formats, and the storage keys are in
 |---|---|
 | A file, a link, or the stored design does not load. | The banner at the top of the sidebar (`role="alert"`) names the source and lists the errors. Dismiss closes it. A successful load clears it. |
 | The stored design does not load. | `restore` first copies its text to the backup, so the first autosave cannot destroy it. The app starts from `PRESETS[0]`. The banner offers the backup as a download. |
-| A render throws. | `ErrorBoundary` shows "Shed Builder stopped", the message, and the version. Its buttons: Download the design (when storage holds one), Reload, Start a new design. |
+| The 3D view throws: no WebGL, or its chunk does not load. | `PanelBoundary` around it shows "The 3D view did not start", the message, and Retry, in the 3D panel only. Retry makes a new `lazy` component, because React keeps a failed one, and mounts it again. |
+| Any other render throws. | `ErrorBoundary` shows "Shed Builder stopped", the message, and the version. Its buttons: Download the design (when storage holds one), Reload, Start a new design. |
 
 A render that throws commits nothing, so autosave still holds the last design that rendered. Start
 a new design calls `setAside`, which moves the stored design to the backup, then reloads. The
-backup holds one design: the latest that failed to load or that the user set aside.
+backup holds one design: the latest that failed to load or that the user set aside. `setAside`
+does not back up an untouched `PRESETS[0]`: after a crash that repeats, a second Start a new design
+would otherwise replace the user's design with the preset.
 
 ### Copy link
 
@@ -278,7 +281,9 @@ by the setting's config path. A select's entry can also have a line for a choice
 choice's value.
 
 The help shows in a floating box under the setting's row: a `popover="manual"` element, in the top
-layer, so the scrolling side panel cannot clip it. `useHelp` places it below the row, or above when
+layer, so the scrolling side panel cannot clip it. `useHelp` shows and hides it with
+`togglePopover(force)`, which needs no `:popover-open` query. A browser without popover (Safari
+before 17, Firefox before 125) gets the box as a fixed element, rendered only while open. `useHelp` places it below the row, or above when
 there is no room below, inside the window. The row is the field's `<label>`, a fold's header, or a
 `GridLabel`: the visible name of a bare input in a grid, such as the sill height of an opening row.
 
@@ -333,8 +338,9 @@ value changes from outside, for example on an undo.
 ### List editors
 
 Each list editor holds `added`, the index of the item the user added last. That card renders with
-`open`. Cards have `key={index}`, so after a removal the open or closed state of each fold stays
-with its position, not with its item.
+`open`. Each list keys its items with `useListKeys`: a remove that the design takes drops that
+item's key, so field drafts, errors, and fold state stay with their items. A list that grows, or
+that undo or a load changes, takes new keys at its end.
 
 | Editor | Rule |
 |---|---|
@@ -347,7 +353,7 @@ with its position, not with its item.
 | `OpeningRowsEditor` | A row edit goes through `withOpeningRow`, and `×` through `withoutOpeningRow`. Both keep each ramp on its opening, or where it stood ([additions-and-finishes.md §3](additions-and-finishes.md#3-ramps)). |
 | `AdditionsEditor` | `+ Lean-to` adds a lean-to on the first free side, in the user's order. A mirrored lean-to takes two sides. With no free side, the button is gone. |
 | `AdditionsEditor` | A Side or Attachment choice that breaks a `shedSchema` rule snaps back, with the rule's message under the select. |
-| `RampsEditor` | "+ Ramp" and "+ Stairs" add an entry; Kind switches it. The Follows choice "No opening: placed below" frees it where it stands ([additions-and-finishes.md §3](additions-and-finishes.md#3-ramps-and-stairs)). A lost entry shows "An opening that is gone" as its choice. "Starts at" shows only where `rampLeanToFloor` finds a lean-to deck or slab, and "Foot below grade" only when it ends on the ground. Stairs show their fixed step as text, with no Slope or Build groups. |
+| `RampsEditor` | "+ Ramp" and "+ Stairs" add an entry; Kind switches it. The Follows choice "No opening: placed below" frees it where it stands ([additions-and-finishes.md §3](additions-and-finishes.md#3-ramps-and-stairs)). A lost entry shows "An opening that is gone" as its choice. "Starts at" shows on a wall with a lean-to deck or slab (`leanToFloorOn`), and "Foot below grade" only when it ends on the ground: no lean-to floor meets it (`rampLeanToFloor`), or it starts at that floor's edge. Stairs show their fixed step as text, with no Slope or Build groups. |
 
 ### Decisions
 
@@ -526,7 +532,8 @@ tabs, it sticks to the bottom of the scrolled panel (`.pick-info.sticky`).
 The phone layout exists because the shared link, and the QR code on the PDF plans, open on phones.
 Before it, the 340 px form left the workspace about 50 px wide on a phone.
 
-`PHONE` in `App.tsx` and the media query in `app.css` are both `(max-width: 760px)`. `usePhone`
+`PHONE` in `App.tsx` and the media query in `app.css` are both `screen and (max-width: 760px)`. A
+portrait print page is narrower than 760 px, and it keeps the wide layout. `usePhone`
 listens to the media query's `change` event.
 
 | Part | Phone behavior |
@@ -540,7 +547,7 @@ listens to the media query's `change` event.
 
 | Edge case | Result |
 |---|---|
-| A link fails to load on a phone. | The banner is in the sidebar, so it shows only on the Design tab. The app opens on the 3D tab. |
+| A link, a file, or the stored design fails to load on a phone. | The banner is in the sidebar, so the app opens the Design tab. |
 | The screen turns across 760 px. | `usePhone` updates. `tab` stays, and `view` follows. |
 
 Change `PHONE` and the media query together.
@@ -566,8 +573,10 @@ documents do not give these facts:
 |---|---|
 | `base` in `vite.config.ts` | Not set, so the build expects the site root. |
 | `dist/version.txt` | A plugin in `vite.config.ts` writes the `package.json` version there. The release workflow reads it from the live site. |
+| `dist/third-party-licenses.txt` | A plugin in `vite.config.ts` writes the license of each package in the bundle. A package with no license file gets the copyright lines of its main file, and the MIT text when it is MIT. The changelog dialog links to it. |
+| `public/_headers` | Cloudflare's headers: `/assets/*` cached for a year (each name has a content hash); a Content-Security-Policy, `nosniff`, and the referrer policy on every path. The policy allows only the site's own scripts, inline styles, and `data:` and `blob:` images and connections, which the PDF, the 3D file, and the share link use. Check a new library against it: `vite preview` does not apply it. |
+| `public/favicon.svg`, `index.html` | The icon, the description and Open Graph tags for a shared link, and a `noscript` line. |
 | `engines.node` | `scripts/setup.mjs` checks only `^X.Y.Z` and `>=X.Y.Z` terms. Other operators never match. |
-| Skip a deployment | `[skip ci]` in the commit message. |
 
 ### Browser features in use
 
@@ -575,9 +584,10 @@ documents do not give these facts:
 |---|---|
 | `CompressionStream`, `DecompressionStream` with `deflate-raw` | Share links (`src/core/share.ts`). |
 | `navigator.clipboard.writeText` | Copy link. |
-| `Map.groupBy` | `CutListTable`, `BomView`. |
+| `Map.groupBy` | The model and the UI. `src/ui/polyfills.ts` adds it for Safari before 17.4 and Firefox before 119. |
+| Popover, `togglePopover` | Setting help. Without it, a fixed box (see "Help"). |
 | `<dialog>` and `showModal` | `ChangelogDialog`. |
-| `ResizeObserver`, WebGL | `FramingScene`. |
+| `ResizeObserver`, WebGL | `FramingScene`. Without WebGL, `PanelBoundary` keeps the failure to the 3D panel. |
 | CSS `:has()`, `color-mix()`, `dvh` | `app.css`. |
 
 ## Change the UI safely

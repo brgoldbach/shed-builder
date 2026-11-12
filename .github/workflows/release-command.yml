@@ -38,6 +38,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: base
+          persist-credentials: false
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.pr.outputs.branch }}
@@ -51,7 +52,7 @@ jobs:
         env:
           REQUEST: ${{ steps.pr.outputs.request }}
         run: |
-          version=$(node ../base/scripts/release.mjs prepare "$REQUEST" 2> ../error.txt)
+          version=$(node ../base/scripts/release.mjs prepare "$REQUEST" ../base/package.json 2> ../error.txt)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Commit and push
         working-directory: pr

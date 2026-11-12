@@ -61,7 +61,9 @@ export async function plansPdf(drawings: readonly Drawing[], designName: string,
   const [pageWidth, pageHeight] = [doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight()];
   const inner = pageWidth - 2 * MARGIN;
   const date = new Date().toLocaleDateString('en-CA');
-  const sheets = drawings.length + (link ? 1 : 0);
+  // A link too long for any QR code gives no link sheet.
+  const modules = link ? qrModules(link) : null;
+  const sheets = drawings.length + (modules ? 1 : 0);
   const block = (index: number, title: Cell['lines']) =>
     titleBlock(doc, { top: pageHeight - MARGIN - BLOCK, inner }, [
       { share: 0.36, lines: [[DISCLAIMER, 7, 'normal']] },
@@ -88,14 +90,14 @@ export async function plansPdf(drawings: readonly Drawing[], designName: string,
     block(index, [[drawing.title, 11, 'bold'], [scale ? `Scale ${scale.label}` : 'Not to scale', 8, 'normal']]);
   }
 
-  if (link) {
+  if (modules) {
     doc.addPage();
     // The code centered over a two-line caption, in the room above the title block.
     const caption = 36;
     const room = pageHeight - 2 * MARGIN - BLOCK - caption;
     const size = Math.min(CODE, room, inner);
     const top = MARGIN + (room - size) / 2;
-    drawCode(doc, qrModules(link), { left: (pageWidth - size) / 2, top, size });
+    drawCode(doc, modules, { left: (pageWidth - size) / 2, top, size });
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text(`Scan with a phone camera to open "${designName}" in Shed Builder.`, pageWidth / 2, top + size + 16, { align: 'center' });
@@ -107,11 +109,16 @@ export async function plansPdf(drawings: readonly Drawing[], designName: string,
   return doc;
 }
 
-// The QR code's dark modules, by row. Level L keeps a long link to the fewest modules.
-function qrModules(text: string): boolean[][] {
+// The QR code's dark modules, by row, or null when the text is too long for any code. Level L keeps
+// a long link to the fewest modules.
+function qrModules(text: string): boolean[][] | null {
   const code = qrcode(0, 'L');
   code.addData(text, 'Byte');
-  code.make();
+  try {
+    code.make();
+  } catch {
+    return null;
+  }
   const count = code.getModuleCount();
   return Array.from({ length: count }, (_, row) => Array.from({ length: count }, (_, column) => code.isDark(row, column)));
 }

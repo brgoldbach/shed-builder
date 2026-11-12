@@ -1,5 +1,6 @@
 import type { ShedConfig } from './config';
 import { frameAdditions, type LeanTo } from './gen/additions';
+import { continuedDecks } from './gen/deck';
 import { frameFloor } from './gen/floor';
 import { frameRamps, type RampFacts } from './gen/ramps';
 import { frameRoof, type RoofPlane } from './gen/roof';
@@ -20,11 +21,14 @@ export interface Model {
 
 /** Every framing member and non-lumber part of the design, and the problems found while framing it. */
 export function buildModel(config: ShedConfig): Model {
-  const floor = frameFloor(config);
   const walls = frameWalls(config);
   const roof = frameRoof(config);
+  const firstFloor = frameFloor(config);
+  const additions = frameAdditions(config, roof, [...firstFloor.members, ...walls.members, ...roof.members]);
+  // The shed's skids or girders run out under a continued deck only where the deck was built.
+  const unbuilt = new Set(continuedDecks(config).flatMap(({ side }) => (additions.leanTos.some((leanTo) => leanTo.side === side && leanTo.deck) ? [] : [side])));
+  const floor = unbuilt.size > 0 ? frameFloor(config, unbuilt) : firstFloor;
   const shed = [...floor.members, ...walls.members, ...roof.members];
-  const additions = frameAdditions(config, roof, shed);
   const ramps = frameRamps(config, shed, additions.leanTos);
   const members = [...shed, ...additions.members, ...ramps.members];
   const openings = [...walls.openings, ...roof.openings];

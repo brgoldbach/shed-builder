@@ -1,7 +1,8 @@
 // The file edits of a release, for .github/workflows. Node 26 loads changelog.ts as is.
-//   node scripts/release.mjs prepare X.Y.Z|patch|minor|major
+//   node scripts/release.mjs prepare X.Y.Z|patch|minor|major [released package.json]
 //       sets the version, dates [Unreleased] in CHANGELOG.md, keeps copies of changed designs in
-//       tests/fixtures/saved/vX.Y.Z, and prints the version
+//       tests/fixtures/saved/vX.Y.Z, and prints the version. With main's package.json, it counts
+//       from main's version, so a branch that main has passed cannot repeat a version.
 //   node scripts/release.mjs notes X.Y.Z
 //       prints the version's CHANGELOG section
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -24,11 +25,11 @@ function keepSavedCopies(version) {
     writeFileSync(`${SAVED}/v${version}/${basename(file)}`, read(file));
   }
 }
-const [command, request] = process.argv.slice(2);
+const [command, request, released] = process.argv.slice(2);
 
 try {
   if (command === 'prepare') {
-    const current = JSON.parse(read('package.json')).version;
+    const current = JSON.parse(read(released ?? 'package.json')).version;
     const version = resolveVersion(request, current);
     checkVersion(version, current);
     // The release date is the maintainer's local date.

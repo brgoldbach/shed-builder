@@ -1,6 +1,7 @@
 {
   "name": "shed-builder",
   "private": true,
+  "license": "MIT",
   "version": "0.10.0",
   "type": "module",
   "engines": {
@@ -13,7 +14,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint .",
-    "gate": "vitest run && eslint . && tsc && vite build",
+    "gate": "vitest run && eslint . && tsc && tsc -p tsconfig.node.json && vite build",
     "test:ui": "tsc -p tests/ui && vite build && playwright test"
   },
   "dependencies": {

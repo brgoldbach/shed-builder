@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { TWO_BY } from '../core/catalog';
 import { ALONG, RAMP_KINDS, RAMP_MATERIALS, RAMP_STARTS, SPACINGS, newRamp, type Ramp, type ShedConfig } from '../core/config';
+import { leanToFloorOn } from '../core/gen/deck';
 import { rampLeanToFloor, rampPlace } from '../core/gen/ramps';
 import { naming } from '../core/naming';
 import { openingLabel } from '../core/placement';
 import { formatInches, formatLength } from '../core/units';
-import { Card, Group, LengthField, NumberField, SelectField, capitalize, setter, type SectionProps } from './fields';
+import { Card, Group, LengthField, NumberField, SelectField, capitalize, setter, useListKeys, type SectionProps } from './fields';
 import { EDITOR_HELP } from './help/editors';
 
 const ALONG_LABELS: Record<Ramp['along'], string> = { percent: 'Center, % along the wall', left: 'From the left corner', right: 'From the right corner' };
@@ -29,6 +30,7 @@ function openingChoices(config: ShedConfig): Map<string, string> {
 export function RampsEditor({ value, onChange }: SectionProps<ShedConfig>) {
   const setAll = (ramps: Ramp[]) => onChange({ ...value, ramps });
   const [added, setAdded] = useState<number | null>(null);
+  const keys = useListKeys(value.ramps.length);
   // A new ramp or stairs follows the first opening at the floor, if there is one.
   const firstDoor = value.openings.findIndex((row) => row.sill === 0 && row.at.length > 0);
   const add = (kind: Ramp['kind']) => {
@@ -44,13 +46,13 @@ export function RampsEditor({ value, onChange }: SectionProps<ShedConfig>) {
       </p>
       {value.ramps.map((ramp, index) => (
         <RampCard
-          key={index}
+          key={keys.keys[index]}
           index={index}
           open={index === added}
           value={ramp}
           config={value}
           onChange={(next) => setAll(value.ramps.map((other, at) => (at === index ? next : other)))}
-          onRemove={() => setAll(value.ramps.filter((_, at) => at !== index))}
+          onRemove={() => setAll(value.ramps.filter((_, at) => at !== index)) === null && keys.removed(index)}
         />
       ))}
       <div className="add-row">
@@ -78,9 +80,11 @@ function RampCard({ value, index, open, config, onChange, onRemove }: CardProps)
   const stairs = value.kind === 'stairs';
   const title = `${KIND_LABELS[value.kind]} ${index + 1}`;
   // A lean-to deck or slab that this one meets: it starts at the shed floor and lands on it, or starts at its edge.
-  const floor = rampLeanToFloor(config, value);
-  const floorName = floor && `${names.side(floor.wall)} lean-to ${floor.addition.floor}`;
-  const toGround = !floor || value.from === 'lean-to';
+  // The lean-to deck or slab on its wall; `meets` when it covers part of this one's span.
+  const floor = leanToFloorOn(config, place.wall);
+  const meets = rampLeanToFloor(config, value) !== null;
+  const floorName = floor && `${names.side(place.wall)} lean-to ${floor.addition.floor}`;
+  const toGround = !meets || value.from === 'lean-to';
   const startLabels: Record<Ramp['from'], string> = {
     floor: `Shed floor, down to the ${floorName}`,
     'lean-to': `The ${floorName}'s edge, down to grade`,

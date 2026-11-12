@@ -318,6 +318,7 @@ quantity × unit price. The default unit prices are `DEFAULT_PRICES.hardware`.
 | Ramp lag screw, 1/2" | 2 × the stringers of each wood ramp whose top is the floor framing or a deck beam (`Model.ramps`) | `lag` |
 | Ramp concrete anchor, 1/2" | 2 × the stringers of each wood ramp whose top is a slab edge | `anchorBolt` |
 | Stair stringer hanger, sloped, 2x12 | 1 × the stringers of stairs whose top is the floor framing or a deck beam | `joistHanger` |
+| Stair hanger board, PT 2x12 | 1 for each stairs with `RampFacts.hangerBoard`, its length the stairs width | `lumber['2x12']` per foot, plus `treatedMarkup` |
 | Stair concrete anchor, 1/2" | 2 × the stringers of stairs whose top is a slab edge | `anchorBolt` |
 
 Count rules and reasons:
@@ -551,7 +552,7 @@ Load cases in `spans.ts`, from AWC Span Tables for Joists and Rafters 2021, Tabl
 | `{Side} lean-to beam` | beam | `postSpacing`: post center to post center | Roof + roof dead over `beamTributary` | Roof | L/240 |
 | `{Side} lean-to deck joists` | `joistSpan` | `deck.joistSpan` | `FLOOR`, at `addition.deck.oc` | 1.0 | L/360 |
 | `{Side} lean-to deck beam`, `deck.plies` plies of the deck joist size | beam | `deck.beamSpan`; no check when it is 0 | `FLOOR` over `deck.beamTributary` | 1.0 | L/360 |
-| `Front girder`, `Inner girder`, `Back girder`, on a pier foundation | beam | The largest center-to-center gap between foundation piers along x | Floor tributary, plus the eave wall load on the outer lines | 1.0 | L/360 |
+| `Front girder`, `Inner girder`, `Back girder`, on a pier foundation | beam | The largest center-to-center gap between the foundation piers of that line, along x. A deck that continues one line spaces its piers anew. | Floor tributary, plus the eave wall load on the outer lines | 1.0 | L/360 |
 
 Joists, rafters, and headers use clear spans. Lean-to beams, deck beams, and girders use the
 center-to-center spacing of their posts or piers.

@@ -105,7 +105,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/drawings/scale.ts` | Plan scales, and the pick of the largest scale that fits a sheet. |
 | `src/ui/App.tsx` | App state, tabs, file open and save, share link. |
 | `src/ui/autosave.ts` | Autosave: `restore`, `save`, and the backup of a stored design that does not load. |
-| `src/ui/ErrorBoundary.tsx` | The recovery page when a render throws: download, reload, or start a new design. |
+| `src/ui/ErrorBoundary.tsx` | The recovery page when a render throws: download, reload, or start a new design. `PanelBoundary` keeps a failed 3D view to its panel. |
 | `src/ui/DesignForm.tsx` | The settings form, one section component for each part of the config. |
 | `src/ui/fields.tsx` | Field components and the `Section`, `Group`, and `Card` folds. |
 | `src/ui/OpeningsEditor.tsx`, `AdditionsEditor.tsx`, `RampsEditor.tsx` | List editors for opening types, placements, lean-tos, and ramps and stairs. |
@@ -192,21 +192,21 @@ When a random design fails, its test name gives the index, and the message gives
 design. Add that design to `tests/fixtures` with the fix. To search further, change the seed or
 the count for one run; do not commit a count that slows the gate.
 
-The gate is `npm run gate`: the tests, lint, the type check, and the build. Run it before each
-commit. It also runs in two other places:
+The gate is `npm run gate`: the tests, lint, the type check of the app and of the Node configs
+(`tsconfig.node.json`), and the build. Run it before each commit. It also runs in two other places:
 
 | Where | Effect |
 |---|---|
-| `.github/workflows/gate.yml`, on each pull request and each push to `main` | `main` requires a pull request with a passing `gate` check. |
+| `.github/workflows/gate.yml`, on each pull request and each push to `main` | `main` requires a pull request, up to date with `main`, with three passing checks: `gate`, `ui` (the browser test), and `Workers Builds: shed-builder`. |
 | The Cloudflare build commands | A failed gate leaves the last good deployment live, and makes no preview. |
 
 Lint also keeps `src/core` and `src/drawings` free of React, the DOM, and Three.js
 (`eslint.config.js`).
 
 `npm run test:ui` is the browser test, `tests/ui/smoke.spec.ts`: Playwright drives Chromium
-against the built app (`vite preview`, port 4173). It is not part of the gate. The `ui` job of
-`gate.yml` runs it on each pull request. Before the first local run, `npx playwright install
-chromium`.
+against the built app (`vite preview`, port 4173). It is not part of the gate that Cloudflare runs.
+The `ui` job of `gate.yml` runs it on each pull request and each push to `main`, and `main`
+requires it. Before the first local run, `npx playwright install chromium`.
 
 | Test | Checks |
 |---|---|
@@ -214,16 +214,20 @@ chromium`.
 | Edit | A length edit changes the cut list. A bad length shows its message. |
 | Downloads | Download 3D and Download PDF each save a file larger than 1 kB. |
 | Stored design | A stored design that does not load shows the notice. |
+| 3D failure | Without WebGL, the 3D panel says so and the cut list still works. A 3D chunk that does not load loads on Retry. |
+| Lists and keys | A rejected draft stays with its row after the row before it goes. Each checkbox has a name; arrow keys move along the tabs. A second door named like another type takes a number. |
+| Print | A portrait page keeps the cut list notes. |
 
-`tests/ui` has its own tsconfig with Node's types. The root tsconfig leaves it out, so the app
-code cannot use Node globals by mistake.
+`tests/ui` and `tsconfig.node.json` (the Vite and Playwright configs) have Node's types. The root
+tsconfig leaves them out, so the app code cannot use Node globals by mistake.
 
 ## Release
 
 Any pull request to `main` can be a release. You choose the version.
 
 1. When the pull request is ready, comment `/release X.Y.Z` on it, or `/release patch`, `minor`,
-   or `major` to count up from the current version. Only the repo owner's comment works.
+   or `major` to count up from the version on `main`. Only the repo owner's comment works. The
+   version must be above the one on `main`, so a branch that `main` has passed cannot repeat it.
 2. `.github/workflows/release-command.yml` adds the commit "Release X.Y.Z" to the pull request's
    branch: the version in `package.json` and `package-lock.json`, `[Unreleased]` in CHANGELOG.md
    dated as the version, its link line, and copies of changed designs in
@@ -231,11 +235,11 @@ Any pull request to `main` can be a release. You choose the version.
 3. Select "Approve workflows to run" on the pull request. The workflow's built-in token pushed the
    commit, so GitHub treats it as a first-time contributor and holds `gate` until you approve.
    A personal access token would avoid this step; the repo does not use one.
-4. When `gate` passes, merge the pull request.
+4. When the checks pass, merge the pull request.
 
-The merge changes the version on `main`, so `.github/workflows/release.yml` then:
+The version on `main` then has no tag, so `.github/workflows/release.yml`:
 
-1. Tags the merge commit `vX.Y.Z`, "Shed Builder X.Y.Z".
+1. Tags the commit the merge made on `main` `vX.Y.Z`, "Shed Builder X.Y.Z".
 2. Pushes that commit to `release`. Cloudflare deploys the push.
 3. Waits up to 15 min for `version.txt` on the live site to show `X.Y.Z`.
 4. Publishes the GitHub release, with the version's CHANGELOG section as its notes.
@@ -249,6 +253,8 @@ or none, and comment on it.
 | The command replies "No release commit added": the version is not above the current one, or `[Unreleased]` is missing or empty. | Correct the cause, then comment again. |
 | The wrong version is in the pull request. | Revert the "Release" commit, then comment again. |
 | The release workflow fails. | Read its log. Correct the cause, then select "Re-run failed jobs". Each step skips work already done. |
+| The release workflow did not start, as when a commit message on `main` held `[skip ci]`. | The next push to `main` releases the version: the workflow releases any version on `main` with no tag. |
+| The version on `main` is below the latest tag, as after a revert. | The workflow stops with an error. Release a version above the latest. |
 | Cloudflare does not deploy the version. | Correct it in a new pull request, then release the next patch version. |
 
 `scripts/release.mjs` makes the file edits for both workflows: `prepare X.Y.Z|patch|minor|major`

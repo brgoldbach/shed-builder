@@ -65,3 +65,68 @@ test('a stored design that does not load shows a notice', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('alert')).toContainText('Cannot load the design saved in this browser');
 });
+
+test('without WebGL, the 3D view says so, and the rest of the app works', async ({ page }) => {
+  await page.addInitScript(() => {
+    const real = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
+      return kind.startsWith('webgl') ? null : real.call(this, kind as '2d', ...(rest as []));
+    } as typeof real;
+  });
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('The 3D view did not start');
+  await page.getByRole('tab', { name: 'Cut list' }).click();
+  await expect(page.locator('table.cutlist.parts')).toBeVisible();
+});
+
+test('a 3D view that did not load loads on Retry', async ({ page }) => {
+  let blocked = true;
+  await page.route(/assets\/View3D-.*\.js/, (route) => (blocked ? route.abort() : route.continue()));
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('The 3D view did not start');
+  blocked = false;
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.locator('.canvas-host canvas')).toBeVisible();
+});
+
+test('a rejected draft stays with its row when the row before it goes', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('summary', { hasText: 'Openings' }).first().click();
+  const sills = page.getByRole('textbox', { name: 'Sill height, floor to RO bottom' });
+  await sills.first().fill('abc');
+  await sills.first().press('Tab');
+  await page.getByRole('button', { name: 'Remove opening row' }).first().click();
+  await expect(sills).toHaveCount(1);
+  await expect(sills.first()).toHaveValue('46-1/4"');
+  await expect(sills.first()).not.toHaveAttribute('aria-invalid', 'true');
+});
+
+test('names each checkbox, and moves along the tabs with the arrow keys', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('summary', { hasText: 'Walls' }).first().click();
+  await expect(page.getByRole('checkbox', { name: 'Cap plate', exact: true })).toBeChecked();
+  await page.getByRole('tab', { name: '3D' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Framing' })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Framing' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('keeps the cut list notes on a portrait page', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Cut list' }).click();
+  await page.emulateMedia({ media: 'print' });
+  await page.setViewportSize({ width: 720, height: 1000 });
+  await expect(page.locator('table.cutlist.parts td.note').first()).toBeVisible();
+});
+
+test('a new door named like another type takes a number, not a refusal', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('summary', { hasText: 'Openings' }).first().click();
+  await page.locator('summary', { hasText: 'Opening types' }).first().click();
+  await page.getByRole('button', { name: '+ Door' }).click();
+  await page.getByRole('button', { name: '+ Window' }).click();
+  await page.getByRole('combobox', { name: 'Kind', exact: true }).last().selectOption('door');
+  await expect(page.locator('.error', { hasText: 'Duplicate' })).toHaveCount(0);
+  const titles = await page.locator('.card > summary .title').allInnerTexts();
+  expect(titles.filter((title) => title.startsWith('door 36'))).toEqual(['door 36', 'door 36 2']);
+});

@@ -58,6 +58,21 @@ export function ChangelogDialog({ onClose }: { onClose: () => void }) {
         {BLOCKS.map((block, index) => (
           <BlockView key={index} block={block} />
         ))}
+        <p className="muted">
+          Shed Builder is free software under the{' '}
+          <a href="https://github.com/brgoldbach/shed-builder/blob/main/LICENSE" target="_blank" rel="noreferrer">
+            MIT license
+          </a>
+          . It includes these{' '}
+          <a href="/third-party-licenses.txt" target="_blank" rel="noreferrer">
+            third-party packages and their licenses
+          </a>
+          . Report a problem on{' '}
+          <a href="https://github.com/brgoldbach/shed-builder/issues" target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+          .
+        </p>
       </div>
     </dialog>
   );

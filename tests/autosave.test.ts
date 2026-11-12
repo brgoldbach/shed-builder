@@ -65,4 +65,15 @@ describe('autosave', () => {
     expect(backupDesign(store)).toBe(text);
     expect(restore(store).config).toBe(PRESETS[0]);
   });
+
+  it('keeps the backup when the first preset is set aside after a crash that repeats', () => {
+    const store = memoryStore();
+    save(store, design);
+    const text = savedDesign(store);
+    setAside(store);
+    save(store, PRESETS[0]);
+    setAside(store);
+    expect(backupDesign(store)).toBe(text);
+    expect(savedDesign(store)).toBeNull();
+  });
 });

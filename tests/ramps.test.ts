@@ -195,11 +195,16 @@ describe('ramps and stairs between levels', () => {
     // 15 in of rise: two risers of 7-1/2. The 76 in width: (76 − 1-1/2) / 18 → 5 spaces, 6 stringers.
     const stringers = ofRole(members, 'stringer.stair');
     expect(stringers).toHaveLength(6);
-    expect(stringers[0].note).toBe('Cut stringer: 2 risers of 7-1/2", 1 tread of 11-1/4". Plumb cut 33.7° at the floor framing, in a sloped hanger. Level cut on the deck.');
+    expect(stringers[0].note).toBe(
+      'Cut stringer: 2 risers of 7-1/2", 1 tread of 11-1/4". Plumb cut 33.7° at the floor framing, in a sloped hanger on a PT 2x12 hanger board under it. Level cut on the deck.',
+    );
     const treads = ofRole(members, 'tread');
     expect(treads.map(({ size }) => size)).toEqual(['5/4x6', '5/4x6']);
     expect(range(treads, 2)[1]).toBeCloseTo(-7.5, 9);
-    expect(hardware(config)).toEqual([['Stair stringer hanger, sloped, 2x12', 6]]);
+    expect(hardware(config)).toEqual([
+      ['Stair stringer hanger, sloped, 2x12', 6],
+      ['Stair hanger board, PT 2x12', 1],
+    ]);
   });
 
   it("starts a ramp at the deck's outer board, its stringers lagged to the beam", () => {
@@ -223,9 +228,57 @@ describe('ramps and stairs between levels', () => {
 
   it('warns that four risers need a handrail', () => {
     // 11-23/32 + 12 in of rise: four risers of 5-15/16.
-    expect(warningsOf(withRamps([{ ...door, kind: 'stairs', belowGrade: 12 }]))).toEqual([
+    expect(warningsOf(withRamps([{ ...door, kind: 'stairs', belowGrade: 12 }]))).toContain(
       '4 risers need a handrail on one side (IRC R311.7.8). The app does not build it.',
+    );
+  });
+
+  it('hangs stairs below the floor framing from a hanger board, and counts it', () => {
+    // The 2x6 rim spans 23/32 to 6-7/32 under the floor. Risers of 5-15/16 at an 11-1/4 run: the plumb
+    // cut is 2x12 / cos − riser = 6.79 deep under the first seat at −6.93, down to −13.72: 7-1/2 below the rim.
+    const config = withRamps([{ ...door, kind: 'stairs', belowGrade: 12 }]);
+    expect(warningsOf(config)).toContain(
+      "The stringers' plumb cuts reach 7-1/2\" below the floor framing. Their sloped hangers go on a PT 2x12 hanger board under it, across the stairs (DCA6 Figure 31). The app counts the board but does not draw it.",
+    );
+    const board = buildBom(config, buildModel(config), new Map()).hardware.find(({ item }) => item === 'Stair hanger board, PT 2x12');
+    // 76 in of 2x12 at $2.00/ft, treated +50%.
+    expect(board?.cost.total).toBeCloseTo((76 / 12) * 2 * 1.5, 9);
+  });
+
+  it('leaves out a wood ramp too low for one whole board', () => {
+    // On a slab, 2 in of rise at 1 in 2: 4.47 in down the slope, less than one 5-1/2 in board.
+    const config = withRamps([{ wall: 'front', along: 'left', at: 10, width: 48, slope: 2, belowGrade: 2 }], { foundation: { type: 'slab' } });
+    expect(warningsOf(config)).toEqual([`The floor is 2" above the ramp's foot, too low for one whole board down the slope. ${LEFT_OUT}`]);
+    expect(ofRole(buildModel(config).members, 'stringer')).toEqual([]);
+  });
+
+  it('starts a concrete ramp at the deck surface, under the outer board that runs past the beam', () => {
+    const config = withLeanTo(deck(2), [{ ...door, from: 'lean-to', material: 'concrete' }]);
+    const [ramp] = buildModel(config).solids.filter(({ label }) => label === 'Concrete ramp');
+    // Beam face 96-1/2, board edge 97-1/2, board underside −3, deck top −2.
+    expect(ramp.shape.kind === 'panel' && ramp.shape.outline.slice(0, 3)).toEqual([
+      [96.5, -3],
+      [97.5, -3],
+      [97.5, -2],
     ]);
+  });
+
+  it('keeps the foot and the start of a ramp whose lean-to is left out, through prune', () => {
+    // A 12/12 lean-to 120 in deep puts its beam below its post bases, so it is left out.
+    const config = withRamps([{ wall: 'left', along: 'left', at: 12, width: 48, belowGrade: 12 }], { additions: [{ side: 'left', floor: 'slab', pitch: 12, depth: 120 }] });
+    const lengths = (design: typeof config) => ofRole(buildModel(design).members, 'stringer').map(({ length }) => length);
+    expect(pruneConfig(config).ramps[0].belowGrade).toBe(12);
+    expect(lengths(pruneConfig(config))).toEqual(lengths(config));
+  });
+
+  it('frees a narrow ramp at the smallest width when its opening row goes', () => {
+    const vent = { name: 'vent', kind: 'custom', width: 8, height: 8, girder: 'flat' };
+    const config = withRamps([{ opening: { row: 2, index: 0 }, margin: 0 }], {
+      openingTypes: [...gableSkid.openingTypes, vent],
+      openings: [...gableSkid.openings, { enabled: true, type: 'vent', wall: 'back', sill: 48, along: 'percent', at: [50] }],
+    });
+    expect(withoutOpeningRow(config, 2).ramps[0].width).toBe(12);
+    expect(shedSchema.safeParse(withoutOpeningRow(config, 2)).success).toBe(true);
   });
 
   it('builds no stairs for one step', () => {

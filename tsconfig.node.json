@@ -1,0 +1,7 @@
+// The build and browser-test configs run in Node, so they get Node's types; the app does not.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["vite.config.ts", "playwright.config.ts"],
+  "exclude": []
+}

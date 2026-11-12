@@ -5,7 +5,7 @@ import { naming } from '../naming';
 import { formatInches, formatLength } from '../units';
 import type { RoofPlane, Soffit } from './roof';
 import { idMaker, planeMember } from './section';
-import { deckHeights, frameDeck, type DeckFacts } from './deck';
+import { deckHeights, deckReach, frameDeck, type DeckFacts } from './deck';
 import { gradeOf } from './floor';
 import { splitPlate, wallFrames, type Wall } from './walls';
 
@@ -40,6 +40,7 @@ export interface LeanToFloor {
   edge: number; // the floor surface's outer edge: the outer deck board, or the slab edge
   top: number; // the floor surface
   under: number; // the underside of the deck boards; the top of a slab
+  bottom: number; // the underside of the deck beam, or of the slab: the stringers fasten above it
   inner: number; // the posts' inner face: what starts at the shed floor must stop short of it
 }
 
@@ -165,7 +166,21 @@ function frameLeanTo(
   const tail = Math.max(addition.depth + addition.eaveOverhang, heel);
   // A deck's heights (`deck.ts`). Its piers rise to the deck beam, unless a deck post of MIN_POST
   // or more fits under it.
-  const deckHeight = deckHeights(config, addition);
+  let deckHeight = deckHeights(config, addition);
+  // On the shed's lines, a drop as deep as the joists would notch them through. The deck goes, and
+  // the lean-to stands on piers.
+  const joistDepth = LUMBER[addition.deck.joist].width;
+  if (deckHeight && deckHeight.notch > joistDepth - NEAR) {
+    const reach = deckReach(addition);
+    const outline = [at(u0, 0, deckHeight.top), at(u1, 0, deckHeight.top), at(u1, reach, deckHeight.top), at(u0, reach, deckHeight.top)];
+    const lines = deckHeight.supports?.kind === 'skid' ? 'skids' : 'girders';
+    out.warnings.push({
+      source,
+      message: `On the shed's ${lines}, the deck joists would be notched ${formatInches(deckHeight.notch)}, through their ${formatInches(joistDepth)} depth. Set the deck on piers, or drop it less. The deck is left out: red in 3D and on the drawings.`,
+      missing: { assembly, outline },
+    });
+    deckHeight = null;
+  }
   const natural = grade + foundation.pier.aboveGrade;
   const pierTop = !deckHeight || deckHeight.joistBottom - natural >= MIN_POST ? natural : deckHeight.joistBottom;
   // The posts stand on the slab, on the piers, or on the deck beam.
@@ -373,9 +388,9 @@ function frameLeanTo(
     deck,
     floor:
       deck && deckHeight
-        ? { kind: 'deck', span: [u0, u1], face: deck.face, edge: deck.edge, top: deckHeight.top, under: deckHeight.joistTop, inner: line - post / 2 }
+        ? { kind: 'deck', span: [u0, u1], face: deck.face, edge: deck.edge, top: deckHeight.top, under: deckHeight.joistTop, bottom: deckHeight.joistBottom, inner: line - post / 2 }
         : addition.floor === 'slab'
-          ? { kind: 'slab', span: [u0, u1], face: addition.depth, edge: addition.depth, top: grade, under: grade, inner: line - post / 2 }
+          ? { kind: 'slab', span: [u0, u1], face: addition.depth, edge: addition.depth, top: grade, under: grade, bottom: grade - foundation.slab.thickness, inner: line - post / 2 }
           : null,
     posts: { x: line, width: post, us: posts },
   });

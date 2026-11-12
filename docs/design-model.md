@@ -465,8 +465,7 @@ design with each unused setting at its default and each type placed prunes to an
 | `ramps[].slope`, `material` | `kind` is `ramp`. | Stairs take the standard step. |
 | `ramps[].stringer`, `oc` | `kind` is `ramp`, and `material` is `wood`. | |
 | `ramps[].thickness` | `kind` is `ramp`, and `material` is `concrete`. | |
-| `ramps[].from` | `rampLeanToFloor` finds a lean-to deck or slab that meets it. | |
-| `ramps[].belowGrade` | Not `from: 'floor'` with a lean-to floor that meets it. | It lands on that floor, not on a foot. |
+| `ramps[].from` | `leanToFloorOn` finds a lean-to deck or slab on its wall. | Whether that floor meets it, and was built, only the model knows. A file keeps `from` and `belowGrade` where it might. |
 | `finishes.sidingColor` | `siding` is not `none`. | |
 | `finishes.panelLength`, `metalOverhang` | The main roof or a lean-to has metal roofing. | |
 | `loads.loft` | Gable or gambrel roof with a loft. | |

@@ -65,10 +65,12 @@ AR-5      2  4x4 PT       95-3/8"  Post
 RP-1     11  2x6 PT           76"  Deck board
 RP-2      6  2x6 PT      62-9/16"  Ramp stringer. Plumb cut 14.0° at the deck beam, lagged to it. Level cut on grade.
 RP-3      4  2x12 PT      24-1/2"  Stair stringer. Cut stringer: 3 risers of 5-5/16", 2 treads of 11-1/4". Plumb cut 25.4° at the slab edge, anchored to it. Level cut on the foot, 16" below grade.
-RP-4      6  2x12 PT    12-15/16"  Stair stringer. Cut stringer: 2 risers of 7-1/2", 1 tread of 11-1/4". Plumb cut 33.7° at the floor framing, in a sloped hanger. Level cut on the deck.
+RP-4      6  2x12 PT    12-15/16"  Stair stringer. Cut stringer: 2 risers of 7-1/2", 1 tread of 11-1/4". Plumb cut 33.7° at the floor framing, in a sloped hanger on a PT 2x12 hanger board under it. Level cut on the deck.
 RP-5      2  5/4x6 PT         76"  Stair tread
 RP-6      4  5/4x6 PT         48"  Stair tread
 WARNING Left lean-to: The clear height under the beam is 6' 0-15/16", less than 6' 8".
+WARNING Stairs 1: The stringers' plumb cuts reach 8-5/16" below the floor framing. Their sloped hangers go on a PT 2x12 hanger board under it, across the stairs (DCA6 Figure 31). The app counts the board but does not draw it.
+WARNING Stairs 3: The stringers' plumb cuts reach 9-7/16" below the slab, where anchors cannot hold them. Set their tops on a block or footing.
 SOLID Pier, 10" diameter x8
 SOLID Roof sheathing, 7/16" OSB x17
 SOLID Slab x1
@@ -113,14 +115,15 @@ ITEM Beam seat, 3-ply 2x8: 2 ea
 ITEM Ramp lag screw, 1/2": 12 ea
 ITEM Stair stringer hanger, sloped, 2x12: 6 ea
 ITEM Stair concrete anchor, 1/2": 8 ea
+ITEM Stair hanger board, PT 2x12: 1 ea
 ITEM Roof area, shingles: 263.3 sq ft
 ITEM Drip edge: 94.9 ft
 COST lumber $1,089.71
 COST sheets $448.50
 COST concrete $482.00
-COST hardware $262.00
+COST hardware $281.00
 COST roofing $537.30
-COST total $2,819.51
+COST total $2,838.51
 SPAN Rafters: 2x4 at 24" o.c. 44-11/16" of 96-1/8" (bending)
 SPAN Floor joists: 2x6 at 16" o.c. 83" of 111-13/16" (deflection)
 SPAN window 24x36 header (front wall): 2-ply 2x8 24" of 145-1/2" (bending)
