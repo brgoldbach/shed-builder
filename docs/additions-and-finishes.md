@@ -161,7 +161,7 @@ plane starts at the wall line, with one eave fewer; the lean-to plane covers the
 | `ledger` | `L` | no | Soffit only. `x` from `wallSheet` to `start`, top at `ledgerTop`, over `u0..u1`. |
 | `beam` | `B` | no | `beamPlies` plies of `beam`, centered on `line`, top at `beamTop`. |
 | `post` | `P` | yes | Centered on `line` and on each post center, from `postBottom` to the beam bottom. |
-| `fascia` | `FA` | no | On the rafter tails, set down by its thickness × rise below `top(tail)`, as on the main roof. |
+| `fascia` | `FA` | no | On the rafter tails, its top set by `roof.fasciaTop` as on the main roof ([framing.md](framing.md) "Purlins and fascia"). |
 | `purlin` | `PU` | no | Metal only. Flat on the rafter tops. |
 
 Both solids are on layer `foundation`, material `concrete`:

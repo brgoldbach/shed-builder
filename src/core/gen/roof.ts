@@ -156,10 +156,12 @@ export function frameRoof(config: ShedConfig): {
   const miter = (deep: number): Cut => miterOf(slope, peak, 0, deep);
   const miterText = upper ? `Cut ${((slope.pitch.degrees - upper.pitch.degrees) / 2).toFixed(1)}° from square at the break.` : '';
 
-  // A plumb fascia at a low eave is set down until the roof plane passes over its outer top edge,
-  // so the sheathing and drip edge run over it: thickness × rise below the rafter top.
+  // A plumb fascia at a low eave meets the roof plane by `fasciaTop`: set down until the plane passes
+  // over its outer top edge, or ripped so its top edge lies in the plane. Either way the sheathing and
+  // drip edge run over it. Each takes thickness × rise.
   const [fasciaThick, fasciaDepth] = roof.fascia === 'none' ? [0, 0] : [LUMBER[roof.fascia].thick, LUMBER[roof.fascia].width];
-  const fasciaDrop = fasciaThick * pitch.rise;
+  const fasciaFall = fasciaThick * pitch.rise;
+  const fasciaDrop = roof.fasciaTop === 'set-down' ? fasciaFall : 0;
   // A plumb-and-level tail is plumb as deep as the fascia hangs, then level back to the bottom edge.
   const levelDepth = fasciaDrop + fasciaDepth;
   const levelRun = (plumb - levelDepth) / pitch.rise;
@@ -404,7 +406,10 @@ export function frameRoof(config: ShedConfig): {
       ];
       for (const { y, out } of eaves) {
         const plumbFascia = tailCut !== 'square';
-        const drop = plumbFascia && out === -1 ? fasciaDrop : 0;
+        const low = plumbFascia && out === -1;
+        const drop = low ? fasciaDrop : 0;
+        const bevel = low && roof.fasciaTop === 'beveled' ? fasciaFall : 0;
+        const ripNote = `Rip the top edge to the roof pitch, ${degrees(pitch)}: the outer face is ${formatInches(fasciaDepth - bevel)} tall.`;
         const axes = plumbFascia
             ? { length: X, width: DOWN, thick: [0, out * side.sign, 0] as Vec3 }
             : {
@@ -413,7 +418,8 @@ export function frameRoof(config: ShedConfig): {
                 thick: [0, out * side.sign * pitch.cos, out * pitch.sin] as Vec3,
               };
         for (const [start, end] of splitPlate(ends, maxStock(fasciaSize), centers)) {
-          members.push(box(nextId('FA'), 'fascia', fasciaSize, end - start, [start, side.map(y), slope.top(y) - drop], axes));
+          const fascia = box(nextId('FA'), 'fascia', fasciaSize, end - start, [start, side.map(y), slope.top(y) - drop], axes);
+          members.push(bevel ? { ...fascia, bevel, note: ripNote } : fascia);
         }
       }
     }

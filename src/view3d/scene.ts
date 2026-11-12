@@ -46,7 +46,19 @@ const vector = (value: Vec3) => new Vector3(value[0], value[1], value[2]);
 
 function boxGeometry(member: Member): BufferGeometry {
   const { width, thick } = LUMBER[member.size];
-  return new BoxGeometry(member.length, width, thick);
+  const box = new BoxGeometry(member.length, width, thick);
+  if (!member.bevel) return box;
+  // Centered as `placeMesh` places it: local y runs along the width axis, so the top edge is at
+  // −width / 2; local z is length × width, so the far face is on the side of the thick axis.
+  const far = Math.sign(vector(member.axes.length).cross(vector(member.axes.width)).dot(vector(member.axes.thick))) * (thick / 2);
+  const position = box.getAttribute('position');
+  for (let index = 0; index < position.count; index++) {
+    if (Math.abs(position.getY(index) + width / 2) < 1e-6 && Math.abs(position.getZ(index) - far) < 1e-6) {
+      position.setY(index, position.getY(index) + member.bevel);
+    }
+  }
+  box.computeVertexNormals();
+  return box;
 }
 
 function profileGeometry(member: Member): BufferGeometry {

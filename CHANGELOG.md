@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Fascia top:** a roof setting for how each eave fascia meets the roof: set down under it (the
+  default), bevel ripped to the pitch, or flush with the rafter tops, where 0.8.2 placed it. The cut
+  list gives a beveled fascia's rip angle and outer face height. Lean-tos follow the same setting.
 - **Red barn preset:** a 12x16 classic red barn. It has a gambrel roof at 29/12 and 5/12, barn
   doors with a ramp, a hay door in the front gable, attic windows in the back gable, a loft, and
   red board and batten siding with white trim.

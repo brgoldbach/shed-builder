@@ -1,4 +1,4 @@
-import { hasRidgeBoard, OPPOSITE, ridged, shedSchema, type ShedConfig } from './config';
+import { hasRidgeBoard, OPPOSITE, ridged, shedSchema, usesFasciaTop, type ShedConfig } from './config';
 import { onShed } from './gen/deck';
 import { rampPlace } from './gen/ramps';
 
@@ -41,8 +41,9 @@ export function pruneConfig(config: ShedConfig): ShedConfig {
       .filter(({ name }) => placed.has(name))
       .map((type) => (type.kind === 'overhead' ? type : omit(type, ['headroom']))),
     roof: {
-      ...omit(roof, ['gambrel', 'sheathing', 'purlin', 'purlinSpacing', 'rakeLadder', 'ridge', 'highSide', 'rafterTies', 'collarTies', 'loft', 'kneeWalls']),
+      ...omit(roof, ['fasciaTop', 'gambrel', 'sheathing', 'purlin', 'purlinSpacing', 'rakeLadder', 'ridge', 'highSide', 'rafterTies', 'collarTies', 'loft', 'kneeWalls']),
       ...(roof.style === 'gambrel' && { gambrel: roof.gambrel }),
+      ...(usesFasciaTop(config) && { fasciaTop: roof.fasciaTop }),
       ...(sheathed && { sheathing: roof.sheathing }),
       ...(roof.roofing !== 'shingles' && { purlin: roof.purlin, purlinSpacing: roof.purlinSpacing }),
       ...(roof.rakeOverhang >= LADDER && { rakeLadder: hasRidgeBoard(roof) ? roof.rakeLadder : omit(roof.rakeLadder, ['ridgeExtends']) }),

@@ -13,6 +13,7 @@ import {
 import {
   CORNERS,
   FASCIA,
+  FASCIA_TOPS,
   FOUNDATION_TYPES,
   FRONTS,
   LOFT_OPEN_ENDS,
@@ -37,6 +38,7 @@ import {
   WALLS,
   hasRidgeBoard,
   ridged,
+  usesFasciaTop,
   withRoofStyle,
   type ShedConfig,
 } from '../core/config';
@@ -121,6 +123,8 @@ const count = (number: number, one: string, many = `${one}s`) => (number === 0 ?
 const spacing = (size: string, oc: number) => `${size} at ${oc}" o.c.`;
 const every = (pairs: number) => (pairs === 1 ? 'every pair' : `every ${pairs} pairs`);
 
+const FASCIA_TOP_LABELS = { 'set-down': 'Set down under the roof', beveled: 'Bevel ripped to the pitch', flush: 'Flush with the rafter tops' } as const;
+
 export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
   const set = setter(value, onChange);
   const names = naming(value);
@@ -175,7 +179,13 @@ export function DesignForm({ value, onChange }: SectionProps<ShedConfig>) {
       {value.foundation.type !== 'slab' && <FloorSection value={value.floor} onChange={set('floor')} />}
       <WallsSection value={value.walls} onChange={set('walls')} onSlab={value.foundation.type === 'slab'} gable={ridged(value.roof)} names={names} />
       <OpeningsSection value={value} onChange={onChange} />
-      <RoofSection value={value.roof} onChange={set('roof')} names={names} gambrelBreak={value.roof.style === 'gambrel' ? gambrelBreak(value) : null} />
+      <RoofSection
+        value={value.roof}
+        onChange={set('roof')}
+        names={names}
+        gambrelBreak={value.roof.style === 'gambrel' ? gambrelBreak(value) : null}
+        fasciaTop={usesFasciaTop(value)}
+      />
       {ridged(value.roof) && <LoftSection value={value.roof} onChange={set('roof')} names={names} />}
       <Section title="Lean-tos" brief={count(value.additions.length, 'lean-to')}>
         <AdditionsEditor value={value} onChange={onChange} />
@@ -323,7 +333,8 @@ function RoofSection({
   onChange,
   names,
   gambrelBreak,
-}: SectionProps<Roof> & { names: Naming; gambrelBreak: { run: number; height: number } | null }) {
+  fasciaTop,
+}: SectionProps<Roof> & { names: Naming; gambrelBreak: { run: number; height: number } | null; fasciaTop: boolean }) {
   const set = setter(value, onChange);
   const ladder = setter(value.rakeLadder, set('rakeLadder'));
   const ties = setter(value.rafterTies, set('rafterTies'));
@@ -365,6 +376,9 @@ function RoofSection({
         <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} />
         <SelectField label="Tail cut" value={value.tailCut} options={TAIL_CUTS} describe={(cut) => (cut === 'plumb-level' ? 'Plumb and level' : capitalize(cut))} onChange={set('tailCut')} />
         <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={noneLabel} onChange={set('fascia')} />
+        {fasciaTop && (
+          <SelectField label="Fascia top" value={value.fasciaTop} options={FASCIA_TOPS} describe={(top) => FASCIA_TOP_LABELS[top]} onChange={set('fasciaTop')} />
+        )}
         <LengthField label="Rake overhang" value={value.rakeOverhang} onChange={set('rakeOverhang')} />
       </Group>
       {/* The model frames a rake ladder from 1-1/2 in of rake overhang. */}

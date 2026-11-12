@@ -30,6 +30,9 @@ export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
 export const TAIL_CUTS = ['plumb', 'square', 'plumb-level'] as const;
 export const SHEATHING = ['none', ...SHEET_KEYS] as const;
 export const FASCIA = ['none', ...TWO_BY] as const;
+// A plumb fascia's top at a low eave: set down under the roof plane, ripped to the pitch, or level
+// with the rafter tops.
+export const FASCIA_TOPS = ['set-down', 'beveled', 'flush'] as const;
 // psf. 20 is the roof live load with no snow; the rest are design roof snow loads.
 export const ROOF_LOADS = [20, 30, 40, 50, 60, 70] as const;
 export const ROOF_DEAD_LOADS = [10, 15, 20] as const;
@@ -160,6 +163,7 @@ const roof = z.strictObject({
   rakeOverhang: len(0, 24).default(8),
   tailCut: z.enum(TAIL_CUTS).default('plumb'),
   fascia: z.enum(FASCIA).default('2x6'),
+  fasciaTop: z.enum(FASCIA_TOPS).default('set-down'), // lean-tos follow it too
   sheathing: z.enum(SHEATHING).default('osb-7/16'),
   roofing: z.enum(ROOFING).default('shingles'),
   gablePanel: z.boolean().default(false), // gable ends built as panels, on their own bottom plates
@@ -301,6 +305,9 @@ export type Ramp = z.infer<typeof ramp>;
 /** A ramp with every default. */
 export const newRamp = (): Ramp => ramp.parse({});
 
+/** `roof.fasciaTop` applies: a plumb fascia on the main roof (tails not square cut), or a lean-to fascia. */
+export const usesFasciaTop = ({ roof, additions }: Pick<ShedConfig, 'roof' | 'additions'>) =>
+  (roof.fascia !== 'none' && roof.tailCut !== 'square') || additions.some(({ fascia }) => fascia !== 'none');
 /** A roof with two sides that meet at a ridge: gable or gambrel. */
 export const ridged = (roof: { style: (typeof ROOF_STYLES)[number] }) => roof.style !== 'lean-to';
 /** A ridged roof with a ridge board: a gable, or a gambrel that keeps one. */

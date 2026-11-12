@@ -234,8 +234,8 @@ function frameLeanTo(
     out.members.push(planeMember({ id: nextId('R'), assembly, role: 'rafter', size: addition.rafter, note }, plane, outline, [cos, -sin]));
   }
 
-  const board = (code: string, role: Member['role'], size: LumberSize, treated: boolean, length: number, origin: Vec3, axes: Member['axes'], note?: string) =>
-    out.members.push({ id: nextId(code), assembly, role, size, treated, length, origin, axes, ...(note && { note }) });
+  const board = (code: string, role: Member['role'], size: LumberSize, treated: boolean, length: number, origin: Vec3, axes: Member['axes'], note?: string, bevel = 0) =>
+    out.members.push({ id: nextId(code), assembly, role, size, treated, length, origin, axes, ...(note && { note }), ...(bevel && { bevel }) });
   const alongWall = { length: frame.u, width: UP, thick: frame.v };
 
   if (!extension) {
@@ -258,9 +258,13 @@ function frameLeanTo(
 
   const fasciaThick = addition.fascia === 'none' ? 0 : LUMBER[addition.fascia].thick;
   if (addition.fascia !== 'none') {
+    // Its top meets the roof plane as the main roof's fascia does (`roof.fasciaTop`).
+    const fall = fasciaThick * rise;
+    const drop = config.roof.fasciaTop === 'set-down' ? fall : 0;
+    const bevel = config.roof.fasciaTop === 'beveled' ? fall : 0;
+    const ripNote = bevel ? `Rip the top edge to the roof pitch, ${degrees}: the outer face is ${formatInches(LUMBER[addition.fascia].width - bevel)} tall.` : undefined;
     for (const [from, to] of splitPlate([u0, u1], maxStock(addition.fascia), centers)) {
-      // Set down until the roof plane passes over its outer top edge, as on the main roof.
-      board('FA', 'fascia', addition.fascia, false, to - from, at(from, tail, top(tail) - fasciaThick * rise), { length: frame.u, width: DOWN, thick: outward });
+      board('FA', 'fascia', addition.fascia, false, to - from, at(from, tail, top(tail) - drop), { length: frame.u, width: DOWN, thick: outward }, ripNote, bevel);
     }
   }
 
