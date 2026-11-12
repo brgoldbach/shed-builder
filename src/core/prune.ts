@@ -62,7 +62,7 @@ export function pruneConfig(config: ShedConfig): ShedConfig {
       const kept = omit(addition, [
         ...(addition.roofing === 'metal' ? [] : ['purlin' as const, 'purlinSpacing' as const]),
         ...(addition.length === 'full' ? ['center' as const] : []),
-        ...(addition.attach === 'extension' ? ['drop' as const] : []),
+        ...(addition.attach === 'extension' ? ['drop' as const, 'oc' as const] : []),
         ...(addition.floor === 'deck' ? [] : ['deck' as const]),
       ]);
       if (addition.floor !== 'deck') return kept;

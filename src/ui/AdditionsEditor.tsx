@@ -137,7 +137,7 @@ function AdditionCard({
       </Group>
       <Group
         title="Roof"
-        brief={`${value.pitch === 'main' ? 'Main pitch' : `${value.pitch}/12`}, ${value.rafter} at ${value.oc}", ${ROOFING_LABELS[value.roofing].toLowerCase()}`}
+        brief={`${value.pitch === 'main' ? 'Main pitch' : `${value.pitch}/12`}, ${value.rafter} ${extension ? 'beside the main rafters' : `at ${value.oc}"`}, ${ROOFING_LABELS[value.roofing].toLowerCase()}`}
       >
         <CheckField
           label={extension ? 'Main roof plane' : 'Main roof pitch'}
@@ -148,7 +148,9 @@ function AdditionCard({
         {value.pitch !== 'main' && <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} help={EDITOR_HELP['additions.pitch']} />}
         {!extension && <LengthField label="Ledger drop" value={value.drop} onChange={set('drop')} help={EDITOR_HELP['additions.drop']} />}
         <SelectField label="Rafters" value={value.rafter} options={TWO_BY} onChange={set('rafter')} help={EDITOR_HELP['additions.rafter']} />
-        <SelectField label="Rafter spacing" value={value.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={set('oc')} help={EDITOR_HELP['additions.oc']} />
+        {!extension && (
+          <SelectField label="Rafter spacing" value={value.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={set('oc')} help={EDITOR_HELP['additions.oc']} />
+        )}
         <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} help={EDITOR_HELP['additions.eaveOverhang']} />
         <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={(size) => (size === 'none' ? 'None' : size)} onChange={set('fascia')} help={EDITOR_HELP['additions.fascia']} />
         <SelectField label="Roofing" value={value.roofing} options={LEAN_TO_ROOFING} describe={(roofing) => ROOFING_LABELS[roofing]} onChange={set('roofing')} help={EDITOR_HELP['additions.roofing']} />

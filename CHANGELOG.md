@@ -21,11 +21,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   job runs it on each pull request.
 - The 3D view loads as a separate part of the app, so the form is ready sooner. The first download
   is 151 kB smaller before the form shows (gzip: 329 kB, now 178 kB).
+- React and zod load as their own file, which changes only with a library update. After a
+  release, a returning browser downloads 85 kB (gzip) for the form, not 178 kB.
 
 ### Fixed
 
 - A wood ramp on a slab got lag screws into floor framing in the BOM. It now gets concrete anchors
   into the slab edge, two at each stringer, at the anchor bolt price.
+- The span check of a lean-to roof extension used the lean-to's rafter spacing. Each extension
+  rafter sits beside a main rafter, so the check now uses the main spacing. Where that was wider,
+  the old check could pass rafters that were too weak. An extension no longer shows "Rafter
+  spacing".
 
 ## [0.9.0] - 2026-11-12
 

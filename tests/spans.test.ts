@@ -90,4 +90,10 @@ describe('span checks', () => {
     ]);
     expect(girders[0].allowed!).toBeLessThan(girders[1].allowed!);
   });
+
+  it('checks extension lean-to rafters at the main rafter spacing, as each sits beside a main rafter', () => {
+    const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, oc: 24 }, additions: [{ side: 'front', attach: 'extension', oc: 16 }] });
+    const [rafters] = checkSpans(config, buildModel(config), naming(config)).filter(({ member }) => member.endsWith('lean-to rafters'));
+    expect(rafters.lumber).toBe('2x6 at 24" o.c.');
+  });
 });
