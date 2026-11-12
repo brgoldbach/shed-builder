@@ -1,0 +1,67 @@
+import { stat } from 'node:fs/promises';
+import { expect, test, type Page } from '@playwright/test';
+
+// The console errors and uncaught exceptions of the page, from now on.
+function errorsOf(page: Page): string[] {
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  page.on('pageerror', (error) => errors.push(error.message));
+  return errors;
+}
+
+// The number of distinct colors in a PNG, counted in the page. A blank canvas has one.
+const colorsOf = (page: Page, png: string) =>
+  page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    [canvas.width, canvas.height] = [image.width, image.height];
+    const context = canvas.getContext('2d')!;
+    context.drawImage(image, 0, 0);
+    const pixels = new Uint32Array(context.getImageData(0, 0, image.width, image.height).data.buffer);
+    return new Set(pixels).size;
+  }, png);
+
+test('loads with no console error, and draws the 3D view', async ({ page }) => {
+  const errors = errorsOf(page);
+  await page.goto('/');
+  const canvas = page.locator('.canvas-host canvas');
+  await expect.poll(async () => colorsOf(page, (await canvas.screenshot()).toString('base64'))).toBeGreaterThan(100);
+  expect(errors).toEqual([]);
+});
+
+test('a length edit changes the cut list, and a bad length shows its message', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Cut list' }).click();
+  const table = page.locator('table.cutlist.parts');
+  const before = await table.innerText();
+  const length = page.getByRole('textbox', { name: 'Length (left to right)', exact: true });
+
+  await length.fill(`12'`);
+  await length.press('Enter');
+  await expect(table).not.toHaveText(before, { useInnerText: true });
+
+  await length.fill('twelve');
+  await length.press('Enter');
+  await expect(page.getByText(`Not a length, e.g. 7' 8-5/8"`)).toBeVisible();
+  await expect(length).toHaveAttribute('aria-invalid', 'true');
+});
+
+test('Download 3D and Download PDF each save a file', async ({ page }) => {
+  test.slow(); // the PDF draws every sheet
+  await page.goto('/');
+  for (const [tab, button] of [['3D', 'Download 3D'], ['Framing', 'Download PDF']]) {
+    await page.getByRole('tab', { name: tab, exact: true }).click();
+    const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: button }).click()]);
+    expect((await stat(await file.path())).size).toBeGreaterThan(1000);
+  }
+});
+
+test('a stored design that does not load shows a notice', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('shed-builder.config', '{"width": "wide"}'));
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('Cannot load the design saved in this browser');
+});

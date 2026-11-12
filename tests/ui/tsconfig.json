@@ -1,0 +1,7 @@
+// The browser test runs in Node, so it gets Node's types; the app does not.
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": [".", "../../playwright.config.ts"],
+  "exclude": []
+}

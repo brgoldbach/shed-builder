@@ -203,6 +203,21 @@ commit. It also runs in two other places:
 Lint also keeps `src/core` and `src/drawings` free of React, the DOM, and Three.js
 (`eslint.config.js`).
 
+`npm run test:ui` is the browser test, `tests/ui/smoke.spec.ts`: Playwright drives Chromium
+against the built app (`vite preview`, port 4173). It is not part of the gate. The `ui` job of
+`gate.yml` runs it on each pull request. Before the first local run, `npx playwright install
+chromium`.
+
+| Test | Checks |
+|---|---|
+| Load | No console error, and the 3D view draws: its screenshot has more than 100 colors. |
+| Edit | A length edit changes the cut list. A bad length shows its message. |
+| Downloads | Download 3D and Download PDF each save a file larger than 1 kB. |
+| Stored design | A stored design that does not load shows the notice. |
+
+`tests/ui` has its own tsconfig with Node's types. The root tsconfig leaves it out, so the app
+code cannot use Node globals by mistake.
+
 ## Release
 
 Any pull request to `main` can be a release. You choose the version.
