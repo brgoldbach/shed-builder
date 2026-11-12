@@ -168,7 +168,9 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
 
   for (const { side, addition, rafterSpan, postSpacing, beamTributary, deck } of model.leanTos) {
     const name = `${capitalize(names.side(side))} lean-to`;
-    joists(`${name} rafters`, addition.rafter, addition.oc, rafterSpan, rafterLoad, roofDuration, `${roofLabel}, L/${RAFTER_LIMIT}`);
+    // An extension rafter sits beside each main rafter, so it takes their spacing.
+    const oc = addition.attach === 'extension' ? roof.oc : addition.oc;
+    joists(`${name} rafters`, addition.rafter, oc, rafterSpan, rafterLoad, roofDuration, `${roofLabel}, L/${RAFTER_LIMIT}`);
     const feet = beamTributary / 12;
     const load = { total: (loads.roof + loads.roofDead) * feet, live: loads.roof * feet, floorLive: false };
     const { thick, width: depth } = LUMBER[addition.beam];

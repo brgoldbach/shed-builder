@@ -26,6 +26,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - A wood ramp on a slab got lag screws into floor framing in the BOM. It now gets concrete anchors
   into the slab edge, two at each stringer, at the anchor bolt price.
+- The span check of a lean-to roof extension used the lean-to's rafter spacing. Each extension
+  rafter sits beside a main rafter, so the check now uses the main spacing. Where that was wider,
+  the old check could pass rafters that were too weak. An extension no longer shows "Rafter
+  spacing".
 
 ## [0.9.0] - 2026-11-12
 

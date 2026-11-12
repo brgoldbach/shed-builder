@@ -455,6 +455,7 @@ design with each unused setting at its default and each type placed prunes to an
 | `additions[].purlin`, `purlinSpacing` | `roofing` is `metal`. | |
 | `additions[].center` | `length` is not `full`. | A full-length lean-to has no center to set. |
 | `additions[].drop` | `attach` is not `extension`. | `drop` lowers the ledger. An extension has no ledger. |
+| `additions[].oc` | `attach` is not `extension`. | An extension puts a rafter beside each main rafter, so it takes the main spacing. |
 | `additions[].deck` | `floor` is `deck`. | |
 | `additions[].deck.support` | `onShed` is true. | A deck that is not on the shed's foundation stands on piers, the default. |
 | `additions[].deck.join` | `onShed`, and the lean-to or its mirror is on a gable end. | Only a gable-end deck continues the shed's runs. |

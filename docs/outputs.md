@@ -543,7 +543,7 @@ Load cases in `spans.ts`, from AWC Span Tables for Joists and Rafters 2021, Tabl
 | `Floor joists`, when a `joist.floor` exists | `joistSpan` | The largest clear gap between the shed's skid and girder lines | `FLOOR` | 1.0 | L/360 |
 | `Loft joists`, when the loft is on and a `joist.loft` exists | `joistSpan` | width − 2 × (stud depth + 1-1/2 in for a hung loft): between the eave-wall plates, or between the ledgers | `LOFT[loads.loft]` | 1.0 | L/240 or L/360 |
 | `{name} header ({side} wall)`, for each opening in `model.openings` | beam | The RO width: `right − left` | `eaveLoad` (8.7) | 1.0 with a loft share, else roof | L/360 with a loft share, else L/240 |
-| `{Side} lean-to rafters` | `joistSpan` | `leanTo.rafterSpan` | Roof + roof dead, at `addition.oc` | Roof | L/180 |
+| `{Side} lean-to rafters` | `joistSpan` | `leanTo.rafterSpan` | Roof + roof dead, at `addition.oc`; an extension at `roof.oc`, because each of its rafters sits beside a main rafter | Roof | L/180 |
 | `{Side} lean-to beam` | beam | `postSpacing`: post center to post center | Roof + roof dead over `beamTributary` | Roof | L/240 |
 | `{Side} lean-to deck joists` | `joistSpan` | `deck.joistSpan` | `FLOOR`, at `addition.deck.oc` | 1.0 | L/360 |
 | `{Side} lean-to deck beam`, `deck.plies` plies of the deck joist size | beam | `deck.beamSpan`; no check when it is 0 | `FLOOR` over `deck.beamTributary` | 1.0 | L/360 |
