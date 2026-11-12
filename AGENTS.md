@@ -9,3 +9,4 @@ release. It links a detailed document for each subsystem in `docs/`.
   and any of README.md and the documents in `docs/` that describe it.
 - Gate: `npm run gate` (tests, lint, type check, build). `main` takes pull requests only, and the
   `gate` workflow must pass.
+- `release` is the live site. Push to it only in a release, as DEVELOPER.md "Release" says.

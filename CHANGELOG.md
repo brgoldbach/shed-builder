@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   model and the drawings.
 - Development only: `wrangler.jsonc` sets up the Cloudflare Worker, so each pull request gets a
   preview address. Before, the deploy set itself up on each build.
+- Development only: the live site deploys from the `release` branch, not from `main`. A release
+  moves `release` to its tag, so merged changes wait on `main` for the next release.
 
 ## [0.8.0] - 2026-11-11
 

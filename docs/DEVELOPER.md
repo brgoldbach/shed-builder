@@ -273,6 +273,11 @@ framing, pier bearing on soil, wind, uplift, wall bracing, or connections.
 4. Commit `Release X.Y.Z` on a branch, and merge its pull request with a rebase.
 5. Pull `main`. `git tag -a vX.Y.Z -m "Shed Builder X.Y.Z"` on it.
 6. Push the tag.
-7. `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <the version's changelog section> --verify-tag`.
+7. Check the `main` preview.
+8. `git push origin vX.Y.Z^{commit}:release`. This push deploys the live site.
+9. `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <the version's changelog section> --verify-tag`.
 
-Cloudflare deploys each push to `main`, and makes a preview of each other branch (see README).
+Cloudflare deploys each push to `release`, and makes a preview of `main` and each other branch
+(see README). Step 8 must fast-forward `release`: never force-push it. A pull request into
+`release` does not work here, because a GitHub merge makes new commits, and the live commit
+would then differ from the tag.

@@ -43,9 +43,12 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 ## Hosting
 
 The build is a static site in `dist/`: no server, and each visitor's designs stay in their own
-browser. Cloudflare Workers hosts it free from the GitHub repo. A push to `main` updates the live
-site. A push to any other branch makes a preview copy with its own address, and the live site
-does not change.
+browser. Cloudflare Workers hosts it free from the GitHub repo.
+
+| Branch | Cloudflare builds |
+|---|---|
+| `release` | The live site. Only a release moves this branch ([docs/DEVELOPER.md](docs/DEVELOPER.md#release)). |
+| `main`, and each other branch | A preview copy with its own address. The live site does not change. The `main` preview shows the next release. |
 
 The app runs at https://shed-builder.brgoldbach73.workers.dev/.
 
@@ -59,7 +62,7 @@ Cloudflare dashboard holds the commands:
 
    | Setting | Production tab | Previews Base tab |
    |---|---|---|
-   | Branch | `main` | Every other branch, with "Builds for Preview branches" on |
+   | Branch | `release` | Every other branch, with "Builds for Preview branches" on |
    | Build command | `npm run gate` | `npm run gate` |
    | Deploy command | `npx wrangler deploy` | Preview command: `npx wrangler preview` |
    | Root directory | `/` | `/` |
@@ -67,6 +70,8 @@ Cloudflare dashboard holds the commands:
    Cloudflare installs with `npm ci` from `package-lock.json`, with the Node version in `.nvmrc`.
 4. If the site address does not open, open the Worker's Domains settings and turn on its
    `workers.dev` address.
+5. On GitHub, protect `release` against force pushes and deletion. Do not require a pull request
+   on it: a release pushes to it directly.
 
 A failed build, test, or lint check leaves the last good deployment live. The build check on a
 pull request links to its preview address.
