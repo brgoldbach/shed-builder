@@ -3,6 +3,14 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Development only: a comment `/release X.Y.Z` (or `patch`, `minor`, `major`) on a pull request
+  adds its release commit, and the merge releases it. This replaces the "prepare release"
+  workflow, which opened a second pull request.
+
 ## [0.8.1] - 2026-11-12
 
 ### Changed

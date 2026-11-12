@@ -110,7 +110,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/view3d/scene.ts` | `FramingScene`: meshes, finish textures, picking, camera fit. |
 | `src/view3d/export.ts` | `toGlb`: the shown 3D pieces as a binary glTF file. Loaded only on demand. |
 | `scripts/release.mjs`, `scripts/changelog.ts` | The release file edits: the version check, the CHANGELOG heading and link line, the release notes. |
-| `.github/workflows/` | `gate.yml`; `prepare-release.yml` and `release.yml` (see Release). |
+| `.github/workflows/` | `gate.yml`; `release-command.yml` and `release.yml` (see Release). |
 
 ## Build order
 
@@ -268,14 +268,15 @@ framing, pier bearing on soil, wind, uplift, wall bracing, or connections.
 
 ## Release
 
-A release is one workflow run and one pull request merge. You choose the version.
+Any pull request to `main` can be a release. You choose the version.
 
-1. Check the `main` preview: it is the release.
-2. In GitHub Actions, run "prepare release" with the version `X.Y.Z`. It sets the version in
-   `package.json` and `package-lock.json`, dates `[Unreleased]` in CHANGELOG.md, adds the link
-   line, and opens the pull request "Release X.Y.Z". It also starts `gate` on that pull request,
-   because a pull request made by a workflow starts no workflows itself.
-3. Review the pull request, then merge it.
+1. When the pull request is ready, comment `/release X.Y.Z` on it, or `/release patch`, `minor`,
+   or `major` to count up from the current version. Only the repo owner's comment works.
+2. `.github/workflows/release-command.yml` adds the commit "Release X.Y.Z" to the pull request's
+   branch: the version in `package.json` and `package-lock.json`, `[Unreleased]` in CHANGELOG.md
+   dated as the version, and its link line. It replies in the pull request, and starts `gate` on
+   the new commit, because a push by a workflow starts no workflows.
+3. Merge the pull request.
 
 The merge changes the version on `main`, so `.github/workflows/release.yml` then:
 
@@ -284,17 +285,21 @@ The merge changes the version on `main`, so `.github/workflows/release.yml` then
 3. Waits up to 15 min for `version.txt` on the live site to show `X.Y.Z`.
 4. Publishes the GitHub release, with the version's CHANGELOG section as its notes.
 
+A merge with no "Release" commit changes only `main` and its preview. To release changes that
+are already on `main`, open a pull request that adds only the `[Unreleased]` entries it needs,
+or none, and comment on it.
+
 | Problem | Action |
 |---|---|
-| "prepare release" stops: the version is not above the current one, or `[Unreleased]` is empty. | Correct the cause, then run it again. |
-| "prepare release" stops: the branch `version-X.Y.Z` exists. | Close its pull request, delete the branch, then run it again. |
-| Another pull request merges while the release pull request is open. | The same: close, delete, run again. |
+| The command replies "No release commit added": the version is not above the current one, or `[Unreleased]` is missing or empty. | Correct the cause, then comment again. |
+| The wrong version is in the pull request. | Revert the "Release" commit, then comment again. |
 | The release workflow fails. | Read its log. Correct the cause, then select "Re-run failed jobs". Each step skips work already done. |
 | Cloudflare does not deploy the version. | Correct it in a new pull request, then release the next patch version. |
 
-`scripts/release.mjs` makes the file edits for both workflows: `prepare X.Y.Z` and `notes X.Y.Z`.
-If the workflows cannot run, do their steps by hand: `prepare` on a branch, its pull request,
-the tag, `git push origin 'vX.Y.Z^{commit}:release'`, and `gh release create` with `notes`.
+`scripts/release.mjs` makes the file edits for both workflows: `prepare X.Y.Z|patch|minor|major`
+and `notes X.Y.Z`. If the workflows cannot run, do their steps by hand: `prepare` on the pull
+request's branch, the merge, the tag, `git push origin 'vX.Y.Z^{commit}:release'`, and
+`gh release create` with `notes`.
 
 Never force-push `release`, and never merge a pull request into it. A GitHub merge makes new
 commits, so the live commit would then differ from the tag.

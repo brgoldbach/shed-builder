@@ -1,0 +1,84 @@
+name: release command
+
+# The repo owner's comment "/release X.Y.Z" (or patch, minor, major) on a pull request adds the
+# commit "Release X.Y.Z" to its branch. Merging the pull request then releases it (release.yml).
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  bump:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '/release ')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-command-${{ github.event.issue.number }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.issue.number }}
+      COMMENT: ${{ github.event.comment.body }}
+    steps:
+      - name: Read the pull request
+        id: pr
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" > pr.json
+          if [ "$(jq -r .state pr.json)" != open ] || [ "$(jq -r .head.repo.full_name pr.json)" != "$GITHUB_REPOSITORY" ]; then
+            echo "Only an open pull request from a branch of this repo can be released." > error.txt
+            exit 1
+          fi
+          echo "branch=$(jq -r .head.ref pr.json)" >> "$GITHUB_OUTPUT"
+          echo "request=$(printf '%s\n' "$COMMENT" | head -n 1 | sed 's|^/release ||' | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+      # The edit script comes from main, so a pull request cannot change how it is released.
+      - uses: actions/checkout@v4
+        with:
+          path: base
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          path: pr
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: base/.nvmrc
+      - name: Set the version, and date the changelog
+        id: prepare
+        working-directory: pr
+        env:
+          REQUEST: ${{ steps.pr.outputs.request }}
+        run: |
+          version=$(node ../base/scripts/release.mjs prepare "$REQUEST" 2> ../error.txt)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Commit and push
+        working-directory: pr
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          VERSION: ${{ steps.prepare.outputs.version }}
+          ACTOR: ${{ github.actor }}
+          ACTOR_ID: ${{ github.actor_id }}
+        run: |
+          git config user.name "$ACTOR"
+          git config user.email "$ACTOR_ID+$ACTOR@users.noreply.github.com"
+          git commit -am "Release $VERSION"
+          git push origin "HEAD:refs/heads/$BRANCH"
+      # A push by this workflow starts no workflows, so start the required gate check here.
+      - name: Run the gate
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
+        run: gh workflow run gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+      - name: Reply
+        env:
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "Added the commit \"Release $VERSION\". Merging this pull request releases $VERSION. To change the version, revert that commit, then comment again."
+      - name: Reply with the problem
+        if: failure()
+        env:
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          reason=$(cat error.txt 2>/dev/null || true)
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "No release commit added. ${reason:-See the log:} $RUN"
