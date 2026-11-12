@@ -280,7 +280,7 @@ const addition = z.strictObject({
 });
 export type Addition = z.infer<typeof addition>;
 
-// A ramp from the floor down to grade: deck boards on sloped stringers.
+// A ramp from the floor down to its foot: wood boards on sloped stringers, or a concrete wedge.
 const ramp = z
   .strictObject({
     // The opening the ramp follows: centered on its RO, `margin` wider on each side. An index into

@@ -180,7 +180,7 @@ function floorPlan({ config, model, marks }: Context): Drawing | null {
     `${floor.treated ? 'PT ' : ''}${floor.joist} joists at ${floor.oc}" o.c., ${SHEETS[floor.subfloor].label} subfloor.`,
     'Layout runs to the near edge of each joist.',
   ];
-  if (floor.blocking) notes.push('Blocking at mid-span.');
+  if (floor.blocking) notes.push('One row of blocking at half the joist length.');
   return makeDrawing('floor', 'Floor framing plan', {
     shapes: shapesOf(view, members, [], marks),
     dims: [...runningLayout(view, joists, box.min), ...overall(box, 2)],

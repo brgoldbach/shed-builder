@@ -445,3 +445,17 @@ export function CheckField({ label, value, onChange, help }: FieldProps<boolean>
     </>
   );
 }
+
+/** The visible name of a bare input in a grid, with its help. The input is a sibling, not a child. */
+export function GridLabel({ label, help }: { label: string; help: Help }) {
+  const { button, panel, field } = useHelp(label, help);
+  return (
+    <>
+      <span className="muted grid-label" {...field}>
+        {label}
+        {button}
+      </span>
+      {panel}
+    </>
+  );
+}

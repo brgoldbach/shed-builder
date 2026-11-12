@@ -27,7 +27,7 @@ describe('framed floor', () => {
     expect(ofRole(members, 'rim.floor').map((rim) => [rim.length, rim.origin[1]])).toEqual([[120, 0], [120, 96]]);
   });
 
-  it('blocks each bay at mid-span', () => {
+  it('blocks each bay at half the joist length', () => {
     // Bays: 0-1/2 to 15-1/4, six of 14-1/2, and 112-3/4 to 118-1/2.
     expect(sorted(ofRole(members, 'blocking').map((block) => block.length))).toEqual([5.75, 13.75, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5]);
   });

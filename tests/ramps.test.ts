@@ -158,6 +158,14 @@ describe('ramp framing', () => {
     expect(stringers[0].note).toBe('Plumb cut 14.0° at the slab edge, anchored to it. Level cut on the foot, 6" below grade.');
   });
 
+  it('anchors the stringers to the slab edge, with no lag screws', () => {
+    const config = below({});
+    const { hardware } = buildBom(config, buildModel(config), new Map());
+    const items = hardware.map(({ item }) => item);
+    expect(hardware.find(({ item }) => item === 'Ramp concrete anchor, 1/2"')?.quantity).toBe(12);
+    expect(items).not.toContain('Ramp lag screw, 1/2"');
+  });
+
   it('pours a concrete ramp from the foundation edge over a base under its foot', () => {
     const config = below({ material: 'concrete' });
     const concreteModel = buildModel(config);

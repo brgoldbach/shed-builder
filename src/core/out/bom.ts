@@ -328,7 +328,11 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   for (const { deck } of model.leanTos) {
     if (deck) add(`Beam seat, ${deck.plies}-ply ${deck.joist}`, deck.seats, price.postCap, 'On each pier, under the deck beam.');
   }
-  add('Ramp lag screw, 1/2"', 2 * count('stringer'), price.lag, 'Two at each ramp stringer, into the floor framing.');
+  if (config.foundation.type === 'slab') {
+    add('Ramp concrete anchor, 1/2"', 2 * count('stringer'), price.anchorBolt, 'Two at each ramp stringer, into the slab edge.');
+  } else {
+    add('Ramp lag screw, 1/2"', 2 * count('stringer'), price.lag, 'Two at each ramp stringer, into the floor framing.');
+  }
   return lines;
 }
 
