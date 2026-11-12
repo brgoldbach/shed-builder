@@ -1123,7 +1123,7 @@ Both are POSIX `sh`, with `set -eu`, and `cd` to the repo first.
 |---|---|
 | `.nvmrc` | `26`: the Node version of the Cloudflare build. |
 | `engines.node` | `^22.12.0 \|\| ^24.0.0 \|\| >=26.0.0` |
-| Host | Cloudflare builds `main` with `npm ci` and `npm run build`, and serves `dist`. See [README.md](../README.md). |
+| Host | Cloudflare Workers builds with `npm ci` and `npm run gate`, and serves `dist` (`wrangler.jsonc`). `main` is the live site; each other branch gets a preview. See [README.md](../README.md). |
 | Skip a deployment | `[skip ci]` in the commit message. |
 
 ### Browser features in use

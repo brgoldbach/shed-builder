@@ -43,35 +43,33 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 ## Hosting
 
 The build is a static site in `dist/`: no server, and each visitor's designs stay in their own
-browser. Cloudflare hosts it free from the GitHub repo, and rebuilds and redeploys on each push
-to `main`.
+browser. Cloudflare Workers hosts it free from the GitHub repo. A push to `main` updates the live
+site. A push to any other branch makes a preview copy with its own address, and the live site
+does not change.
 
 The app runs at https://shed-builder.brgoldbach73.workers.dev/.
 
-1. Make a free Cloudflare account, and sign in to https://dash.cloudflare.com.
-2. Open Workers & Pages, then Create application, then Pages, then Connect to Git.
-3. Add your GitHub account. In the GitHub app install, pick "Only select repositories" and
-   `shed-builder`, so Cloudflare sees only this repo.
-4. Select `shed-builder`, then Begin setup, and enter:
+`wrangler.jsonc` holds the Worker name, the assets directory, and the preview settings. The
+Cloudflare dashboard holds the commands:
 
-   | Setting | Value |
-   |---|---|
-   | Project name | `shed-builder` (part of the site address) |
-   | Production branch | `main` |
-   | Framework preset | None |
-   | Build command | `npm run gate` |
-   | Build output directory | `dist` |
-   | Root directory | blank |
+1. Make a free Cloudflare account, and sign in to https://dash.cloudflare.com.
+2. Open Workers & Pages, then Create application, and import the GitHub repo `shed-builder`. In
+   the GitHub app install, pick "Only select repositories" and `shed-builder`.
+3. Open the Worker's Settings, then Builds, and enter:
+
+   | Setting | Production tab | Previews Base tab |
+   |---|---|---|
+   | Branch | `main` | Every other branch, with "Builds for Preview branches" on |
+   | Build command | `npm run gate` | `npm run gate` |
+   | Deploy command | `npx wrangler deploy` | Preview command: `npx wrangler preview` |
+   | Root directory | `/` | `/` |
 
    Cloudflare installs with `npm ci` from `package-lock.json`, with the Node version in `.nvmrc`.
-5. Select Save and Deploy. The first build takes a minute or two.
-6. If the site address does not open, open the project's Domains settings and turn on its
+4. If the site address does not open, open the Worker's Domains settings and turn on its
    `workers.dev` address.
-7. Turn off preview deployments, so only `main` builds and other branches use none of the 500 free
-   builds a month.
 
-A failed build, test, or lint check leaves the last good deployment live. To push without a deployment, put
-`[skip ci]` in the commit message.
+A failed build, test, or lint check leaves the last good deployment live. The build check on a
+pull request links to its preview address.
 
 ## What it does
 

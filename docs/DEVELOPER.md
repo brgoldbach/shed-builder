@@ -249,7 +249,7 @@ commit. It also runs in two other places:
 | Where | Effect |
 |---|---|
 | `.github/workflows/gate.yml`, on each pull request and each push to `main` | `main` requires a pull request with a passing `gate` check. |
-| The Cloudflare build command | A failed gate leaves the last good deployment live. |
+| The Cloudflare build commands | A failed gate leaves the last good deployment live, and makes no preview. |
 
 Lint also keeps `src/core` and `src/drawings` free of React, the DOM, and Three.js
 (`eslint.config.js`).
@@ -275,4 +275,4 @@ framing, pier bearing on soil, wind, uplift, wall bracing, or connections.
 6. Push the tag.
 7. `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <the version's changelog section> --verify-tag`.
 
-Cloudflare builds and deploys each push to `main` (see README).
+Cloudflare deploys each push to `main`, and makes a preview of each other branch (see README).
