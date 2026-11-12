@@ -279,7 +279,8 @@ choice's value.
 
 The help shows in a floating box under the setting's row: a `popover="manual"` element, in the top
 layer, so the scrolling side panel cannot clip it. `useHelp` places it below the row, or above when
-there is no room below, inside the window. The row is the field's `<label>`, or a fold's header.
+there is no room below, inside the window. The row is the field's `<label>`, a fold's header, or a
+`GridLabel`: the visible name of a bare input in a grid, such as the sill height of an opening row.
 
 | Input | Result |
 |---|---|

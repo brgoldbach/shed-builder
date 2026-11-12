@@ -16,6 +16,7 @@ import { formatInches, parseLength } from '../core/units';
 import {
   Card,
   CheckField,
+  GridLabel,
   LengthField,
   NOT_A_LENGTH,
   ParsedInput,
@@ -350,7 +351,7 @@ function OpeningRow({ value, config, names, onChange, onRemove }: RowProps) {
         />
         {value.enabled && (
           <>
-            <span className="muted grid-label">Sill height</span>
+            <GridLabel label="Sill height" help={EDITOR_HELP['openings.sill']} />
             <ParsedInput
               label="Sill height, floor to RO bottom"
               className="number"
@@ -377,7 +378,7 @@ function OpeningRow({ value, config, names, onChange, onRemove }: RowProps) {
               invalid={percent ? 'Not a list of percents, e.g. 25% 75%' : `Not a list of lengths, e.g. 24", 8'`}
               onChange={set('at')}
             />
-            <span className="muted grid-label">Count, spread evenly</span>
+            <GridLabel label="Count, spread evenly" help={EDITOR_HELP['openings.at:count']} />
             <div className="stepper">
               <button aria-label="One fewer" disabled={value.at.length <= 1} onClick={() => spread(value.at.length - 1)}>
                 −

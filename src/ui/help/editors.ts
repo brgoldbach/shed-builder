@@ -57,6 +57,13 @@ export const EDITOR_HELP = {
     about: "The clear height a garage door track needs above the RO. Take it from the door maker's data.",
   },
 
+  'openings.sill': {
+    about: 'From the floor surface up to the bottom of the rough opening (RO).',
+  },
+  'openings.at:count': {
+    about: 'The number of openings in this row. A new count spreads them evenly along the wall.',
+  },
+
   'additions.side': {
     about: 'The wall the lean-to stands against. Each side takes one lean-to.',
   },
