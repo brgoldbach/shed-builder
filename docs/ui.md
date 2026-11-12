@@ -184,7 +184,7 @@ The forms of the design, their formats, and the storage keys are in
 | Save | `download(fileName(config.name, 'shed.json'), designFileText(config))`. The same `fileName` names the CSV, PDF, and GLB downloads. |
 | Open | `open(file)` parses the text. On success, `replace`. On failure, the banner. The file input resets its `value` to `''`, so the same file can open again. |
 | Drag and drop | `onDragOver` calls `preventDefault` on the whole `.app`, so a drop anywhere calls `open`. A drop does not check the file type. |
-| New from preset | The select always has the value `""`, so the same preset can be picked again. A pick asks `confirm` first. |
+| New from preset | The select always has the value `""`, so the same preset can be picked again. A pick asks first, in `ConfirmDialog`. |
 
 | Edge case | Result |
 |---|---|
@@ -222,8 +222,8 @@ contexts. A dev server opened by a LAN address over HTTP is not.
 1. `linkData(window.location.hash)` returns the link data, or `null`. On `null`, stop.
 2. `history.replaceState` removes the fragment from the address.
 3. `designFromLink(data)` inflates and parses the design. On failure, the banner shows. Stop.
-4. When `hadDesign` is true, `confirm` asks before the design replaces the current one. On Cancel,
-   stop.
+4. When `hadDesign` is true, `ConfirmDialog` asks before the design replaces the current one. On
+   Cancel or Esc, stop.
 5. `change(result.config)`, `revision + 1`, and the banner clears.
 
 | Edge case | Result |
@@ -239,6 +239,7 @@ contexts. A dev server opened by a LAN address over HTTP is not.
 |---|---|
 | The fragment goes before the design opens. | A reload then keeps the design from storage and does not ask again. |
 | A link asks only when the browser had a design. | A first visit from a link has nothing to lose. |
+| Questions use `ConfirmDialog`, a modal `<dialog>`, not `confirm()`. | Some embedded browsers, such as an editor's preview pane, do not show `confirm()` and answer no. The preset select then did nothing. |
 | The clipboard fallback is `window.prompt`. | When the clipboard refuses the write, the user can still copy the link by hand. |
 
 ### Change it safely
@@ -263,6 +264,11 @@ needs those fields and the shed's own foundation does not show them.
 
 A switch of Wall height to Custom sets `wallHeight` to `wallTops(value).left` in the same edit, so
 the walls do not move.
+
+A switch of the roof Style to Gambrel sets the classic barn pitches, 29/12 lower and 5/12 upper, in
+the same edit (`withRoofStyle` in `config.ts`). With the auto break, the four rafters then lie on a
+half circle. The schema defaults stay 20/12 and 6/12, because saved files leave out default values
+([design-model.md §6.4](design-model.md#64-change-a-default)).
 
 ### Folds: `Section`, `Group`, `Card`
 

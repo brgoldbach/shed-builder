@@ -221,9 +221,9 @@ describe('gable roof options', () => {
 });
 
 describe('gambrel roof', () => {
-  // The 8 x 10 ft shed as above, lower slope 20/12 (59.0°), upper 6/12, break 24 in from the wall:
-  // 1/4 of the width. The 2x6 seat stops at 1/3 of the depth: 2-1/8.
-  const config = shedSchema.parse({ schemaVersion: 1, width: 96, length: 120, roof: { style: 'gambrel', pitch: 6, gambrel: { lowerPitch: 20 } } });
+  // The 8 x 10 ft shed as above, lower slope 20/12 (59.0°), upper 6/12, break 24 in from the wall.
+  // The 2x6 seat stops at 1/3 of the depth: 2-1/8.
+  const config = shedSchema.parse({ schemaVersion: 1, width: 96, length: 120, roof: { style: 'gambrel', pitch: 6, gambrel: { lowerPitch: 20, breakRun: 24 } } });
   const { members, warnings, solids, planes, rafterSpans } = frameRoof(config);
   const lower = ofRole(members, 'rafter');
   const upper = ofRole(members, 'rafter.upper');
@@ -333,6 +333,16 @@ describe('gambrel roof', () => {
     expect(gambrelBreak(config)).toEqual({ run: 24, wanted: 24, height: expect.closeTo(knee, 9) });
   });
 
+  it('puts the auto break where the lower and upper rafters are the same length', () => {
+    const auto = (pitch: number, lowerPitch: number) => gambrelBreak(shedSchema.parse({ ...config, roof: { ...config.roof, pitch, gambrel: { lowerPitch } } })).run;
+    // Run along the slope: run × √(1 + (pitch / 12)²) on each side of the break.
+    const slopeLength = (run: number, pitch: number) => run * Math.hypot(1, pitch / 12);
+    const run = auto(6, 20);
+    expect(slopeLength(run, 20)).toBeCloseTo(slopeLength(48 - run, 6), 9);
+    // The classic barn, 29/12 and 5/12: a half circle, so the break is r(1 − cos 45°) in from the wall.
+    expect(auto(5, 29)).toBeCloseTo(48 * (1 - Math.SQRT1_2), 1);
+  });
+
   it('keeps the break 1 ft from the ridge line, and says so', () => {
     const { warnings: moved } = roofOf({ style: 'gambrel', gambrel: { breakRun: 40 } });
     expect(moved.map(({ message }) => message)).toEqual(['The break 40" in from the wall is within 1 ft of the ridge line. It is at 36".']);
@@ -346,7 +356,7 @@ describe('gambrel roof', () => {
 
 describe('gambrel roof without a ridge board', () => {
   // The 8 x 10 ft gambrel above, its upper rafters butted at the peak.
-  const { members, solids, rafterSpans } = roofOf({ style: 'gambrel', pitch: 6, gambrel: { lowerPitch: 20, ridgeBoard: false } });
+  const { members, solids, rafterSpans } = roofOf({ style: 'gambrel', pitch: 6, gambrel: { lowerPitch: 20, breakRun: 24, ridgeBoard: false } });
   const upper = ofRole(members, 'rafter.upper');
   const lowerAngle = Math.atan(20 / 12);
   const peak = 97.125 + (20 / 12) * (24 - 2.125) + 5.5 / Math.cos(lowerAngle) + 0.5 * 24;
@@ -413,5 +423,43 @@ describe('lean-to roof', () => {
     const plates = ofRole(members, 'plate.gable');
     expect(plates).toHaveLength(2);
     expect(plates[0].note).toBe('Level cut on the wall plate. Plumb cut 14.0° at the high wall.');
+  });
+});
+
+describe('eave fascia and tail cuts', () => {
+  it('sets a plumb fascia down so the roof plane passes over its outer top edge', () => {
+    // 1-1/2 in thick at 6/12: 3/4 in below the rafter top at the tail.
+    const { members } = roofOf(gableRoof);
+    const tailTop = Math.max(...sectionCorners(ofRole(members, 'rafter')[0]).filter(([y]) => Math.abs(y + 12) < 1e-9).map(([, z]) => z));
+    const [fascia] = ofRole(members, 'fascia');
+    expect(fascia.origin[1]).toBe(-12);
+    expect(fascia.origin[2]).toBeCloseTo(tailTop - 0.75, 9);
+  });
+  // 2x8 rafters at 6/12: a full plumb end of 7-1/4 × √1.25 = 8.11 in. The 2x6 fascia hangs 3/4 + 5-1/2
+  // below the roof line, so the tail is plumb cut 6-1/4 in deep, then level back (8.11 − 6.25) × 2.
+  const plumb = 7.25 * Math.hypot(1, 0.5);
+  const { members, warnings } = roofOf({ ...gableRoof, rafter: '2x8', ridge: '2x10', tailCut: 'plumb-level' });
+  const [rafter] = ofRole(members, 'rafter');
+
+  it('cuts the tail plumb as deep as the fascia hangs, then level to the bottom edge', () => {
+    const corners = sectionCorners(rafter);
+    const tailTop = Math.max(...corners.filter(([y]) => Math.abs(y + 12) < 1e-9).map(([, z]) => z));
+    expect(hasCorner(corners, -12, tailTop - 6.25)).toBe(true);
+    expect(hasCorner(corners, -12 + (plumb - 6.25) * 2, tailTop - 6.25)).toBe(true);
+    expect(rafter.note).toContain('Tail 13-7/16" past the heel line on the top edge, plumb cut 6-1/4" deep, then level cut.');
+    expect(warnings).toEqual([]);
+  });
+
+  it('falls back to a plumb cut without a fascia, a long enough eave, or room under the fascia', () => {
+    expect(roofOf({ ...gableRoof, rafter: '2x8', ridge: '2x10', tailCut: 'plumb-level', fascia: 'none' }).warnings[0].message).toBe(
+      'A plumb-and-level tail cut needs a fascia. The tails are plumb cut.',
+    );
+    expect(roofOf({ ...gableRoof, rafter: '2x8', ridge: '2x10', tailCut: 'plumb-level', eaveOverhang: 2 }).warnings[0].message).toBe(
+      'A plumb-and-level tail cut needs 3-11/16" of eave overhang. The tails are plumb cut.',
+    );
+    // 2x6 rafters: the 6.15 in plumb end is no deeper than the fascia hangs, so it stays plumb.
+    const shallow = roofOf({ ...gableRoof, tailCut: 'plumb-level' });
+    expect(ofRole(shallow.members, 'rafter')[0].note).toContain('plumb cut.');
+    expect(shallow.warnings).toEqual([]);
   });
 });

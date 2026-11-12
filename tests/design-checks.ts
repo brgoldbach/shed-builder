@@ -40,6 +40,9 @@ export function designProblems(design: ShedConfig): string[] {
       new Set(cutList.map(({ mark }) => mark)).size !== cutList.length && 'two cut lines share a mark',
       numbers(outputs).some((value) => !Number.isFinite(value)) && 'an output holds NaN or Infinity',
       ...drawings.filter(({ shapes }) => shapes.length === 0).map(({ id }) => `drawing ${id} is empty`),
+      ...[...drawings, ...pieces].flatMap(({ id, dims }) =>
+        dims.filter((dim) => dim.kind === 'aligned' && Math.hypot(...(dim.along ?? [dim.to[0] - dim.from[0], dim.to[1] - dim.from[1]])) < EPSILON).map(() => `drawing ${id} has a zero-length dimension`),
+      ),
     ].filter((problem): problem is string => typeof problem === 'string');
   } catch (error) {
     return [`throws: ${error instanceof Error ? error.stack?.split('\n').slice(0, 3).join(' ') : String(error)}`];

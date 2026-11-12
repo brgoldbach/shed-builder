@@ -210,7 +210,7 @@ function deckPlan({ config, model, names, marks }: Context): Drawing | null {
   const notes = [
     ...model.leanTos.flatMap(({ side, addition, deck }) =>
       deck
-        ? [`${capitalize(names.side(side))} lean-to deck: PT ${deck.joist} joists at ${addition.deck.oc}" o.c., 2x6 deck boards, on ${addition.deck.support === 'shed' && config.foundation.type !== 'slab' ? "the shed's foundation" : 'piers'}.`]
+        ? [`${capitalize(names.side(side))} lean-to deck: PT ${deck.joist} joists at ${addition.deck.oc}" o.c., ${addition.deck.boards} deck boards, on ${addition.deck.support === 'shed' && config.foundation.type !== 'slab' ? "the shed's foundation" : 'piers'}.`]
         : [],
     ),
     ...config.ramps.map((ramp, index) => {
@@ -593,8 +593,11 @@ function cutDims(shape: Shape): Dimension[] {
   const shares = (first: readonly [Point, Point], second: readonly [Point, Point]) => first.some((point) => second.includes(point));
   const heels = edges.filter((edge) => plumb(edge) && seats.some((seat) => shares(seat, edge)));
 
-  // Without heels the top edge is the cut length, dimensioned below.
-  const marksOnTop = heels.length ? [left, ...heels.map(([from]) => onTop(from[0])).sort((first, second) => first[0] - second[0]), right] : [];
+  // Without heels the top edge is the cut length, dimensioned below. A heel at an end of the top
+  // edge, such as a tail's plumb cut above a level cut, adds no mark there.
+  const marksOnTop = (heels.length ? [left, ...heels.map(([from]) => onTop(from[0])).sort((first, second) => first[0] - second[0]), right] : []).filter(
+    (point, index, all) => index === 0 || size([all[index - 1], point]) > NEAR,
+  );
   const dims: Dimension[] = [
     ...marksOnTop.slice(1).map((point, index): Dimension => ({ kind: 'aligned', from: marksOnTop[index], to: point, offset: 16 })),
     ...seats.map(([from, to]): Dimension => {

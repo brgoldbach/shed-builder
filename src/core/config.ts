@@ -26,7 +26,8 @@ export const ROOF_STYLES = ['gable', 'gambrel', 'lean-to'] as const;
 export const LOFT_SUPPORTS = ['plates', 'hung'] as const;
 export const LOFT_OPEN_ENDS = ['none', 'left', 'right'] as const;
 export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
-export const TAIL_CUTS = ['plumb', 'square'] as const;
+// plumb-level: plumb only as deep as the fascia hangs, then level back to the rafter's bottom edge.
+export const TAIL_CUTS = ['plumb', 'square', 'plumb-level'] as const;
 export const SHEATHING = ['none', ...SHEET_KEYS] as const;
 export const FASCIA = ['none', ...TWO_BY] as const;
 // psf. 20 is the roof live load with no snow; the rest are design roof snow loads.
@@ -144,7 +145,8 @@ const roof = z.strictObject({
   style: z.enum(ROOF_STYLES).default('gable'),
   pitch: z.number().min(1, 'Min 1/12').max(24, 'Max 24/12').default(6), // rise per 12 of run; a gambrel's upper slope
   // A gambrel's steep lower slope, and its run from the eave wall's outside face to the break.
-  // auto: 1/4 of the width. Without a ridge board the upper rafters meet at the peak, gusseted.
+  // auto: lower and upper rafters of equal length. Without a ridge board the upper rafters meet at
+  // the peak, gusseted.
   gambrel: z
     .strictObject({
       lowerPitch: z.number().min(12, 'Min 12/12').max(36, 'Max 36/12').default(20),
@@ -307,6 +309,16 @@ export const hasRidgeBoard = (roof: { style: (typeof ROOF_STYLES)[number]; gambr
 /** The pitch at the eaves, per 12: a gambrel's lower slope, else the roof pitch. */
 export const eavePitch = (roof: { style: (typeof ROOF_STYLES)[number]; pitch: number; gambrel: { lowerPitch: number } }) =>
   roof.style === 'gambrel' ? roof.gambrel.lowerPitch : roof.pitch;
+
+/**
+ * The roof with `style`. A change to a gambrel takes the classic barn pitches, on a half circle with
+ * the auto break: tan 67.5° × 12 = 29 and tan 22.5° × 12 = 5. The schema defaults stay, because
+ * saved files leave out default values.
+ */
+export function withRoofStyle(roof: ShedConfig['roof'], style: ShedConfig['roof']['style']): ShedConfig['roof'] {
+  if (style !== 'gambrel' || roof.style === 'gambrel') return { ...roof, style };
+  return { ...roof, style, pitch: 5, gambrel: { ...roof.gambrel, lowerPitch: 29 } };
+}
 
 /** Model sides whose eave a lean-to roof extension takes over. */
 export const extensionSides = (additions: readonly Addition[]): Set<Addition['side']> =>

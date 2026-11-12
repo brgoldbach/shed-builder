@@ -37,6 +37,7 @@ import {
   WALLS,
   hasRidgeBoard,
   ridged,
+  withRoofStyle,
   type ShedConfig,
 } from '../core/config';
 import { useState, type ReactNode } from 'react';
@@ -333,7 +334,7 @@ function RoofSection({
   const pitches = value.style === 'gambrel' ? `${value.gambrel.lowerPitch}/12 and ${value.pitch}/12` : `${value.pitch}/12`;
   return (
     <Section title="Roof" brief={`${capitalize(value.style)}, ${pitches}, ${spacing(value.rafter, value.oc)}`}>
-      <SelectField label="Style" value={value.style} options={ROOF_STYLES} describe={capitalize} onChange={set('style')} />
+      <SelectField label="Style" value={value.style} options={ROOF_STYLES} describe={capitalize} onChange={(style) => onChange(withRoofStyle(value, style))} />
       {value.style === 'lean-to' && (
         <SelectField
           label="High side"
@@ -362,7 +363,7 @@ function RoofSection({
 
       <Group title="Overhangs" brief={`${formatInches(value.eaveOverhang)} eaves, ${formatInches(value.rakeOverhang)} rakes`}>
         <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} />
-        <SelectField label="Tail cut" value={value.tailCut} options={TAIL_CUTS} describe={capitalize} onChange={set('tailCut')} />
+        <SelectField label="Tail cut" value={value.tailCut} options={TAIL_CUTS} describe={(cut) => (cut === 'plumb-level' ? 'Plumb and level' : capitalize(cut))} onChange={set('tailCut')} />
         <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={noneLabel} onChange={set('fascia')} />
         <LengthField label="Rake overhang" value={value.rakeOverhang} onChange={set('rakeOverhang')} />
       </Group>

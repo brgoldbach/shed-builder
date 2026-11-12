@@ -71,7 +71,7 @@ export const SHEETS: Record<SheetKey, { label: string; thick: number }> = {
 
 /**
  * Default unit prices in US dollars, before tax and delivery: US home-center retail as searched in
- * November 2026 (plan, section 5.4). Lumber is per linear foot, untreated; treated adds
+ * November 2026. Lumber is per linear foot, untreated; treated adds
  * `treatedMarkup` percent. Check them against a local yard.
  */
 export const DEFAULT_PRICES = {
@@ -111,7 +111,7 @@ const SIZE_FACTOR_4IN: Record<number, number> = { 4: 1.5, 6: 1.3, 8: 1.3, 10: 1.
 /** Fb with its size factor, psi; null for sizes without dimension lumber values: 1x boards and 6x6 timbers. */
 export function bendingValue(species: Species, size: LumberSize): number | null {
   const [thick, width] = size.split('x').map(Number);
-  if (thick < 2 || thick > 4) return null;
+  if (!(thick >= 2 && thick <= 4)) return null; // also 5/4, which reads as NaN
   const { fb } = SPECIES[species];
   if (typeof fb !== 'number') return fb[width];
   return fb * (thick === 4 ? SIZE_FACTOR_4IN : SIZE_FACTOR)[width];

@@ -186,12 +186,18 @@ export function packLumber(pieces: readonly Piece[], general: readonly number[],
 /**
  * Sheets needed for rectangular pieces (long and short side), by shelves: the widest piece
  * starts a shelf across the sheet, and later pieces fill along the first shelf that fits. A piece
- * no longer than the sheet width may turn to fit a shelf.
+ * no longer than the sheet width may turn to fit a shelf. A piece larger than a sheet counts as a
+ * sheet of its own.
  */
 export function packSheets(pieces: readonly { long: number; short: number }[], kerf: number): number {
   const sorted = [...pieces].sort((first, second) => second.short - first.short || second.long - first.long);
   const sheets: { shelves: { height: number; used: number }[]; height: number }[] = [];
+  let oversize = 0;
   for (const { long, short } of sorted) {
+    if (long > SHEET_LENGTH + NEAR || short > SHEET_WIDTH + NEAR) {
+      oversize++;
+      continue;
+    }
     const turns = long <= SHEET_WIDTH + NEAR ? [[long, short], [short, long]] : [[long, short]];
     const fit = sheets
       .flatMap(({ shelves }) => shelves)
@@ -209,7 +215,7 @@ export function packSheets(pieces: readonly { long: number; short: number }[], k
       sheets.push({ shelves: [{ height: short, used: long }], height: short });
     }
   }
-  return sheets.length;
+  return sheets.length + oversize;
 }
 
 // Each panel is cut from the rectangle around it.
@@ -264,12 +270,13 @@ function concrete(solids: readonly Solid[], prices: Prices): Line[] {
     pour(`Concrete, ${piers.length} piers`, piers);
     const [first] = piers;
     if (first.shape.kind === 'cylinder') {
-      const { radius, height } = first.shape;
+      // Lean-to piers under a deck stop at the deck beam, so their tubes can differ in length.
+      const heights = [...Map.groupBy(piers, ({ shape }) => formatInches(shape.kind === 'cylinder' ? shape.height : 0))];
       lines.push({
-        item: `Form tube, ${formatInches(2 * radius)}`,
+        item: `Form tube, ${formatInches(2 * first.shape.radius)}`,
         quantity: piers.length,
         unit: 'ea',
-        note: `${formatInches(height)} each.`,
+        note: heights.length === 1 ? `${heights[0][0]} each.` : `${heights.map(([height, group]) => `${group.length} at ${height}`).join(', ')}.`,
         cost: each(piers.length, formTube),
       });
     }

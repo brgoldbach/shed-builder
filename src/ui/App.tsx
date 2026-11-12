@@ -15,6 +15,7 @@ import { buildDrawings } from '../drawings/sheets';
 import { backupDesign, browserStore, restore, save } from './autosave';
 import { BomView } from './BomView';
 import { ChangelogDialog } from './ChangelogDialog';
+import { ConfirmDialog } from './ConfirmDialog';
 import { CutListTable } from './CutListTable';
 import { SpanTable } from './SpanTable';
 import { DesignForm } from './DesignForm';
@@ -86,6 +87,7 @@ export function App() {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [question, setQuestion] = useState<{ text: string; action: string; accept: () => void } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const model = useMemo(() => buildModel(config), [config]);
@@ -140,11 +142,16 @@ export function App() {
         setLoadError({ file: 'the shared link', errors: result.errors });
         return;
       }
-      const question = `Open the shared design "${result.config.name}"? It replaces the design in this browser. Save yours first to keep it.`;
-      if (hadDesign && !confirm(question)) return;
-      setDesignHistory(change(result.config));
-      setRevision((count) => count + 1);
-      setLoadError(null);
+      const open = () => {
+        setDesignHistory(change(result.config));
+        setRevision((count) => count + 1);
+        setLoadError(null);
+      };
+      if (!hadDesign) open();
+      else {
+        const text = `Open the shared design "${result.config.name}"? It replaces the design in this browser. Save yours first to keep it.`;
+        setQuestion({ text, action: 'Open', accept: open });
+      }
     }
     void openLink();
     window.addEventListener('hashchange', openLink);
@@ -214,6 +221,16 @@ export function App() {
           v{APP_VERSION}
         </button>
         {changelogOpen && <ChangelogDialog onClose={() => setChangelogOpen(false)} />}
+        {question && (
+          <ConfirmDialog
+            question={question.text}
+            action={question.action}
+            onAnswer={(yes) => {
+              setQuestion(null);
+              if (yes) question.accept();
+            }}
+          />
+        )}
         <span className="muted title">{config.name}</span>
         <div className="actions">
           <button title="Undo (Ctrl+Z)" disabled={designHistory.past.length === 0} onClick={() => setDesignHistory(undo)}>
@@ -227,7 +244,7 @@ export function App() {
             aria-label="New from preset"
             onChange={(event) => {
               const preset = PRESETS[Number(event.target.value)];
-              if (confirm(`Replace the current design with "${preset.name}"?`)) replace(preset);
+              setQuestion({ text: `Replace the current design with "${preset.name}"?`, action: 'Replace', accept: () => replace(preset) });
             }}
           >
             <option value="" disabled>
