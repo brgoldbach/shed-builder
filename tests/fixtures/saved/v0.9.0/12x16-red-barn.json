@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "name": "12x16 red barn",
+  "width": 144,
+  "length": 192,
+  "front": "gable",
+  "foundation": { "type": "skid", "skid": { "size": "4x6", "count": 4 } },
+  "openingTypes": [
+    { "name": "barn doors 72x80", "kind": "door", "width": 74, "height": 82.5 },
+    { "name": "hay door 36x40", "kind": "door", "width": 38, "height": 40 },
+    { "name": "attic window 18x24", "kind": "window", "width": 18, "height": 24 },
+    { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 }
+  ],
+  "openings": [
+    { "type": "barn doors 72x80", "wall": "left", "at": [50] },
+    { "type": "hay door 36x40", "wall": "left", "sill": 104, "at": [50] },
+    { "type": "attic window 18x24", "wall": "right", "sill": 108, "at": [30, 70] },
+    { "type": "window 24x36", "wall": "front", "sill": 46.25, "at": [50] },
+    { "type": "window 24x36", "wall": "back", "sill": 46.25, "at": [50] }
+  ],
+  "roof": {
+    "style": "gambrel",
+    "pitch": 5,
+    "gambrel": { "lowerPitch": 29 },
+    "tailCut": "plumb-level",
+    "loft": { "enabled": true }
+  },
+  "ramps": [{ "opening": { "row": 0, "index": 0 } }],
+  "finishes": {
+    "siding": "board-batten",
+    "sidingColor": "#8f2a22",
+    "trimColor": "#f4f1ea",
+    "roofColor": "#3b3d40",
+    "doorColor": "#8f2a22"
+  }
+}
