@@ -11,6 +11,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   shows what it does in a floating box, and for a list with less plain choices, what each choice
   does. A click or tap on the `?` or on the name keeps the box open until the next click.
 
+### Fixed
+
+- A wood ramp on a slab got lag screws into floor framing in the BOM. It now gets concrete anchors
+  into the slab edge, two at each stringer, at the anchor bolt price.
+
 ## [0.9.0] - 2026-11-12
 
 ### Added
