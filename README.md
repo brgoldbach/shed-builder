@@ -39,6 +39,7 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 | `npm test` | Runs the unit and golden-file tests |
 | `npm run lint` | Runs ESLint |
 | `npm run gate` | Runs the tests, lint, the type check, and the build |
+| `npm run test:ui` | Runs the browser test in Chromium. First run `npx playwright install chromium`. |
 
 ## Hosting
 

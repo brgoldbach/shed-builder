@@ -16,6 +16,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Blocking:** the floor switch "Mid-span blocking" is now "Blocking". The row stays at half the
   joist length. With an odd number of skids or girders, such as the default 3, that is over the
   middle one, where it holds the joists upright. The floor plan note now says where the row goes.
+- Development only: `npm run test:ui` runs a browser test of the built app in Chromium: the load,
+  the 3D view, an edit, both downloads, and a stored design that does not load. A GitHub workflow
+  job runs it on each pull request.
 
 ### Fixed
 
