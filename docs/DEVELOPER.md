@@ -14,7 +14,11 @@ Update this guide and the detailed documents below in the same commit as any cha
 | [additions-and-finishes.md](additions-and-finishes.md) | Lean-tos and their decks, ramps, sheathing, and the visual finishes. |
 | [outputs.md](outputs.md) | The cut list, lumber and sheet packing, concrete, hardware, roofing, costs, span checks, and CSV. |
 | [drawings.md](drawings.md) | Drawing views and projection, each sheet and its dimensions, SVG layout, the zoom viewer, and the PDF. |
-| [ui.md](ui.md) | App state, undo, storage, the form and its editors, the 3D view, the phone layout, and the build scripts. |
+| [ui.md](ui.md) | App state and data flow, undo, the storage flows, the error banner and recovery page, the form and its editors, the 3D view, and the phone layout. |
+
+A document states contracts, rules, and the reasons for them. It does not repeat a function body,
+a test list, a schema field by field, or a value that the code names. Each fact lives in one
+document; another document links to it.
 
 ## Decisions
 
@@ -62,12 +66,10 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | Axes | x runs along the length, left to right. y runs front to back. z is up from the floor surface: the subfloor top, or the slab top. |
 | Sides | The model's front and back are always the eave walls; left and right are the gable ends. `front: 'gable'` only renames the sides (`src/core/naming.ts`). Config fields such as `openings[].wall` and `additions[].side` use model sides. |
 | Member | One piece of lumber: `origin`, `axes`, `length`, and an optional `profile` for angled cuts (`src/core/member.ts`). |
-| Cut length | A profiled member's length is its extent along the board: long point to long point. `planeMember` (`src/core/gen/section.ts`) sets it from the outline. |
 | Solid | A non-lumber part: concrete, a sheet, or steel. |
 | Ids and marks | A generator names members with `idMaker(prefix)`, for example `RF-R01`. The cut list groups identical members and gives each line a mark: the assembly prefix and a number, for example `RF-2`. |
 | Warnings | `{ source, message }`. A generator warns and goes on; it never throws on a valid config. |
 | Left out | The app builds what the user enters wherever the parts can exist, and warns. A part whose framing would collide is left out: its warning carries `missing`, a loop in model coordinates, and its message ends with `LEFT_OUT`. The 3D view and the drawings of `missing.assembly` draw the loop in red. |
-| Splices | `splitPlate` splits a long run at stud centers, at most `catalog.maxLength` apart. |
 | Comments | Comment intent only: a non-obvious rule, an equation, a units constraint. |
 | File size | Split a file when a change there is hard, not for its length. |
 
@@ -114,84 +116,16 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `scripts/release.mjs`, `scripts/changelog.ts` | The release file edits: the version check, the CHANGELOG heading and link line, the release notes. |
 | `.github/workflows/` | `gate.yml`; `release-command.yml` and `release.yml` (see Release). |
 
-## Build order
+## Where the rest is
 
-`buildModel` (`src/core/model.ts`) runs the generators in this order. The first three read only
-the config; the later ones also read what came before.
-
-1. `frameFloor`: foundation and floor.
-2. `frameWalls`: walls and their openings.
-3. `frameRoof`: roof, a gambrel's gussets, gable ends, and through `frameAttic` the ties, loft,
-   and knee walls.
-4. `frameAdditions`: lean-tos. They need the main roof's soffit and eave facts, and the shed members.
-5. `frameRamps`: ramps. They need grade, from the foundation members.
-6. `frameSheathing`: sheets. They need the members, openings, roof planes, and loft deck.
-
-Grade comes from `gradeOf` (`src/core/gen/floor.ts`): the slab top, the skid bottoms, or the pier
-tops less their height above grade. The floor surface is z = 0.
-
-## Config rules
-
-- Every field has a default. Each nested object uses `.prefault({})`, so `{ "schemaVersion": 1 }`
-  parses to a full design.
-- Objects are strict: an unknown key fails the parse. If you rename or remove a field, add an
-  upgrade step in `parseConfig`, as `keepWallHeight` does, so old files still load.
-- `schemaVersion` stays 1 until an old file needs an upgrade step to load. A new field with a
-  default does not change it.
-- The app never blocks a design for being unusual. It builds what it can and warns.
-
-## Saved files and links
-
-| Form | Content | Code |
-|---|---|---|
-| Autosave | The full design, in `localStorage` key `shed-builder.config`. A setting you switch away from keeps its value. A stored design that does not load goes to `shed-builder.config.backup`, and the banner offers it as a download. | `src/ui/autosave.ts` |
-| Saved file | The pruned design, without default values. | `designFileText` |
-| Share link | `#design=` and the compact JSON, deflate-raw compressed, base64url. | `designToLink`, `designFromLink` |
-
-The compact form: `pruneConfig`, then strip each default value. List items keep the keys that a
-file must give. A value whose default depends on another field comes back. When the compact form
-does not load back to the same design, the full pruned design goes in instead.
-
-`pruneConfig` must not change the output. The prune test builds each design before and after.
-
-Files from earlier releases must keep loading (`tests/saved.test.ts`). A change that makes one fail
-needs `schemaVersion` 2 and a step in `parseConfig` that upgrades version 1. Each release adds
-copies of the presets and test designs that changed (`scripts/release.mjs prepare`).
-
-## Drawings and PDF
-
-A `Drawing` holds shapes (projected members and solids), dimensions (`chain`, `running`,
-`aligned`), labels, dashed outlines, and notes. `buildDrawings` returns them in sheet order:
-
-1. Foundation plan.
-2. Floor framing plan.
-3. Decks and ramps.
-4. Wall elevations, in the user's side order.
-5. Gable-end elevations.
-6. Loft framing plan.
-7. Knee-wall elevations.
-8. Roof framing plan.
-9. Building section.
-10. Common rafter, or Gambrel rafters on a gambrel roof.
-11. Gussets, on a gambrel roof.
-12. Cut-length key.
-
-A sheet with nothing to show is left out. On screen, `DrawingSvg` renders each drawing. The PDF
-puts one drawing on each sheet, at the largest standard scale that fits, with a title block. When a
-share link exists, the last sheet holds it as a QR code.
-
-## User interface
-
-- `App.tsx` holds the config inside an undo history (`history.ts`). Every output is a `useMemo` of
-  the config. A change that leaves the design as it was is not an undo step.
-- A form edit goes through `edit(next)`, which validates with `shedSchema.safeParse`. A section
-  component gets `value` and `onChange` (`SectionProps`).
-- A load (file, preset, link) goes through `replace(next)`, which remounts the form.
-- 3D layers come from `LAYERS` in `src/core/member.ts`. The Framing and Finished buttons hide sets
-  of layers.
-- The phone layout starts at 760 px. `PHONE` in `App.tsx` and the media query in `app.css` must
-  match.
-- The changelog dialog reads `CHANGELOG.md` at build time and parses its `##` and `###` sections.
+| Subject | Document |
+|---|---|
+| Build order: floor, walls, roof, additions, ramps, sheathing, and what each reads | [framing.md §3](framing.md#3-build-order) |
+| Config rules: defaults, strict objects, `schemaVersion`, upgrade steps, old files | [design-model.md §1](design-model.md#1-the-config) and [§6](design-model.md#6-files-and-versions) |
+| Autosave, saved files, and share links | [design-model.md §8 and §9](design-model.md#9-autosave-saved-file-and-link) |
+| Drawing sheets and their order, the PDF | [drawings.md §3](drawings.md#3-sheets) |
+| App state, edits, undo, the 3D view, the phone layout | [ui.md](ui.md) |
+| What the span checks cover and leave out | [outputs.md §8](outputs.md#8-span-checks) and [§8.10](outputs.md#810-not-checked) |
 
 ## Recipes
 
@@ -267,16 +201,6 @@ commit. It also runs in two other places:
 
 Lint also keeps `src/core` and `src/drawings` free of React, the DOM, and Three.js
 (`eslint.config.js`).
-
-## Span checks
-
-`checkSpans` checks rafters (a gambrel's lower and upper rafters apart), floor joists, loft joists,
-opening headers, pier girders, lean-to rafters and beams, and lean-to deck joists and beams. Girder
-checks cover the shed's own girders.
-It does not check studs, the ridge board, a deck's own skids and girders,
-rafter and collar ties, a gambrel's gussets and the thrust at its break, skids, loft ledgers, posts,
-ramps, lean-to loads on the main-wall headers and girders, the deck ledger's load on the floor
-framing, pier bearing on soil, wind, uplift, wall bracing, or connections.
 
 ## Release
 

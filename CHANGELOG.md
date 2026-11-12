@@ -11,6 +11,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   The extra manual `gate` run is gone: GitHub did not count it for the pull request.
 - Development only: tests load the preset and test-design files of every release, and build 300
   random designs on each run. A search of 5,000 random designs found no design that breaks a rule.
+- Development only: the developer documents are about half as long (7,647 to 4,024 lines). Each
+  states rules, contracts, and reasons, and each fact lives in one document. Text that repeated
+  the code or another document is cut, and several statements that the code contradicted are
+  corrected.
 
 ## [0.8.2] - 2026-11-12
 
