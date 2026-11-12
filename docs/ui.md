@@ -270,6 +270,43 @@ the same edit (`withRoofStyle` in `config.ts`). With the auto break, the four ra
 half circle. The schema defaults stay 20/12 and 6/12, because saved files leave out default values
 ([design-model.md §6.4](design-model.md#64-change-a-default)).
 
+### Help
+
+Each setting has a `?` beside its label, and each feature switch beside its fold title (`useHelp`
+in `fields.tsx`). The text comes from `src/ui/help/design.ts` and `src/ui/help/editors.ts`, keyed
+by the setting's config path. A select's entry can also have a line for a choice, keyed by the
+choice's value.
+
+The help shows in a floating box under the setting's row: a `popover="manual"` element, in the top
+layer, so the scrolling side panel cannot clip it. `useHelp` places it below the row, or above when
+there is no room below, inside the window. The row is the field's `<label>`, or a fold's header.
+
+| Input | Result |
+|---|---|
+| A mouse rests on the row for `HOVER_DELAY` (1 s): on the name, the input, or the `?` | The box opens. It closes when the mouse leaves the row or the page scrolls. |
+| A press on a control in the row, such as the input | A pending or hover-opened box closes: the user is editing, not reading. |
+| A click or tap on the `?`, or on a field's name | The box stays open, and follows the `?` when the form scrolls. The next click anywhere, or Esc, closes it. |
+| A click on another `?` while a box is pinned | The pinned box closes, and the other box opens. |
+| A click on a name while a box is pinned | The pinned box closes. No box opens, also on the name of the same setting. |
+
+Decisions:
+
+- Hover waits 1 s, so a mouse that passes over a setting opens nothing.
+- Only a mouse hovers: a tap also fires pointer events. A tap only pins.
+- A fold's box goes after the `<details>`: inside a closed fold it would not render.
+- The `?` button cancels its own click, so a click on it does not toggle a checkbox in its label or
+  a fold in its summary.
+- A field's `<label>` handles a click on its name itself. Else the label sends the click to its
+  first labelable child, the `?`: the press closes the box, and the click opens it again.
+- An off fold's title names its switch with `htmlFor`, so a click on the title turns the feature on.
+- An input in a field row has no `title`: the row shows its name, and the browser's own tooltip would
+  open beside the help box. A bare input with no visible name, as in an opening row, keeps its
+  `title` (`tooltip`).
+- Keep an entry short: what the setting is, and its main effect. Leave out details the user can
+  see in the form or the BOM, such as lumber dimensions.
+- Give choice lines only where the choice is not plain from its name, as for the foundation type or
+  roof style. Check each statement against the generator code.
+
 ### Folds: `Section`, `Group`, `Card`
 
 All three are `Fold` with a `kind`.

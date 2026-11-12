@@ -21,6 +21,7 @@ import { supportLines } from '../core/gen/supports';
 import { naming, type Naming } from '../core/naming';
 import { formatInches, formatLength } from '../core/units';
 import { Card, CheckField, Group, LengthField, NumberField, SelectField, capitalize, setter, type SectionProps } from './fields';
+import { EDITOR_HELP } from './help/editors';
 
 const FLOOR_LABELS = { none: 'None: posts on piers', slab: 'Slab', deck: 'Deck: posts on piers' };
 const FLOOR_BRIEFS = { none: 'None', slab: 'Slab', deck: 'Deck' };
@@ -105,8 +106,8 @@ function AdditionCard({
         </button>
       }
     >
-      <SelectField label="Side" value={value.side} options={WALLS} describe={(side) => capitalize(names.side(side))} onChange={set('side')} />
-      <CheckField label="Mirror to the opposite side" value={value.mirror} onChange={set('mirror')} />
+      <SelectField label="Side" value={value.side} options={WALLS} describe={(side) => capitalize(names.side(side))} onChange={set('side')} help={EDITOR_HELP['additions.side']} />
+      <CheckField label="Mirror to the opposite side" value={value.mirror} onChange={set('mirror')} help={EDITOR_HELP['additions.mirror']} />
       <SelectField
         label="Attachment"
         value={value.attach}
@@ -114,21 +115,23 @@ function AdditionCard({
         describe={(attach) => ATTACH_LABELS[attach]}
         // An extension takes over the whole eave.
         onChange={(attach) => onChange({ ...value, attach, ...(attach === 'extension' && { length: 'full' as const }) })}
+        help={EDITOR_HELP['additions.attach']}
       />
       {extension && <p className="muted hint">On an eave the main roof slopes down to. Its rafters lap the main rafters.</p>}
       <Group title="Size" brief={`${formatLength(value.depth)} deep, ${value.length === 'full' ? 'full length' : `${formatLength(value.length)} long`}`}>
-        <LengthField label="Depth (wall to post outside)" value={value.depth} onChange={set('depth')} />
+        <LengthField label="Depth (wall to post outside)" value={value.depth} onChange={set('depth')} help={EDITOR_HELP['additions.depth']} />
         {!extension && (
           <CheckField
             label="Full wall length"
             value={value.length === 'full'}
             onChange={(full) => onChange({ ...value, length: full ? 'full' : 96 })}
+            help={EDITOR_HELP['additions.length:full']}
           />
         )}
         {value.length !== 'full' && (
           <>
-            <LengthField label="Length" value={value.length} onChange={set('length')} />
-            <NumberField label="Center (% from left corner)" value={value.center} onChange={set('center')} />
+            <LengthField label="Length" value={value.length} onChange={set('length')} help={EDITOR_HELP['additions.length']} />
+            <NumberField label="Center (% from left corner)" value={value.center} onChange={set('center')} help={EDITOR_HELP['additions.center']} />
           </>
         )}
       </Group>
@@ -140,34 +143,35 @@ function AdditionCard({
           label={extension ? 'Main roof plane' : 'Main roof pitch'}
           value={value.pitch === 'main'}
           onChange={(main) => onChange({ ...value, pitch: main ? 'main' : 3 })}
+          help={EDITOR_HELP['additions.pitch:main']}
         />
-        {value.pitch !== 'main' && <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} />}
-        {!extension && <LengthField label="Ledger drop" value={value.drop} onChange={set('drop')} />}
-        <SelectField label="Rafters" value={value.rafter} options={TWO_BY} onChange={set('rafter')} />
-        <SelectField label="Rafter spacing" value={value.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={set('oc')} />
-        <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} />
-        <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={(size) => (size === 'none' ? 'None' : size)} onChange={set('fascia')} />
-        <SelectField label="Roofing" value={value.roofing} options={LEAN_TO_ROOFING} describe={(roofing) => ROOFING_LABELS[roofing]} onChange={set('roofing')} />
+        {value.pitch !== 'main' && <NumberField label="Pitch (in / 12)" value={value.pitch} onChange={set('pitch')} help={EDITOR_HELP['additions.pitch']} />}
+        {!extension && <LengthField label="Ledger drop" value={value.drop} onChange={set('drop')} help={EDITOR_HELP['additions.drop']} />}
+        <SelectField label="Rafters" value={value.rafter} options={TWO_BY} onChange={set('rafter')} help={EDITOR_HELP['additions.rafter']} />
+        <SelectField label="Rafter spacing" value={value.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={set('oc')} help={EDITOR_HELP['additions.oc']} />
+        <LengthField label="Eave overhang" value={value.eaveOverhang} onChange={set('eaveOverhang')} help={EDITOR_HELP['additions.eaveOverhang']} />
+        <SelectField label="Fascia" value={value.fascia} options={FASCIA} describe={(size) => (size === 'none' ? 'None' : size)} onChange={set('fascia')} help={EDITOR_HELP['additions.fascia']} />
+        <SelectField label="Roofing" value={value.roofing} options={LEAN_TO_ROOFING} describe={(roofing) => ROOFING_LABELS[roofing]} onChange={set('roofing')} help={EDITOR_HELP['additions.roofing']} />
         {value.roofing === 'metal' && (
           <>
-            <SelectField label="Purlins" value={value.purlin} options={PURLINS} describe={(size) => `${size} flat`} onChange={set('purlin')} />
-            <LengthField label="Purlin spacing" value={value.purlinSpacing} onChange={set('purlinSpacing')} />
+            <SelectField label="Purlins" value={value.purlin} options={PURLINS} describe={(size) => `${size} flat`} onChange={set('purlin')} help={EDITOR_HELP['additions.purlin']} />
+            <LengthField label="Purlin spacing" value={value.purlinSpacing} onChange={set('purlinSpacing')} help={EDITOR_HELP['additions.purlinSpacing']} />
           </>
         )}
       </Group>
       <Group title="Posts and beam" brief={`${value.post} posts, ${value.beamPlies}-ply ${value.beam}`}>
-        <SelectField label="Posts" value={value.post} options={LEAN_TO_POSTS} onChange={set('post')} />
-        <LengthField label="Max post spacing" value={value.maxSpacing} onChange={set('maxSpacing')} />
-        <SelectField label="Beam" value={value.beam} options={TWO_BY} onChange={set('beam')} />
-        <SelectField label="Beam plies" value={value.beamPlies} options={[1, 2, 3]} onChange={set('beamPlies')} />
+        <SelectField label="Posts" value={value.post} options={LEAN_TO_POSTS} onChange={set('post')} help={EDITOR_HELP['additions.post']} />
+        <LengthField label="Max post spacing" value={value.maxSpacing} onChange={set('maxSpacing')} help={EDITOR_HELP['additions.maxSpacing']} />
+        <SelectField label="Beam" value={value.beam} options={TWO_BY} onChange={set('beam')} help={EDITOR_HELP['additions.beam']} />
+        <SelectField label="Beam plies" value={value.beamPlies} options={[1, 2, 3]} onChange={set('beamPlies')} help={EDITOR_HELP['additions.beamPlies']} />
       </Group>
       <Group title="Floor" brief={value.floor === 'deck' ? `Deck, ${value.deck.joist} at ${value.deck.oc}", on ${shed ? `the shed's ${supports?.kind === 'skid' ? 'skids' : 'girders'}` : 'piers'}` : FLOOR_BRIEFS[value.floor]}>
-        <SelectField label="Floor" value={value.floor} options={LEAN_TO_FLOORS} describe={(floor) => FLOOR_LABELS[floor]} onChange={set('floor')} />
+        <SelectField label="Floor" value={value.floor} options={LEAN_TO_FLOORS} describe={(floor) => FLOOR_LABELS[floor]} onChange={set('floor')} help={EDITOR_HELP['additions.floor']} />
         {value.floor === 'deck' && (
           <>
-            <SelectField label="Deck joists" value={value.deck.joist} options={TWO_BY} onChange={deck('joist')} />
-            <SelectField label="Deck joist spacing" value={value.deck.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={deck('oc')} />
-            <SelectField label="Deck boards" value={value.deck.boards} options={DECK_BOARDS} describe={(boards) => BOARD_LABELS[boards]} onChange={deck('boards')} />
+            <SelectField label="Deck joists" value={value.deck.joist} options={TWO_BY} onChange={deck('joist')} help={EDITOR_HELP['additions.deck.joist']} />
+            <SelectField label="Deck joist spacing" value={value.deck.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={deck('oc')} help={EDITOR_HELP['additions.deck.oc']} />
+            <SelectField label="Deck boards" value={value.deck.boards} options={DECK_BOARDS} describe={(boards) => BOARD_LABELS[boards]} onChange={deck('boards')} help={EDITOR_HELP['additions.deck.boards']} />
             {supports && (
               <SelectField
                 label="Deck support"
@@ -175,6 +179,7 @@ function AdditionCard({
                 options={DECK_SUPPORTS}
                 describe={(support) => (support === 'piers' ? 'Piers under a beam' : `The shed's ${lines}, continued`)}
                 onChange={deck('support')}
+                help={EDITOR_HELP['additions.deck.support']}
               />
             )}
             {shed && gable && (
@@ -184,9 +189,10 @@ function AdditionCard({
                 options={DECK_JOINS}
                 describe={(join) => (join === 'continue' ? `Run the shed's ${lines} on out` : `Own ${lines}, in line`)}
                 onChange={deck('join')}
+                help={EDITOR_HELP['additions.deck.join']}
               />
             )}
-            <LengthField label="Deck below the shed floor" value={value.deck.drop} onChange={deck('drop')} />
+            <LengthField label="Deck below the shed floor" value={value.deck.drop} onChange={deck('drop')} help={EDITOR_HELP['additions.deck.drop']} />
             <p className="muted hint">
               {shed && supports
                 ? `Joists on the ${lines}. ${deckHeight()} The posts stand on the deck beam.`

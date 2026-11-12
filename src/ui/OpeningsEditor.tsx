@@ -27,6 +27,7 @@ import {
   type Edit,
   type SectionProps,
 } from './fields';
+import { EDITOR_HELP } from './help/editors';
 
 type Kind = OpeningType['kind'];
 interface Size {
@@ -194,13 +195,14 @@ function TypeCard({ value, open, uses, onChange, onRemove }: TypeCardProps) {
         </button>
       }
     >
-      <TextField label="Name" value={value.name} onChange={set('name')} />
+      <TextField label="Name" value={value.name} onChange={set('name')} help={EDITOR_HELP['openingTypes.name']} />
       <SelectField
         label="Kind"
         value={value.kind}
         options={OPENING_KINDS}
         describe={(kind) => KIND_LABELS[kind]}
         onChange={(kind) => resize(kind, DEFAULT_SIZE[kind].width, DEFAULT_SIZE[kind].height)}
+        help={EDITOR_HELP['openingTypes.kind']}
       />
       {sizes && (
         <SelectField
@@ -212,16 +214,18 @@ function TypeCard({ value, open, uses, onChange, onRemove }: TypeCardProps) {
             const preset = sizes.find((candidate) => candidate.label === label);
             return preset ? resize(value.kind, preset.width, preset.height) : null;
           }}
+          help={EDITOR_HELP['openingTypes.size']}
         />
       )}
-      <LengthField label="RO width" value={value.width} onChange={(width) => resize(value.kind, width, value.height)} />
-      <LengthField label="RO height" value={value.height} onChange={(height) => resize(value.kind, value.width, height)} />
+      <LengthField label="RO width" value={value.width} onChange={(width) => resize(value.kind, width, value.height)} help={EDITOR_HELP['openingTypes.width']} />
+      <LengthField label="RO height" value={value.height} onChange={(height) => resize(value.kind, value.width, height)} help={EDITOR_HELP['openingTypes.height']} />
       <SelectField
         label="Girder"
         value={value.girder}
         options={HEADER_STYLES}
         describe={(style) => GIRDER_LABELS[style]}
         onChange={set('girder')}
+        help={EDITOR_HELP['openingTypes.girder']}
       />
       {value.girder !== 'flat' && (
         <SelectField
@@ -230,13 +234,14 @@ function TypeCard({ value, open, uses, onChange, onRemove }: TypeCardProps) {
           options={HEADER_SIZES}
           describe={(choice) => (choice === 'default' ? 'Wall default' : choice)}
           onChange={(choice) => set('header')(choice === 'default' ? undefined : choice)}
+          help={EDITOR_HELP['openingTypes.header']}
         />
       )}
-      <CheckField label="Flat plate below header" value={value.plateBelow} onChange={set('plateBelow')} />
-      <CheckField label="Flat plate above header" value={value.plateAbove} onChange={set('plateAbove')} />
-      <SelectField label="Jacks per side" value={value.jacks} options={JACKS} onChange={set('jacks')} />
+      <CheckField label="Flat plate below header" value={value.plateBelow} onChange={set('plateBelow')} help={EDITOR_HELP['openingTypes.plateBelow']} />
+      <CheckField label="Flat plate above header" value={value.plateAbove} onChange={set('plateAbove')} help={EDITOR_HELP['openingTypes.plateAbove']} />
+      <SelectField label="Jacks per side" value={value.jacks} options={JACKS} onChange={set('jacks')} help={EDITOR_HELP['openingTypes.jacks']} />
       {value.kind === 'overhead' && (
-        <LengthField label="Headroom needed" value={value.headroom} onChange={set('headroom')} />
+        <LengthField label="Headroom needed" value={value.headroom} onChange={set('headroom')} help={EDITOR_HELP['openingTypes.headroom']} />
       )}
     </Card>
   );

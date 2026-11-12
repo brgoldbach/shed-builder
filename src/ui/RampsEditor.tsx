@@ -6,6 +6,7 @@ import { naming } from '../core/naming';
 import { openingLabel } from '../core/placement';
 import { formatInches, formatLength } from '../core/units';
 import { Card, Group, LengthField, NumberField, SelectField, capitalize, setter, type SectionProps } from './fields';
+import { EDITOR_HELP } from './help/editors';
 
 const ALONG_LABELS: Record<Ramp['along'], string> = { percent: 'Center, % along the wall', left: 'From the left corner', right: 'From the right corner' };
 const MATERIAL_LABELS: Record<Ramp['material'], string> = { wood: 'Wood: 2x6 boards on stringers', concrete: 'Concrete' };
@@ -101,37 +102,38 @@ function RampCard({ value, index, open, config, onChange, onRemove }: CardProps)
           options={options}
           describe={(key) => (key === FREE ? 'No opening: placed below' : key === GONE ? 'An opening that is gone' : choices.get(key)!)}
           onChange={follow}
+          help={EDITOR_HELP['ramps.opening']}
         />
         {value.opening ? (
-          <LengthField label="Wider than the RO, each side" value={value.margin} onChange={set('margin')} />
+          <LengthField label="Wider than the RO, each side" value={value.margin} onChange={set('margin')} help={EDITOR_HELP['ramps.margin']} />
         ) : (
           <>
-            <SelectField label="Wall" value={value.wall} options={names.sides} describe={(wall) => capitalize(names.side(wall))} onChange={set('wall')} />
-            <SelectField label="Position from" value={value.along} options={ALONG} describe={(along) => ALONG_LABELS[along]} onChange={set('along')} />
+            <SelectField label="Wall" value={value.wall} options={names.sides} describe={(wall) => capitalize(names.side(wall))} onChange={set('wall')} help={EDITOR_HELP['ramps.wall']} />
+            <SelectField label="Position from" value={value.along} options={ALONG} describe={(along) => ALONG_LABELS[along]} onChange={set('along')} help={EDITOR_HELP['ramps.along']} />
             {value.along === 'percent' ? (
-              <NumberField label="Center (% of the wall)" value={value.at} onChange={set('at')} />
+              <NumberField label="Center (% of the wall)" value={value.at} onChange={set('at')} help={EDITOR_HELP['ramps.at:percent']} />
             ) : (
-              <LengthField label="Corner to the near edge" value={value.at} onChange={set('at')} />
+              <LengthField label="Corner to the near edge" value={value.at} onChange={set('at')} help={EDITOR_HELP['ramps.at:corner']} />
             )}
-            <LengthField label="Width" value={value.width} onChange={set('width')} />
+            <LengthField label="Width" value={value.width} onChange={set('width')} help={EDITOR_HELP['ramps.width']} />
           </>
         )}
       </Group>
       <Group title="Slope" brief={`1 in ${value.slope}${value.belowGrade > 0 ? `, foot ${formatInches(value.belowGrade)} below grade` : ''}`}>
-        <NumberField label="Slope: run per 1 of rise" value={value.slope} onChange={set('slope')} />
-        <LengthField label="Foot below grade" value={value.belowGrade} onChange={set('belowGrade')} />
+        <NumberField label="Slope: run per 1 of rise" value={value.slope} onChange={set('slope')} help={EDITOR_HELP['ramps.slope']} />
+        <LengthField label="Foot below grade" value={value.belowGrade} onChange={set('belowGrade')} help={EDITOR_HELP['ramps.belowGrade']} />
       </Group>
       <Group
         title="Build"
         brief={value.material === 'concrete' ? `Concrete, ${formatInches(value.thickness)} base` : `${value.stringer} stringers at ${value.oc}"`}
       >
-        <SelectField label="Material" value={value.material} options={RAMP_MATERIALS} describe={(material) => MATERIAL_LABELS[material]} onChange={set('material')} />
+        <SelectField label="Material" value={value.material} options={RAMP_MATERIALS} describe={(material) => MATERIAL_LABELS[material]} onChange={set('material')} help={EDITOR_HELP['ramps.material']} />
         {value.material === 'concrete' ? (
-          <LengthField label="Thickness under the foot" value={value.thickness} onChange={set('thickness')} />
+          <LengthField label="Thickness under the foot" value={value.thickness} onChange={set('thickness')} help={EDITOR_HELP['ramps.thickness']} />
         ) : (
           <>
-            <SelectField label="Stringers" value={value.stringer} options={TWO_BY} onChange={set('stringer')} />
-            <SelectField label="Stringer spacing" value={value.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={set('oc')} />
+            <SelectField label="Stringers" value={value.stringer} options={TWO_BY} onChange={set('stringer')} help={EDITOR_HELP['ramps.stringer']} />
+            <SelectField label="Stringer spacing" value={value.oc} options={SPACINGS} describe={(oc) => `${oc}" o.c.`} onChange={set('oc')} help={EDITOR_HELP['ramps.oc']} />
           </>
         )}
       </Group>

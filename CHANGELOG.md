@@ -3,6 +3,14 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Setting help:** a mouse resting for 1 s on a setting (its name, its box, or the `?` beside it)
+  shows what it does in a floating box, and for a list with less plain choices, what each choice
+  does. A click or tap on the `?` or on the name keeps the box open until the next click.
+
 ## [0.9.0] - 2026-11-12
 
 ### Added

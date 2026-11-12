@@ -134,7 +134,8 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 1. Add the field and its default in `src/core/config.ts`.
 2. Read it in the generator.
 3. If it applies only with some other choice, add the rule to `pruneConfig`.
-4. Add the field to its section in `src/ui/DesignForm.tsx`.
+4. Add the field to its section in `src/ui/DesignForm.tsx`, with its help: an entry in
+   `src/ui/help/design.ts` (or `editors.ts` for a list editor), keyed by its config path.
 5. Add unit tests. If no test design uses it, set it in a fixture in `tests/fixtures`.
 6. Add a CHANGELOG entry under `[Unreleased]`, and update README and this guide if they describe
    it.
