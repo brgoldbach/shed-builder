@@ -23,6 +23,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   they need.
 - Development only: the Vite and Playwright configs have their own tsconfig with Node's types, and
   the gate checks it.
+- Development only: the workflows use `actions/checkout` and `actions/setup-node` v7, which run on
+  Node 24. GitHub had been forcing the v4 actions off the retired Node 20.
 
 ### Fixed
 

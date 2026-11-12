@@ -35,15 +35,15 @@ jobs:
           echo "branch=$(jq -r .head.ref pr.json)" >> "$GITHUB_OUTPUT"
           echo "request=$(printf '%s\n' "$COMMENT" | head -n 1 | sed 's|^/release ||' | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
       # The edit script comes from main, so a pull request cannot change how it is released.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: base
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.pr.outputs.branch }}
           path: pr
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: base/.nvmrc
       - name: Set the version, and date the changelog
