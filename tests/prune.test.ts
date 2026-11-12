@@ -109,6 +109,11 @@ const MESSY: [string, ShedConfig][] = [
     'a gambrel without a ridge board, with ridge settings',
     parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', ridge: '2x10', rakeLadder: { ridgeExtends: false }, gambrel: { ridgeBoard: false } } }),
   ],
+  ['square tails with a fascia top setting', parse({ ...gableSkid, roof: { ...gableSkid.roof, tailCut: 'square', fasciaTop: 'flush' } })],
+  [
+    'square main tails and a lean-to fascia',
+    parse({ ...gableSkid, roof: { ...gableSkid.roof, tailCut: 'square', fasciaTop: 'beveled' }, additions: [{ side: 'front' }] }),
+  ],
 ];
 
 describe('pruning unused settings', () => {
@@ -127,6 +132,12 @@ describe('pruning unused settings', () => {
     expect(pruned.floor).toEqual(defaults.floor);
     expect(pruned.roof.loft).toEqual(defaults.roof.loft);
     expect(pruned.openingTypes.map(({ name }) => name)).not.toContain('unplaced');
+  });
+
+  it('keeps the fascia top only where a plumb fascia uses it, on the main roof or a lean-to', () => {
+    const fasciaTop = (name: string) => pruneConfig(MESSY.find(([messy]) => messy === name)![1]).roof.fasciaTop;
+    expect(fasciaTop('square tails with a fascia top setting')).toBe('set-down');
+    expect(fasciaTop('square main tails and a lean-to fascia')).toBe('beveled');
   });
 
   it('keeps the gambrel settings only on a gambrel, which takes no knee walls', () => {

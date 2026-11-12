@@ -26,6 +26,14 @@ const start = 0.4375 + 1.5;
 const ledgerTop = fasciaBottom - 1.5 - 0.4375 + 0.25 * (13.5 - start);
 
 describe('below-soffit lean-to', () => {
+  it('rips a beveled fascia to the lean-to pitch', () => {
+    const beveled = buildModel(shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, fasciaTop: 'beveled' }, additions: [{ side: 'front' }] }));
+    const [fascia] = ofRole(beveled.members.filter(({ assembly }) => assembly === 'addition.front'), 'fascia');
+    // 1-1/2 in thick at 3/12.
+    expect(fascia.bevel).toBeCloseTo(0.375, 9);
+    expect(fascia.note).toBe('Rip the top edge to the roof pitch, 14.0°: the outer face is 5-1/8" tall.');
+  });
+
   it('sets the ledger as high as the main fascia allows', () => {
     const [ledger] = ofRole(front, 'ledger');
     // A 2x6 at 3/12 has a 5.67 in plumb end, so the ledger is a 2x8.

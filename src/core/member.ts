@@ -140,6 +140,9 @@ export const LEFT_OUT = 'It is left out: red in 3D and on the drawings.';
  *
  * A piece with angle cuts has a `profile`: its outline in (length, width) coordinates, extruded
  * `depth` along `axes.thick`. Its axes are right-handed: thick = length × width.
+ *
+ * A straight piece with its top edge ripped on a bevel has a `bevel`: at the far face, its top edge
+ * (width 0) drops this far along `axes.width`.
  */
 export interface Member {
   id: string;
@@ -151,6 +154,7 @@ export interface Member {
   origin: Vec3;
   axes: { length: Vec3; width: Vec3; thick: Vec3 };
   profile?: { points: readonly Point[]; depth: number };
+  bevel?: number;
   note?: string; // shop instruction for the cut list
 }
 
@@ -175,7 +179,8 @@ export function corners(member: Member): Vec3[] {
     return [0, depth].flatMap((through) => points.map(([along, across]) => at(along, across, through)));
   }
   const { width, thick } = LUMBER[member.size];
-  return [0, member.length].flatMap((along) => [0, width].flatMap((across) => [0, thick].map((through) => at(along, across, through))));
+  const top = (through: number) => (through === thick ? (member.bevel ?? 0) : 0);
+  return [0, member.length].flatMap((along) => [0, width].flatMap((across) => [0, thick].map((through) => at(along, across || top(through), through))));
 }
 
 /** A panel's outline corners on both faces. */

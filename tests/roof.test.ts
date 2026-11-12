@@ -427,6 +427,26 @@ describe('lean-to roof', () => {
 });
 
 describe('eave fascia and tail cuts', () => {
+  const tailTopOf = (members: Member[]) =>
+    Math.max(...sectionCorners(ofRole(members, 'rafter')[0]).filter(([y]) => Math.abs(y + 12) < 1e-9).map(([, z]) => z));
+
+  it('rips a beveled fascia to the pitch with its top at the rafter top, or leaves it flush', () => {
+    const { members } = roofOf({ ...gableRoof, fasciaTop: 'beveled' });
+    const [fascia] = ofRole(members, 'fascia');
+    expect(fascia.origin[2]).toBeCloseTo(tailTopOf(members), 9);
+    expect(fascia.bevel).toBeCloseTo(0.75, 9);
+    expect(fascia.note).toBe('Rip the top edge to the roof pitch, 26.6°: the outer face is 4-3/4" tall.');
+    // Its outer top corner lies on the roof plane: 1-1/2 in out, 3/4 in lower.
+    expect(corners(fascia).some(([, y, z]) => Math.abs(y + 13.5) < 1e-9 && Math.abs(z - (tailTopOf(members) - 0.75)) < 1e-9)).toBe(true);
+    const [flush] = ofRole(roofOf({ ...gableRoof, fasciaTop: 'flush' }).members, 'fascia');
+    expect([flush.origin[2], flush.bevel]).toEqual([fascia.origin[2], undefined]);
+  });
+
+  it('cuts a plumb-and-level tail to the full fascia depth when the fascia is not set down', () => {
+    const { members } = roofOf({ ...gableRoof, rafter: '2x8', ridge: '2x10', tailCut: 'plumb-level', fasciaTop: 'beveled' });
+    expect(ofRole(members, 'rafter')[0].note).toContain('plumb cut 5-1/2" deep, then level cut.');
+  });
+
   it('sets a plumb fascia down so the roof plane passes over its outer top edge', () => {
     // 1-1/2 in thick at 6/12: 3/4 in below the rafter top at the tail.
     const { members } = roofOf(gableRoof);

@@ -494,10 +494,18 @@ at the ladder's high end.
 - The lowest purlin starts at the tail. The highest ends at the ridge face, the high end, or the
   break. On a gambrel, one purlin ends at the break and the next starts there.
 - With `metal-over-sheathing`, the purlins lie on the sheathing.
-- On plumb and plumb-and-level tails the fascia hangs plumb. At a low eave it is set down by its
-  thickness × rise, so the roof plane passes over its outer top edge and the sheathing and drip edge
-  run over it: 3/4 in for a 2x fascia at 6/12, 3-5/8 in at 29/12. A lean-to roof's high-end fascia
-  stays at the rafter top.
+- On plumb and plumb-and-level tails the fascia hangs plumb. At a low eave, `roof.fasciaTop` sets
+  how its top meets the roof plane. The plane falls thickness × rise across the board: 3/4 in for a
+  2x fascia at 6/12, 3-5/8 in at 29/12.
+
+  | `fasciaTop` | Fascia | Plumb-and-level depth |
+  |---|---|---|
+  | `set-down` (default) | Set down by that fall, so the roof plane passes over its outer top edge. | Fall + fascia depth |
+  | `beveled` | Top at the rafter top, its top edge ripped to the pitch (`Member.bevel`). The note gives the outer face height. | Fascia depth |
+  | `flush` | Top at the rafter top. Its outer top edge stands above the roof plane. | Fascia depth |
+
+  The sheathing and drip edge run over a set-down or beveled fascia. Lean-to fascia follow the same
+  setting. A lean-to roof's high-end fascia stays at the rafter top.
 - On square tails the fascia is square to the roof, its top in the roof plane.
 
 ### 7.8 Gambrel break, miter, and gussets
