@@ -31,6 +31,16 @@ export const onShed = (config: ShedConfig, addition: Addition) =>
 /** Out from the wall to the outer face of the deck beam. */
 export const deckReach = ({ depth, post }: Addition) => depth - LUMBER[post].width / 2 + (deckPlies(post) * PLY) / 2;
 
+/** The lean-to on `wall` with a deck or slab, and its extent along the wall. Null when it has none. */
+export function leanToFloorOn(config: ShedConfig, wall: Wall): { addition: Addition; span: [number, number] } | null {
+  for (const addition of config.additions) {
+    if (addition.floor === 'none') continue;
+    if (addition.side === wall) return { addition, span: leanToSpan(config, addition, wall, addition.center) };
+    if (addition.mirror && OPPOSITE[addition.side] === wall) return { addition, span: leanToSpan(config, addition, wall, 100 - addition.center) };
+  }
+  return null;
+}
+
 /** A lean-to's extent along its wall from the wall's left corner, viewed from outside, clamped to the wall. */
 export function leanToSpan(config: ShedConfig, addition: Addition, side: Addition['side'], center: number): [number, number] {
   const span = side === 'front' || side === 'back' ? config.length : config.width;
@@ -92,6 +102,8 @@ export interface DeckFacts {
   seats: number; // piers under the beam
   hangers: number; // joist hangers of the joist size
   ledgerLags: number;
+  face: number; // out from the wall to the beam's outer face
+  edge: number; // out from the wall to the outer deck board's outer edge
 }
 
 /** A lean-to's deck site: where it goes, and where its parts go. */
@@ -331,7 +343,18 @@ export function frameDeck(site: DeckSite): DeckFacts {
     for (let row = 0; row < rows; row++) boardRow('out', [0, beamOuter], u0 + row * (boardWidth + GAP), postsAlongWall, [postsOut]);
     const gaps = centers.slice(1).map((center, index) => center - centers[index]);
     const span = Math.max(centers[0] - u0, u1 - centers[centers.length - 1], ...gaps);
-    return { joist, plies, joistSpan: span, beamSpan: span, beamTributary: oc / 2 + (beamOuter - beamInner), seats: 0, hangers: 0, ledgerLags: 0 };
+    return {
+      joist,
+      plies,
+      joistSpan: span,
+      beamSpan: span,
+      beamTributary: oc / 2 + (beamOuter - beamInner),
+      seats: 0,
+      hangers: 0,
+      ledgerLags: 0,
+      face: beamOuter,
+      edge: beamOuter,
+    };
   }
 
   // The ledger bears on the floor framing: the wall sheathing starts above it.
@@ -400,6 +423,8 @@ export function frameDeck(site: DeckSite): DeckFacts {
     seats: seated ? posts.length : 0,
     hangers: 2 * joists.length,
     ledgerLags: 2 * joists.length,
+    face: beamOuter,
+    edge: rows * (boardWidth + GAP) - GAP,
   };
 }
 

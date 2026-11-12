@@ -11,7 +11,7 @@ Update this guide and the detailed documents below in the same commit as any cha
 |---|---|
 | [design-model.md](design-model.md) | The config schema, units, side names, opening placement, the lumber catalog, file versions, prune, compact files, share links, and autosave. |
 | [framing.md](framing.md) | The framing model, coordinates, build order, foundation and floor, walls and openings, roofs, gable ends, ties, loft, and knee walls. |
-| [additions-and-finishes.md](additions-and-finishes.md) | Lean-tos and their decks, ramps, sheathing, and the visual finishes. |
+| [additions-and-finishes.md](additions-and-finishes.md) | Lean-tos and their decks, ramps and stairs, sheathing, and the visual finishes. |
 | [outputs.md](outputs.md) | The cut list, lumber and sheet packing, concrete, hardware, roofing, costs, span checks, and CSV. |
 | [drawings.md](drawings.md) | Drawing views and projection, each sheet and its dimensions, SVG layout, the zoom viewer, and the PDF. |
 | [ui.md](ui.md) | App state and data flow, undo, the storage flows, the error banner and recovery page, the form and its editors, the 3D view, and the phone layout. |
@@ -87,7 +87,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/core/gen/additions.ts` | Lean-tos: ledger or roof extension, rafters, beam, posts, piers, slab, or deck. |
 | `src/core/gen/deck.ts` | Lean-to decks: `deckHeights`, `frameDeck` (ledger, joists, beam, rims, boards, and a deck's own skids or girders), and the facts the floor shares: `onShed`, `deckReach`, `continuedDecks`. |
 | `src/core/gen/supports.ts` | The skid or girder lines a floor stands on (`supportLines`), and the skid end cut (`skidOutline`). |
-| `src/core/gen/ramps.ts` | Ramps: `rampPlace` (its wall and edges, from its opening or its own position); wood stringers and boards, or a concrete wedge as a panel solid. The foot is `belowGrade` under grade. `withoutOpeningRow` removes an opening row and keeps each ramp in place. |
+| `src/core/gen/ramps.ts` | Ramps and stairs: `rampPlace` (its wall and edges, from its opening or its own position); the upper and lower levels, the shed floor, a lean-to deck or slab, or the foot `belowGrade` under grade; wood stringers and boards, or a concrete wedge as a panel solid; cut stair stringers and treads; `RampFacts` for the BOM. `withoutOpeningRow` removes an opening row and keeps each ramp in place. |
 | `src/core/gen/sheathing.ts` | Wall, roof, and floor sheets, cut around openings. |
 | `src/core/gen/finishes.ts` | 3D look only: siding, roofing, trim, doors, windows. It does not change framing, cut list, or BOM. |
 | `src/core/gen/section.ts` | Shared geometry: `planeMember`, pitch and slope math (`pitchOf`, `Slope`), `Profile` (one roof side's slopes, from `profileOf`), `crossing`, `idMaker`. |
@@ -108,7 +108,7 @@ ShedConfig ── buildModel ──▶ Model { members, solids, warnings, openin
 | `src/ui/ErrorBoundary.tsx` | The recovery page when a render throws: download, reload, or start a new design. |
 | `src/ui/DesignForm.tsx` | The settings form, one section component for each part of the config. |
 | `src/ui/fields.tsx` | Field components and the `Section`, `Group`, and `Card` folds. |
-| `src/ui/OpeningsEditor.tsx`, `AdditionsEditor.tsx`, `RampsEditor.tsx` | List editors for opening types, placements, lean-tos, and ramps. |
+| `src/ui/OpeningsEditor.tsx`, `AdditionsEditor.tsx`, `RampsEditor.tsx` | List editors for opening types, placements, lean-tos, and ramps and stairs. |
 | `src/ui/history.ts` | The undo history: `record`, `undo`, `redo`, 100 steps. |
 | `src/ui/pdf.ts` | The PDF plan set. Loaded only on demand, with jsPDF, svg2pdf.js, and qrcode-generator. |
 | `src/view3d/scene.ts` | `FramingScene`: meshes, finish textures, picking, camera fit. |

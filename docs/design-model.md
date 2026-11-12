@@ -121,7 +121,7 @@ a warning ([framing.md 6.1](framing.md#61-fit-order-and-checks)).
 | Each row's `type` names an opening type. | `openings.N.type` | Same. |
 
 Nothing checks `ramps[].opening` against `openings`. A ramp whose opening is gone stays valid. It
-stands at its own position, with a warning ([additions-and-finishes.md 3](additions-and-finishes.md#3-ramps)).
+stands at its own position, with a warning ([additions-and-finishes.md 3](additions-and-finishes.md#3-ramps-and-stairs)).
 
 **Decision.** The app never limits the user. The schema rejects a value outside its type or range,
 and the combinations in the tables above. Every other design builds. A generator warns and goes on,
@@ -267,7 +267,7 @@ x = 0, and the left corner of the back wall is at x = `length` ([framing.md 2.2]
 
 A ramp places itself the same way with `wall`, `along`, `at`, and `width`, to its center or near
 edge. A ramp that follows an opening takes that opening's RO instead
-([additions-and-finishes.md 3](additions-and-finishes.md#3-ramps)).
+([additions-and-finishes.md 3](additions-and-finishes.md#3-ramps-and-stairs)).
 
 ### 4.1 Functions
 
@@ -462,8 +462,11 @@ design with each unused setting at its default and each type placed prunes to an
 | `ramps[].wall`, `along`, `at`, `width` | `opening` is null, or `rampPlace` finds it `lost`. | A ramp that follows an opening takes its place and width from it. A lost ramp stands at its own place. |
 | `ramps[].opening` | `opening` is not null. | A lost ramp keeps its link, so its warning stays. |
 | `ramps[].margin` | `opening` resolves to an opening. | |
-| `ramps[].stringer`, `oc` | `material` is `wood`. | |
-| `ramps[].thickness` | `material` is `concrete`. | |
+| `ramps[].slope`, `material` | `kind` is `ramp`. | Stairs take the standard step. |
+| `ramps[].stringer`, `oc` | `kind` is `ramp`, and `material` is `wood`. | |
+| `ramps[].thickness` | `kind` is `ramp`, and `material` is `concrete`. | |
+| `ramps[].from` | `rampLeanToFloor` finds a lean-to deck or slab that meets it. | |
+| `ramps[].belowGrade` | Not `from: 'floor'` with a lean-to floor that meets it. | It lands on that floor, not on a foot. |
 | `finishes.sidingColor` | `siding` is not `none`. | |
 | `finishes.panelLength`, `metalOverhang` | The main roof or a lean-to has metal roofing. | |
 | `loads.loft` | Gable or gambrel roof with a loft. | |

@@ -1,0 +1,135 @@
+FD-1      4  2x8 PT          120"  Girder ply
+FL-1      2  2x6 PT          120"  Rim joist
+FL-2      2  2x6 PT           93"  End joist
+FL-3      7  2x6 PT           93"  Floor joist
+FW-1      1  2x4             113"  Bottom plate
+FW-2      1  2x4             113"  Top plate
+FW-3      1  2x4             120"  Cap plate
+FW-4      2  2x4          92-5/8"  Corner stud
+FW-5      5  2x4          92-5/8"  Stud
+FW-6      2  2x4          92-5/8"  King stud
+FW-7      2  2x4          80-3/4"  Jack stud
+FW-8      2  2x8              27"  Header
+FW-9      1  2x4              24"  Rough sill
+FW-10     1  2x4          43-1/4"  Cripple
+FW-11     1  2x4           4-5/8"  Cripple
+BW-1      1  2x4             113"  Bottom plate
+BW-2      1  2x4             113"  Top plate
+BW-3      1  2x4             120"  Cap plate
+BW-4      2  2x4          92-5/8"  Corner stud
+BW-5      7  2x4          92-5/8"  Stud
+LW-1      1  2x4              96"  Bottom plate. After anchoring, cut out shed door 64x76 (left 50%) from 16" to 80" from the left end, viewed from outside.
+LW-2      1  2x4              96"  Top plate
+LW-3      1  2x4              89"  Cap plate
+LW-4      6  2x4          92-5/8"  Corner stud
+LW-5      2  2x4          92-5/8"  King stud
+LW-6      2  2x4          74-1/2"  Jack stud
+LW-7      2  2x8              67"  Header
+LW-8      3  2x4          10-7/8"  Cripple
+RW-1      1  2x4              96"  Bottom plate
+RW-2      1  2x4              96"  Top plate
+RW-3      1  2x4              89"  Cap plate
+RW-4      6  2x4          92-5/8"  Corner stud
+RW-5      5  2x4          92-5/8"  Stud
+GL-1      2  2x4        49-15/16"  Gable top plate. Level cut on the wall plate. Plumb cut 26.6° at the ridge post.
+GL-2      2  2x4         13-7/16"  Gable stud. Top cut 26.6°.
+GL-3      2  2x4          5-7/16"  Gable stud. Top cut 26.6°.
+GL-4      1  2x4          20-3/4"  Ridge post. Square cut.
+GR-1      2  2x4        49-15/16"  Gable top plate. Level cut on the wall plate. Plumb cut 26.6° at the ridge post.
+GR-2      2  2x4         13-7/16"  Gable stud. Top cut 26.6°.
+GR-3      2  2x4          5-7/16"  Gable stud. Top cut 26.6°.
+GR-4      1  2x4          20-3/4"  Ridge post. Square cut.
+RF-1      1  2x6             136"  Ridge board
+RF-2     12  2x4              68"  Rafter. Plumb cut 26.6° at the ridge. Birdsmouth: heel line 52-13/16" from the ridge long point on the top edge; seat 2-9/16", heel 1-5/16". Tail 13-7/16" past the heel line on the top edge, plumb cut.
+RF-3      4  2x4              68"  Fly rafter. No birdsmouth. Plumb cut 26.6° at the ridge. Tail 13-7/16" past the heel line on the top edge, plumb cut.
+RF-4      4  2x4              68"  Ladder rail. Plumb cut 26.6° at the ridge. Tail 13-7/16" past the heel line on the top edge, plumb cut. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
+RF-5      8  2x4               5"  Lookout
+RF-6      2  2x6             136"  Fascia
+RF-7      4  2x4              96"  Rafter tie. Ends cut 26.6° to the roof line.
+RF-8      4  2x4          37-1/2"  Collar tie. Ends cut 26.6° to the roof line.
+AL-1      5  2x6       110-11/16"  Rafter. Plumb cut 14.0° at the ledger, in a joist hanger. Birdsmouth on the beam: heel line 96-11/16" from the upper end on the top edge; seat 3", heel 3/4". Tail 12-5/8" past the heel line on the top edge, plumb cut.
+AL-2      1  2x6              96"  Fascia
+AL-3      1  2x8              96"  Ledger. Lag-bolt through the sheathing into each main-wall stud.
+AL-4      2  2x8              96"  Beam ply
+AL-5      2  4x4 PT     73-15/16"  Post. Stands on the deck beam, over the pier.
+AL-6      1  2x8 PT           96"  Deck ledger. Lag-bolt into the floor framing, two at each joist.
+AL-7      7  2x8 PT       90-1/2"  Deck joist. Joist hangers at both ends.
+AL-8      3  2x8 PT           96"  Deck beam ply. Bears on the piers; the posts stand on it.
+AL-9     16  5/4x6 PT         96"  Deck board
+AL-10     1  5/4x6 PT         89"  Deck board. Cut to fit between the posts.
+AR-1      5  2x6        85-15/16"  Rafter. Plumb cut 14.0° at the ledger, in a joist hanger. Birdsmouth on the beam: heel line 71-15/16" from the upper end on the top edge; seat 3", heel 3/4". Tail 12-5/8" past the heel line on the top edge, plumb cut.
+AR-2      1  2x6              96"  Fascia
+AR-3      1  2x8              96"  Ledger. Lag-bolt through the sheathing into each main-wall stud.
+AR-4      2  2x8              96"  Beam ply
+AR-5      2  4x4 PT       95-3/8"  Post
+RP-1     11  2x6 PT           76"  Deck board
+RP-2      6  2x6 PT      62-9/16"  Ramp stringer. Plumb cut 14.0° at the deck beam, lagged to it. Level cut on grade.
+RP-3      4  2x12 PT      24-1/2"  Stair stringer. Cut stringer: 3 risers of 5-5/16", 2 treads of 11-1/4". Plumb cut 25.4° at the slab edge, anchored to it. Level cut on the foot, 16" below grade.
+RP-4      6  2x12 PT    12-15/16"  Stair stringer. Cut stringer: 2 risers of 7-1/2", 1 tread of 11-1/4". Plumb cut 33.7° at the floor framing, in a sloped hanger. Level cut on the deck.
+RP-5      2  5/4x6 PT         76"  Stair tread
+RP-6      4  5/4x6 PT         48"  Stair tread
+WARNING Left lean-to: The clear height under the beam is 6' 0-15/16", less than 6' 8".
+SOLID Pier, 10" diameter x8
+SOLID Roof sheathing, 7/16" OSB x17
+SOLID Slab x1
+SOLID Subfloor, 23/32" T&G (3/4") x4
+SOLID Wall sheathing, 7/16" OSB x14
+STOCK 2x6 PT 16' 0" x6
+STOCK 2x6 PT 14' 0" x5
+STOCK 2x6 PT 10' 0" x2
+STOCK 2x6 PT 8' 0" x1
+STOCK 2x6 PT 7' 8-5/8" x1
+STOCK 2x8 PT 10' 0" x4
+STOCK 2x8 PT 8' 0" x11
+STOCK 2x4 16' 0" x15
+STOCK 2x4 10' 0" x2
+STOCK 2x4 8' 0" x8
+STOCK 2x4 7' 8-5/8" x38
+STOCK 2x8 8' 0" x8
+STOCK 2x6 12' 0" x3
+STOCK 2x6 9' 8-5/8" x5
+STOCK 2x6 8' 0" x2
+STOCK 2x6 7' 8-5/8" x5
+STOCK 4x4 PT 16' 0" x1
+STOCK 4x4 PT 14' 0" x1
+STOCK 5/4x6 PT 16' 0" x1
+STOCK 5/4x6 PT 14' 0" x1
+STOCK 5/4x6 PT 10' 0" x1
+STOCK 5/4x6 PT 8' 0" x16
+STOCK 2x12 PT 8' 0" x2
+SHEETS 7/16" OSB, 4×8 x21
+SHEETS 23/32" T&G (3/4"), 4×8 x3
+ITEM Concrete, slab: 0.59 cu yd
+ITEM Concrete, 8 piers: 0.69 cu yd
+ITEM Form tube, 10": 8 ea
+ITEM Hurricane tie, rafter to plate: 22 ea
+ITEM Post base, 4x4: 4 ea
+ITEM Post cap, 4x4: 4 ea
+ITEM Joist hanger, 2x6: 10 ea
+ITEM Joist hanger, 2x8: 14 ea
+ITEM Ledger lag screw, 1/2": 44 ea
+ITEM Deck ledger lag screw, 1/2": 14 ea
+ITEM Beam seat, 3-ply 2x8: 2 ea
+ITEM Ramp lag screw, 1/2": 12 ea
+ITEM Stair stringer hanger, sloped, 2x12: 6 ea
+ITEM Stair concrete anchor, 1/2": 8 ea
+ITEM Roof area, shingles: 263.3 sq ft
+ITEM Drip edge: 94.9 ft
+COST lumber $1,089.71
+COST sheets $448.50
+COST concrete $482.00
+COST hardware $262.00
+COST roofing $537.30
+COST total $2,819.51
+SPAN Rafters: 2x4 at 24" o.c. 44-11/16" of 96-1/8" (bending)
+SPAN Floor joists: 2x6 at 16" o.c. 83" of 111-13/16" (deflection)
+SPAN window 24x36 header (front wall): 2-ply 2x8 24" of 145-1/2" (bending)
+SPAN shed door 64x76 header (left wall): 2-ply 2x8 64" of 203-1/4" (bending)
+SPAN Left lean-to rafters: 2x6 at 24" o.c. 90-13/16" of 140-11/16" (bending)
+SPAN Left lean-to beam: 2-ply 2x8 92-1/2" of 148-11/16" (bending)
+SPAN Left lean-to deck joists: 2x8 at 16" o.c. 90-1/2" of 147-3/8" (deflection)
+SPAN Left lean-to deck beam: 3-ply 2x8 92-1/2" of 138-7/16" (bending)
+SPAN Right lean-to rafters: 2x6 at 24" o.c. 66-13/16" of 140-11/16" (bending)
+SPAN Right lean-to beam: 2-ply 2x8 92-1/2" of 166-1/4" (bending)
+SPAN Front girder: 2-ply 2x8 55" of 78-3/8" (bending)
+SPAN Back girder: 2-ply 2x8 55" of 78-3/8" (bending)

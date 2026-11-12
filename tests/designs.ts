@@ -8,11 +8,13 @@ import heavySnow from './fixtures/20x24-heavy-snow.json';
 import leanTos from './fixtures/12x12-with-lean-tos.json';
 import tiny from './fixtures/4x6-tiny-shed.json';
 import gambrel from './fixtures/12x16-gambrel-barn.json';
+import decksAndStairs from './fixtures/8x10-decks-and-stairs.json';
 
 /**
  * The presets, and test designs that use the options the presets leave at their defaults. The
  * 16x16 B and B shed is no longer a preset, but it is the one design with mirrored metal lean-tos,
  * knee walls over an open loft end, and a gable front. Some designs warn on purpose: the odd
- * openings, the heavy-snow header, the low lean-tos, and the gambrel's lean-to blocked over the plate.
+ * openings, the heavy-snow header, the low lean-tos, the gambrel's lean-to blocked over the plate, and
+ * the dropped deck below grade.
  */
-export const DESIGNS = [...PRESETS, ...[bAndB, loftShed, studio, oddOpenings, heavySnow, leanTos, tiny, gambrel].map((design) => shedSchema.parse(design))];
+export const DESIGNS = [...PRESETS, ...[bAndB, loftShed, studio, oddOpenings, heavySnow, leanTos, tiny, gambrel, decksAndStairs].map((design) => shedSchema.parse(design))];

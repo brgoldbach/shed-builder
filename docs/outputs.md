@@ -315,8 +315,10 @@ quantity × unit price. The default unit prices are `DEFAULT_PRICES.hardware`.
 | Ledger lag screw, 1/2" | Σ `leanTo.lags` | `lag` |
 | Deck ledger lag screw, 1/2" | Σ `deck.ledgerLags` | `lag` |
 | Beam seat, {plies}-ply {joist} | `deck.seats` of each lean-to with a deck | `postCap` |
-| Ramp lag screw, 1/2" | 2 × `stringer` count, on skids or piers | `lag` |
-| Ramp concrete anchor, 1/2" | 2 × `stringer` count, on a slab | `anchorBolt` |
+| Ramp lag screw, 1/2" | 2 × the stringers of each wood ramp whose top is the floor framing or a deck beam (`Model.ramps`) | `lag` |
+| Ramp concrete anchor, 1/2" | 2 × the stringers of each wood ramp whose top is a slab edge | `anchorBolt` |
+| Stair stringer hanger, sloped, 2x12 | 1 × the stringers of stairs whose top is the floor framing or a deck beam | `joistHanger` |
+| Stair concrete anchor, 1/2" | 2 × the stringers of stairs whose top is a slab edge | `anchorBolt` |
 
 Count rules and reasons:
 
@@ -342,9 +344,11 @@ Count rules and reasons:
   ([additions-and-finishes.md, `DeckFacts`](additions-and-finishes.md#deckfacts)).
 - **Beam seats.** Where the piers rise to the deck beam, a beam seat at each pier ties the beam to
   it. Where deck posts carry the beam, their post caps do.
-- **Ramp lags and anchors.** Two go at each wood ramp stringer: lag screws into the floor framing,
-  or on a slab, concrete anchors into the slab edge. The anchors take the anchor bolt price; the
-  catalog has no price of their own. A concrete ramp has no stringers.
+- **Ramp and stair fasteners.** Two go at each wood ramp stringer: lag screws into the floor framing
+  or a lean-to deck beam, or concrete anchors into a slab edge. A stair stringer hangs in a sloped
+  hanger rated 625 lb or more (DCA6 Figure 31), or takes two anchors at a slab edge. The anchors
+  take the anchor bolt price, and the hanger the joist hanger price; the catalog has no price of
+  their own. A concrete ramp has no stringers.
 
 ### 5.1 Joist hangers
 

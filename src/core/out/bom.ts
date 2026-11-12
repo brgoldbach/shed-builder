@@ -1,6 +1,7 @@
 import { SHEETS, stockFor, type LumberSize, type SheetKey } from '../catalog';
 import type { Prices, ShedConfig } from '../config';
 import type { Member, Point, Solid, Warning } from '../member';
+import type { RampFacts } from '../gen/ramps';
 import type { Model } from '../model';
 import { formatInches, formatMoney } from '../units';
 
@@ -328,11 +329,18 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   for (const { deck } of model.leanTos) {
     if (deck) add(`Beam seat, ${deck.plies}-ply ${deck.joist}`, deck.seats, price.postCap, 'On each pier, under the deck beam.');
   }
-  if (config.foundation.type === 'slab') {
-    add('Ramp concrete anchor, 1/2"', 2 * count('stringer'), price.anchorBolt, 'Two at each ramp stringer, into the slab edge.');
-  } else {
-    add('Ramp lag screw, 1/2"', 2 * count('stringer'), price.lag, 'Two at each ramp stringer, into the floor framing.');
-  }
+  // Ramp and stair stringer tops: lags into wood, anchors into a slab edge. Stairs hang in sloped
+  // hangers instead (DCA6 Figure 31).
+  const stringers = (kind: RampFacts['kind'], tops: readonly RampFacts['top'][]) =>
+    model.ramps.reduce((sum, facts) => sum + (facts.kind === kind && tops.includes(facts.top) ? facts.stringers : 0), 0);
+  const into = [
+    ...(stringers('ramp', ['framing']) ? ['the floor framing'] : []),
+    ...(stringers('ramp', ['deck']) ? ['a lean-to deck beam'] : []),
+  ].join(' or ');
+  add('Ramp lag screw, 1/2"', 2 * stringers('ramp', ['framing', 'deck']), price.lag, `Two at each ramp stringer, into ${into}.`);
+  add('Ramp concrete anchor, 1/2"', 2 * stringers('ramp', ['slab']), price.anchorBolt, 'Two at each ramp stringer, into the slab edge.');
+  add('Stair stringer hanger, sloped, 2x12', stringers('stairs', ['framing', 'deck']), price.joistHanger, 'One at each stair stringer top, rated 625 lb or more (DCA6 Figure 31).');
+  add('Stair concrete anchor, 1/2"', 2 * stringers('stairs', ['slab']), price.anchorBolt, 'Two at each stair stringer, into the slab edge.');
   return lines;
 }
 

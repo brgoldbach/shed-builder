@@ -1,6 +1,6 @@
 import { hasRidgeBoard, OPPOSITE, ridged, shedSchema, usesFasciaTop, type ShedConfig } from './config';
 import { onShed } from './gen/deck';
-import { rampPlace } from './gen/ramps';
+import { rampLeanToFloor, rampPlace } from './gen/ramps';
 
 const LADDER = 1.5; // the shortest rake overhang that frames a rake ladder, as in gen/roof.ts
 
@@ -78,13 +78,21 @@ export function pruneConfig(config: ShedConfig): ShedConfig {
       return { ...kept, deck };
     }),
     // A ramp that follows an opening takes its place and width from it. One whose opening is gone
-    // keeps its own place, and its link for the warning.
-    ramps: config.ramps.map((ramp) =>
-      omit(ramp, [
+    // keeps its own place, and its link for the warning. Stairs take no ramp settings. Only a ramp
+    // that meets a lean-to deck or slab can start at it, and one that lands on it has no foot.
+    ramps: config.ramps.map((ramp) => {
+      const floor = rampLeanToFloor(config, ramp);
+      return omit(ramp, [
         ...(ramp.opening === null ? (['opening', 'margin'] as const) : rampPlace(config, ramp).lost ? (['margin'] as const) : (['wall', 'along', 'at', 'width'] as const)),
-        ...(ramp.material === 'concrete' ? (['stringer', 'oc'] as const) : (['thickness'] as const)),
-      ]),
-    ),
+        ...(ramp.kind === 'stairs'
+          ? (['slope', 'material', 'stringer', 'oc', 'thickness'] as const)
+          : ramp.material === 'concrete'
+            ? (['stringer', 'oc'] as const)
+            : (['thickness'] as const)),
+        ...(floor ? [] : (['from'] as const)),
+        ...(floor && ramp.from === 'floor' ? (['belowGrade'] as const) : []),
+      ]);
+    }),
     finishes: omit(finishes, [
       ...(finishes.siding === 'none' ? ['sidingColor' as const] : []),
       ...(anyMetal ? [] : ['panelLength' as const, 'metalOverhang' as const]),

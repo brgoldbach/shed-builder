@@ -92,6 +92,8 @@ export const ROLES = {
   'beam.deck': 'Deck beam ply',
   decking: 'Deck board',
   stringer: 'Ramp stringer',
+  'stringer.stair': 'Stair stringer',
+  tread: 'Stair tread',
 } as const;
 export type Role = keyof typeof ROLES;
 

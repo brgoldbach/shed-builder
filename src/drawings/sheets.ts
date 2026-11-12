@@ -188,9 +188,9 @@ function floorPlan({ config, model, marks }: Context): Drawing | null {
   });
 }
 
-const DECK_FRAMING = new Set<Role>(['ledger.deck', 'joist.deck', 'beam.deck', 'stringer']);
+const DECK_FRAMING = new Set<Role>(['ledger.deck', 'joist.deck', 'beam.deck', 'stringer', 'stringer.stair']);
 
-// Lean-to decks and ramps in plan, without their boards, with the posts the deck beams bolt to.
+// Lean-to decks, ramps, and stairs in plan, without their boards, with the posts the deck beams bolt to.
 function deckPlan({ config, model, names, marks }: Context): Drawing | null {
   // A deck's own skids or girders show here; the shed's, continued under a deck, on the foundation plan.
   const framing = model.members.filter(
@@ -213,15 +213,10 @@ function deckPlan({ config, model, names, marks }: Context): Drawing | null {
         ? [`${capitalize(names.side(side))} lean-to deck: PT ${deck.joist} joists at ${addition.deck.oc}" o.c., ${addition.deck.boards} deck boards, on ${addition.deck.support === 'shed' && config.foundation.type !== 'slab' ? "the shed's foundation" : 'piers'}.`]
         : [],
     ),
-    ...config.ramps.map((ramp, index) => {
-      const foot = ramp.belowGrade > 0 ? ` Its foot is ${formatInches(ramp.belowGrade)} below grade.` : '';
-      return ramp.material === 'concrete'
-        ? `Ramp ${index + 1}: concrete, 1 in ${ramp.slope}, over a ${formatInches(ramp.thickness)} base.${foot}`
-        : `Ramp ${index + 1}: PT ${ramp.stringer} stringers at ${ramp.oc}" o.c., 1 in ${ramp.slope}, 2x6 deck boards.${foot}`;
-    }),
+    ...model.ramps.map(({ summary }) => summary),
     'The dashed line is the outside of the walls.',
   ];
-  return makeDrawing('decks', 'Decks and ramps', {
+  return makeDrawing('decks', 'Decks, ramps, and stairs', {
     shapes: shapesOf(view, [...framing, ...posts], concrete, marks),
     dims: overall(box, 1),
     outlines: [outline],
