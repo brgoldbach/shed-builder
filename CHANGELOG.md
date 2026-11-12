@@ -21,6 +21,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   job runs it on each pull request.
 - The 3D view loads as a separate part of the app, so the form is ready sooner. The first download
   is 151 kB smaller before the form shows (gzip: 329 kB, now 178 kB).
+- React and zod load as their own file, which changes only with a library update. After a
+  release, a returning browser downloads 85 kB (gzip) for the form, not 178 kB.
 
 ### Fixed
 

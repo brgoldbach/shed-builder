@@ -383,9 +383,14 @@ passes it, and it renders on demand only: there is no animation loop.
 ### `View3D`
 
 `App` loads `View3D` with `React.lazy`, so it and Three.js are a chunk of their own, about 600 kB.
-The main chunk, about 560 kB, draws the form first. Until the chunk loads, `Suspense` shows
+The first load, about 560 kB, draws the form first. Until the chunk loads, `Suspense` shows
 "Loading 3D…" in the empty viewport. The viewport takes its size from the layout, not from its
 content, so nothing moves when the canvas comes in.
+
+The first load is two chunks (`vite.config.ts`): the app, and `vendor` with React and zod. A
+release changes only the app chunk, so a returning browser keeps `vendor` cached. React's server
+renderer stays out of `vendor`: only the on-demand PDF code uses it. The 3D and PDF chunks are
+over 500 kB, mostly Three.js and jsPDF, so the size warning starts at 750 kB.
 
 `View3D` makes one `FramingScene` at mount and calls `dispose()` at unmount. A change of `members`,
 `solids`, `finishes`, `trimColor`, or `missing` calls `setModel`, which rebuilds every mesh. A
