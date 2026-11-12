@@ -38,11 +38,12 @@ Both are POSIX `sh` scripts, so they run the same from fish, bash, or zsh. On Wi
 | `npm run preview` | Serves the `dist/` build |
 | `npm test` | Runs the unit and golden-file tests |
 | `npm run lint` | Runs ESLint |
+| `npm run gate` | Runs the tests, lint, the type check, and the build |
 
 ## Hosting
 
 The build is a static site in `dist/`: no server, and each visitor's designs stay in their own
-browser. Cloudflare hosts it free from the private repo, and rebuilds and redeploys on each push
+browser. Cloudflare hosts it free from the GitHub repo, and rebuilds and redeploys on each push
 to `main`.
 
 The app runs at https://shed-builder.brgoldbach73.workers.dev/.
@@ -55,10 +56,10 @@ The app runs at https://shed-builder.brgoldbach73.workers.dev/.
 
    | Setting | Value |
    |---|---|
-   | Project name | `shed-builder` (the site address becomes `shed-builder.pages.dev`) |
+   | Project name | `shed-builder` (part of the site address) |
    | Production branch | `main` |
    | Framework preset | None |
-   | Build command | `npm run build` |
+   | Build command | `npm run gate` |
    | Build output directory | `dist` |
    | Root directory | blank |
 
@@ -69,7 +70,7 @@ The app runs at https://shed-builder.brgoldbach73.workers.dev/.
 7. Turn off preview deployments, so only `main` builds and other branches use none of the 500 free
    builds a month.
 
-A failed build leaves the last good deployment live. To push without a deployment, put
+A failed build, test, or lint check leaves the last good deployment live. To push without a deployment, put
 `[skip ci]` in the commit message.
 
 ## What it does

@@ -3,6 +3,14 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Development only: `npm run gate` runs the tests, lint, the type check, and the build. A GitHub
+  workflow runs it on each pull request, and lint keeps React, the DOM, and Three.js out of the
+  model and the drawings.
+
 ## [0.8.0] - 2026-11-11
 
 ### Added

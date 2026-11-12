@@ -12,7 +12,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "gate": "vitest run && eslint . && tsc && vite build"
   },
   "dependencies": {
     "jspdf": "^4.2.1",
