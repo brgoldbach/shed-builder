@@ -341,6 +341,11 @@ function hardware(config: ShedConfig, model: Model): Line[] {
   add('Ramp concrete anchor, 1/2"', 2 * stringers('ramp', ['slab']), price.anchorBolt, 'Two at each ramp stringer, into the slab edge.');
   add('Stair stringer hanger, sloped, 2x12', stringers('stairs', ['framing', 'deck']), price.joistHanger, 'One at each stair stringer top, rated 625 lb or more (DCA6 Figure 31).');
   add('Stair concrete anchor, 1/2"', 2 * stringers('stairs', ['slab']), price.anchorBolt, 'Two at each stair stringer, into the slab edge.');
+  const { lumber, treatedMarkup } = config.catalog.prices;
+  for (const { hangerBoard } of model.ramps.filter(({ hangerBoard }) => hangerBoard > 0)) {
+    const board = (hangerBoard / 12) * lumber['2x12'] * (1 + treatedMarkup / 100);
+    add('Stair hanger board, PT 2x12', 1, board, `${formatInches(hangerBoard)} long, under the floor framing or deck beam, for the stair hangers (DCA6 Figure 31).`);
+  }
   return lines;
 }
 

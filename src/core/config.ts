@@ -43,6 +43,7 @@ export const DECK_SUPPORTS = ['piers', 'shed'] as const;
 export const DECK_JOINS = ['continue', 'separate'] as const;
 export const RAMP_MATERIALS = ['wood', 'concrete'] as const;
 export const RAMP_KINDS = ['ramp', 'stairs'] as const;
+export const MIN_RAMP_WIDTH = 12;
 // floor: from the shed floor at the wall. lean-to: from the outer edge of the lean-to's deck or slab.
 export const RAMP_STARTS = ['floor', 'lean-to'] as const;
 export const LEAN_TO_ROOFING = ['sheathing', 'metal'] as const;
@@ -297,7 +298,7 @@ const ramp = z
     // As for an opening, to the ramp's center or near edge. A ramp may run past a corner.
     along: z.enum(ALONG).default('percent'),
     at: z.number().default(50),
-    width: len(12, 480).default(48),
+    width: len(MIN_RAMP_WIDTH, 480).default(48),
     slope: z.number().min(1, 'Min 1').max(12, 'Max 12').default(4), // run per unit of rise
     belowGrade: len(0, 48).default(0), // grade to the ramp's foot, where lower ground starts
     // wood: 2x6 boards on stringers. concrete: a wedge poured over a base `thickness` deep.

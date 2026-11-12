@@ -356,3 +356,25 @@ describe('lean-to deck on the shed\'s foundation', () => {
     expect(hardware.find(({ item }) => item.startsWith('Beam seat'))).toBeUndefined();
   });
 });
+
+describe('a deck that cannot be built', () => {
+  it("leaves out a deck whose drop would notch its joists through on the shed's skids", () => {
+    // 4x6 skids: the shed joists bear 11-23/32 − 23/32 − 5-1/2 = 5-1/2 above grade. A 2x8 deck on them
+    // tops 5-1/2 + 7-1/4 + 1 under the floor... set 6 in down, its joists would be notched 8-1/16.
+    const model = buildModel(withLeanTo({ side: 'back', floor: 'deck', deck: { support: 'shed', drop: 6 } }));
+    expect(model.warnings.map(({ message }) => message)).toContain(
+      "On the shed's skids, the deck joists would be notched 8-1/16\", through their 7-1/4\" depth. Set the deck on piers, or drop it less. The deck is left out: red in 3D and on the drawings.",
+    );
+    const back = model.members.filter(({ assembly }) => assembly === 'addition.back');
+    expect(back.filter(({ role }) => role.endsWith('.deck'))).toEqual([]);
+    expect(ofRole(back, 'post').length).toBeGreaterThan(0);
+    expect(model.leanTos[0].deck).toBeNull();
+  });
+
+  it("does not run the shed's skids out under a continued deck whose lean-to is left out", () => {
+    // A 12/12 lean-to 120 in deep puts its beam below its post bases, so it is left out.
+    const model = buildModel(withLeanTo({ side: 'left', floor: 'deck', pitch: 12, depth: 120, deck: { support: 'shed', join: 'continue' } }));
+    const xs = ofRole(model.members, 'skid').flatMap((skid) => corners(skid).map(([x]) => x));
+    expect([Math.min(...xs), Math.max(...xs)]).toEqual([0, 120]);
+  });
+});

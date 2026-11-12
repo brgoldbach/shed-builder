@@ -207,7 +207,7 @@ rafters, posts, and deck joists from the members ([outputs.md](outputs.md) "Hard
 | `lags` | 2 per stud behind the ledger; 0 for an extension. |
 | `seats` | Rafter seats per rafter: 1 on the beam, plus 1 for an extension rafter with a birdsmouth on the main wall. |
 | `deck` | `DeckFacts` (section 2), or `null`. |
-| `floor` | `LeanToFloor`, for ramps and stairs at the deck or slab (section 3), or `null` with no floor: its kind, extent `u0..u1`, `face` (the deck beam's outer face, or the slab edge), `edge` (the outer deck board's edge, or the slab edge), `top` (`deckTop`, or grade), `under` (the deck board underside, or grade), and `inner` (the posts' inner face). |
+| `floor` | `LeanToFloor`, for ramps and stairs at the deck or slab (section 3), or `null` with no floor or a deck left out: its kind, extent `u0..u1`, `face` (the deck beam's outer face, or the slab edge), `edge` (the outer deck board's edge, or the slab edge), `top` (`deckTop`, or grade), `under` (the deck board underside, or grade), `bottom` (the deck beam's underside, or the slab's), and `inner` (the posts' inner face). |
 | `posts` | The post line out from the wall, the post width, and the post centers along it. |
 
 ### Decisions
@@ -283,7 +283,10 @@ girders at the shed's own height: their top is the shed's joist bottom (`support
 joist and beam is notched `deckNotch = onSupports − deckTop` up from its bottom at each bearing. A
 piece that rests on a line all along, the eave side's beam or a rim over a line, is ripped by
 `deckNotch` instead. A notch deeper than 1/4 of the joist depth, the usual limit at a bearing, gets
-a warning.
+a warning. A notch as deep as the joist would cut it through: `frameLeanTo` then leaves the deck out
+in red, with a warning, and the lean-to stands on piers as one with no floor. `buildModel` then
+frames the floor again without that side's continued runs (`frameFloor(config, unbuilt)`), so the
+shed's skids or girders keep their own length.
 
 A gable-end deck is a box: a rim joist (`rim.deck`, `DR`) at each end runs from the wall out past
 the beam, and the joists and beam run between them.
@@ -383,8 +386,9 @@ A ramp freed at a corner can get a negative `at`.
 ### Levels
 
 `LeanTo.floor` (section 1) gives a lean-to's deck or slab. It meets an entry when it covers part of
-the entry's span on the same wall; `rampLeanToFloor` answers that from the design alone, for prune
-and the editor. `x` is out from the wall's outside face; `z = 0` is the shed floor surface.
+the entry's span on the same wall; `rampLeanToFloor` answers that from the design alone, for the
+editor. Only the model knows whether that lean-to was built, so prune drops `from` only on a wall
+with no lean-to deck or slab, and never drops `belowGrade`. `x` is out from the wall's outside face; `z = 0` is the shed floor surface.
 
 | `from` | A lean-to floor meets it | Upper level: `face`, `edge`, `top` | Down to |
 |---|---|---|---|
@@ -396,8 +400,9 @@ and the editor. `x` is out from the wall's outside face; `z = 0` is the shed flo
 The stringers fasten at `face`; the surface starts at `edge`. Between them, under an outer deck
 board that runs past the beam, a ramp stringer's top is cut level at the board's underside
 (`under`). `rise = top − foot`. On a slab shed, or from a lean-to slab, the upper level is at grade,
-so the rise comes only from `belowGrade`. An entry with too little rise is left out in red. One
-that runs past the end of the lean-to floor, or meets an open lean-to's post, gets a warning.
+so the rise comes only from `belowGrade`. An entry with too little rise is left out in red, and so
+is a wood ramp too short for one whole board down the slope. One that runs past the end of the
+lean-to floor, or meets an open lean-to's post, gets a warning.
 
 ### Wood
 
@@ -414,7 +419,7 @@ The step is fixed, with no settings:
 |---|---|---|
 | Risers | | `n = ⌈rise / 7-1/2⌉`, each `rise / n`. Open. Under 2 risers, no stairs and a warning. |
 | Treads | `tread`, `T`, 5/4x6, PT | `n − 1` treads of two boards, 1/4 in apart: 11-1/4 in, the unit run. Tread `k` tops at `top − k × riser`, from `edge + (k − 1) × 11-1/4`. |
-| Stringers | `stringer.stair`, `S`, 2x12, PT | Cut: seats under the treads, the board's top edge through each seat's outer corner. Seat 1 runs back to `face`. Plumb cut at `face`, in a sloped hanger on wood, or anchored to a slab edge. Level cut at the foot. At least three, flush with each side, evenly spaced no more than 18 in apart. |
+| Stringers | `stringer.stair`, `S`, 2x12, PT | Cut: seats under the treads, the board's top edge through each seat's outer corner. Seat 1 runs back to `face`. Plumb cut at `face`, in a sloped hanger on wood, or anchored to a slab edge. Level cut at the foot. The hanger needs wood behind the whole plumb cut: where the cut reaches below `low`, the underside of the floor framing or deck beam (`LeanToFloor.bottom`), the note names a PT 2x12 hanger board under it, as wide as the stairs, and `RampFacts.hangerBoard` gives its length to the BOM. The app does not draw the board. Below a slab, a warning says to set the tops on a block or footing. At least three, flush with each side, evenly spaced no more than 18 in apart. |
 
 | Warning | Source |
 |---|---|
@@ -423,7 +428,8 @@ The step is fixed, with no settings:
 | A total rise of 30 in or more: a stair guard | DCA6 Figure 30, IRC R312.1 |
 | Open risers more than 30 in above the ground below: a 4 in sphere must not pass | IRC R311.7.5.1 |
 | A stringer span over 6 ft | DCA6 Figure 28 |
-| A stringer under 5 in deep at its top, under a deck board that runs past the beam | DCA6 Figure 28 |
+| A stringer under 5 in deep at its top, square to the stringer, under a deck board that runs past the beam | DCA6 Figure 28 |
+| The plumb cuts reach below the floor framing or deck beam: a hanger board; or below a slab | DCA6 Figure 31 |
 
 ### Concrete
 
@@ -433,7 +439,8 @@ plane square to the wall, from the framing face at floor level, as wide as the r
 `base = foot − thickness`. The surface falls from the floor to the foot, over a flat base
 `thickness` under the foot. The wedge starts at the framing face, as a wood ramp does.
 
-Between `face` and `edge` the wedge top stays at `under`, as a ramp stringer does.
+Between `face` and `edge` the wedge top stays at `under`, then rises to `top` at `edge`, so the
+concrete meets the deck surface at the outer board.
 
 `frameRamps` returns one `RampFacts` per built entry, in `Model.ramps`: its kind, its stringer
 count, what the stringer tops fasten to, and a summary line. The BOM counts the concrete and the
@@ -458,7 +465,7 @@ stairs" sheet draws them ([drawings.md](drawings.md) "Decks, ramps, and stairs")
 
 - Place every ramp through `rampPlace`. Do not read `ramp.wall` or `ramp.at` directly.
 - Keep `LeanTo.floor` in step with the deck and slab, and `rampLeanToFloor` in step with it: the
-  editor and prune show `from` only where the model can use it.
+  editor shows `from` where a lean-to floor is on the wall.
 - Send every opening row edit through `withOpeningRow` or `withoutOpeningRow`. A new edit that
   reorders rows must remap `ramp.opening` the same way.
 - A ramp becomes lost only when its opening changes outside those two functions, for example in a

@@ -15,6 +15,20 @@ export function setter<T extends object>(value: T, onChange: Edit<T>) {
     (next) => onChange({ ...value, [key]: next });
 }
 
+/**
+ * Keys for a list edited by index, so each item keeps its own field drafts and fold state when one
+ * before it goes. Call `removed(index)` after a remove that the design took.
+ */
+export function useListKeys(length: number) {
+  const [keys, setKeys] = useState(() => Array.from({ length }, (_, index) => index));
+  // Items added at the end, or a list that undo or a load changed, take new keys at the end.
+  if (keys.length !== length) {
+    const next = Math.max(-1, ...keys) + 1;
+    setKeys(keys.length < length ? [...keys, ...Array.from({ length: length - keys.length }, (_, index) => next + index)] : keys.slice(0, length));
+  }
+  return { keys, removed: (index: number) => setKeys((current) => current.filter((_, at) => at !== index)) };
+}
+
 export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 interface FoldProps {
@@ -37,13 +51,22 @@ function Fold({ kind, title, brief, open = false, enabled, onEnable, actions, he
   const [opened, setOpened] = useState(false);
   const { button, panel, row } = useHelp(title, help);
   const switchId = useId();
+  // The switch turns the label into a `details`, so React mounts a new switch: focus follows it.
+  const refocus = useRef(false);
   const toggle = onEnable && (
     <input
       id={switchId}
+      ref={(element) => {
+        if (element && refocus.current) {
+          refocus.current = false;
+          element.focus();
+        }
+      }}
       type="checkbox"
       aria-label={title}
       checked={enabled}
       onChange={(event) => {
+        refocus.current = true;
         onEnable(event.target.checked);
         setOpened(event.target.checked);
       }}
@@ -104,8 +127,11 @@ interface FieldProps<T> {
   help?: Help;
 }
 
-// A mouse resting this long on a `?` opens its help.
+// A mouse resting this long on a setting's row opens its help.
 const HOVER_DELAY = 1000; // ms
+
+// Popover came in Safari 17 and Firefox 125. Without it, the box is a fixed element, there only while open.
+const POPOVER = typeof HTMLElement !== 'undefined' && 'togglePopover' in HTMLElement.prototype;
 
 /**
  * The `?` beside a label, and its help in a floating box (a popover, so the scrolling side panel
@@ -127,10 +153,10 @@ function useHelp(label: string, help: Help | undefined, choices: readonly (reado
     const [button, row, panel] = [buttonRef.current, rowRef.current, panelRef.current];
     if (!button || !row || !panel) return;
     if (!open) {
-      if (panel.matches(':popover-open')) panel.hidePopover();
+      if (POPOVER) panel.togglePopover(false);
       return;
     }
-    if (!panel.matches(':popover-open')) panel.showPopover();
+    if (POPOVER) panel.togglePopover(true);
     // Below the row, or above it when there is no room below; inside the window.
     const place = () => {
       const anchor = row.getBoundingClientRect();
@@ -178,8 +204,8 @@ function useHelp(label: string, help: Help | undefined, choices: readonly (reado
       ?
     </button>
   );
-  const panel = (
-    <div ref={panelRef} id={id} className="help" popover="manual" role="note" data-pinned={open === 'pinned' || undefined}>
+  const panel = (POPOVER || open) && (
+    <div ref={panelRef} id={id} className="help" popover={POPOVER ? 'manual' : undefined} role="note" data-pinned={open === 'pinned' || undefined}>
       <p>{help.about}</p>
       {choices.length > 0 && (
         <dl>
@@ -421,7 +447,7 @@ export function ColorField({ label, value, onChange, help }: FieldProps<string>)
           {label}
           {button}
         </span>
-        <input ref={input} type="color" key={value} defaultValue={value} />
+        <input ref={input} type="color" aria-label={label} key={value} defaultValue={value} />
       </label>
       {panel}
     </>
@@ -438,7 +464,7 @@ export function CheckField({ label, value, onChange, help }: FieldProps<boolean>
           {label}
           {button}
         </span>
-        <input type="checkbox" checked={value} aria-invalid={error !== null} onChange={(event) => setError(onChange(event.target.checked))} />
+        <input type="checkbox" aria-label={label} checked={value} aria-invalid={error !== null} onChange={(event) => setError(onChange(event.target.checked))} />
         {error && <small className="error">{error}</small>}
       </label>
       {panel}

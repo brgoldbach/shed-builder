@@ -350,8 +350,9 @@ export class FramingScene {
     this.camera.far = distance * 20;
     this.camera.updateProjectionMatrix();
     this.controls.target.copy(sphere.center);
-    // The grid stands for the ground: at the lowest piece of lumber.
-    this.grid.position.set(sphere.center.x, sphere.center.y, new Box3().setFromObject(this.members).min.z);
+    // The grid stands for the ground: at the lowest piece of lumber, or the lowest part with none shown.
+    const lumber = new Box3().setFromObject(this.members);
+    this.grid.position.set(sphere.center.x, sphere.center.y, (lumber.isEmpty() ? box : lumber).min.z);
     this.controls.update();
     this.fitted = true;
     this.render();

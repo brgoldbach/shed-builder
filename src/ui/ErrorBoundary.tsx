@@ -46,3 +46,34 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     );
   }
 }
+
+/**
+ * In place of one part of the app when it throws, as the 3D view does without WebGL or when its
+ * code does not load: the message, and Retry, which mounts it again. The rest of the app goes on.
+ */
+export class PanelBoundary extends Component<{ children: ReactNode; message: string; onRetry: () => void }, State> {
+  state: State = { error: null };
+
+  static getDerivedStateFromError(error: Error): State {
+    return { error };
+  }
+
+  render() {
+    const { error } = this.state;
+    if (!error) return this.props.children;
+    return (
+      <div className="panel-error" role="alert">
+        <p>{this.props.message}</p>
+        <p className="muted">{error.message}</p>
+        <button
+          onClick={() => {
+            this.props.onRetry();
+            this.setState({ error: null });
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+}

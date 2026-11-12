@@ -58,6 +58,7 @@ import {
   TextField,
   capitalize,
   setter,
+  useListKeys,
   type Edit,
   type Help,
   type SectionProps,
@@ -668,6 +669,7 @@ type Hatch = Roof['loft']['hatches'][number];
 
 function HatchesEditor({ value, onChange, names }: SectionProps<Hatch[]> & { names: Naming }) {
   const [added, setAdded] = useState<number | null>(null);
+  const keys = useListKeys(value.length);
   const update =
     (index: number): Edit<Hatch> =>
     (next) =>
@@ -678,7 +680,7 @@ function HatchesEditor({ value, onChange, names }: SectionProps<Hatch[]> & { nam
         const set = setter(hatch, update(index));
         return (
           <Card
-            key={index}
+            key={keys.keys[index]}
             title={`Hatch ${index + 1}`}
             brief={`${formatInches(hatch.width)} × ${formatInches(hatch.depth)}`}
             open={index === added}
@@ -686,7 +688,7 @@ function HatchesEditor({ value, onChange, names }: SectionProps<Hatch[]> & { nam
               <button
                 className="remove"
                 aria-label={`Remove hatch ${index + 1}`}
-                onClick={() => onChange(value.filter((_, at) => at !== index))}
+                onClick={() => onChange(value.filter((_, at) => at !== index)) === null && keys.removed(index)}
               >
                 ×
               </button>

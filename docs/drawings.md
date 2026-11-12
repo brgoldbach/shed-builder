@@ -267,7 +267,7 @@ the `FD` id prefix, or change this filter with it.
 
 ### 3.3 Decks, ramps, and stairs (`deckPlan`, `decks`)
 
-The sheet shows, in plan: the `DECK_FRAMING` roles (deck ledgers, joists, beams, ramp and stair stringers), a
+The sheet shows, in plan: the `DECK_FRAMING` roles (deck ledgers, joists, rim joists, beams, ramp and stair stringers), a
 deck's own skids and girders, the `post` members of each assembly with deck framing, and the
 concrete ramp panels (layer `ramps`).
 
@@ -484,7 +484,8 @@ sheets in order is quicker.
 
 - The paper choice (Letter, the default, or Tabloid) applies to the PDF only.
 - Download PDF loads `./pdf` on demand. While the PDF builds, the button reads "Making PDF…" and is
-  disabled. The code has no `catch`, so an error shows no message.
+  disabled. An error shows "The PDF was not made" and its message beside the button. A link too long
+  for any QR code gives a PDF with no link sheet.
 - `fileName` in `App.tsx` names the PDF `<name>.plans.pdf` ([ui.md, Flows](ui.md#flows)).
 - Print uses the print CSS in `app.css`. It hides the header, form, tabs, toolbars, piece box,
   viewer, and Zoom buttons. It sets black on white. It puts each figure on its own page, with the
@@ -510,9 +511,11 @@ its px size, at an offset in the canvas.
 - The wheel listener is not passive. It calls `preventDefault`, so the page does not scroll under
   the drawing.
 - A click handler in the capture phase stops the click after a drag, so a pan never picks a member.
-- The canvas sets `touch-action: none`. The viewer zooms on wheel events only, although its bar says
-  "Scroll or pinch to zoom". The code has no handler for a two-finger touch pinch.
-- The move handler does not filter by `pointerId`.
+- The canvas sets `touch-action: none`. One pointer pans. Two pointers pinch: the zoom follows their
+  distance, about their midpoint, and the drawing follows the midpoint. The handlers track each
+  `pointerId`, and `pointercancel` ends a gesture as `pointerup` does.
+- The viewer is `role="dialog"` with `aria-modal`. It takes focus when it opens, and gives it back
+  to what opened it. Undo keys do nothing while focus is in a dialog.
 
 ## 7. The PDF (`pdf.ts`)
 

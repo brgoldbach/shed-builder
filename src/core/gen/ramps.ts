@@ -1,5 +1,5 @@
-import { LUMBER, stockFor } from '../catalog';
-import type { Addition, Opening, Ramp, ShedConfig } from '../config';
+import { LUMBER, SHEETS, stockFor } from '../catalog';
+import { MIN_RAMP_WIDTH, type Addition, type Opening, type Ramp, type ShedConfig } from '../config';
 import { ASSEMBLIES, LEFT_OUT, type Member, type Point, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
 import { openingLabel, roOffset, wallSpan } from '../placement';
@@ -57,7 +57,7 @@ export function withoutOpeningRow(config: ShedConfig, index: number): ShedConfig
     if (!ramp.opening || ramp.opening.row < index) return ramp;
     if (ramp.opening.row > index) return { ...ramp, opening: { ...ramp.opening, row: ramp.opening.row - 1 } };
     const { wall, left, right } = rampPlace(config, ramp);
-    return { ...ramp, opening: null, wall, along: 'left', at: left, width: right - left };
+    return { ...ramp, opening: null, wall, along: 'left', at: left, width: Math.max(MIN_RAMP_WIDTH, right - left) };
   });
   return { ...config, openings: config.openings.filter((_, at) => at !== index), ramps };
 }
@@ -76,7 +76,7 @@ export function withOpeningRow(config: ShedConfig, index: number, next: Opening)
     const kept = moved >= 0 ? moved : ramp.opening.index < next.at.length ? ramp.opening.index : -1;
     if (kept >= 0) return { ...ramp, opening: { row: index, index: kept } };
     const { wall, left, right } = rampPlace(config, ramp);
-    return { ...ramp, opening: null, wall, along: 'left', at: left, width: right - left };
+    return { ...ramp, opening: null, wall, along: 'left', at: left, width: Math.max(MIN_RAMP_WIDTH, right - left) };
   });
   return { ...config, openings, ramps };
 }
@@ -86,6 +86,7 @@ export interface RampFacts {
   kind: Ramp['kind'];
   stringers: number;
   top: 'framing' | 'deck' | 'slab'; // what the stringer tops fasten to: the shed's floor framing, a lean-to deck beam, or a slab edge
+  hangerBoard: number; // the length of a hanger board under the floor framing or deck beam, for stair hangers; 0 for none
   summary: string; // for the drawings
 }
 
@@ -149,9 +150,13 @@ export function frameRamps(
     // Where it starts: `face` takes the stringers, or the wedge; the surface starts at `edge`, at `top`.
     // Between them a stringer stays under `under`, the underside of an outer deck board that runs past its beam.
     const fromLeanTo = ramp.from === 'lean-to' && floor !== null;
+    // `low` is the underside of what the stringers fasten to: the floor framing, the deck beam, or the slab.
+    const slabShed = config.foundation.type === 'slab';
+    const floorLow = slabShed ? -config.foundation.slab.thickness : -SHEETS[config.floor.subfloor].thick - LUMBER[config.floor.joist].width;
     const upper = fromLeanTo
-      ? { face: floor.face, edge: floor.edge, top: floor.top, under: floor.under, name: floorName!, fasten: floor.kind }
-      : { face: 0, edge: 0, top: 0, under: 0, name: 'the floor', fasten: config.foundation.type === 'slab' ? ('slab' as const) : ('framing' as const) };
+      ? { face: floor.face, edge: floor.edge, top: floor.top, under: floor.under, low: floor.bottom, name: floorName!, fasten: floor.kind }
+      : { face: 0, edge: 0, top: 0, under: 0, low: floorLow, name: 'the floor', fasten: slabShed ? ('slab' as const) : ('framing' as const) };
+    const holder = upper.fasten === 'slab' ? 'the slab' : upper.fasten === 'deck' ? 'the deck beam' : 'the floor framing';
     // Down to the lean-to floor in its way, which it must fit on, short of the posts; else to its foot.
     const lower = !fromLeanTo && floor ? { z: floor.top, limit: floor.inner } : { z: grade - ramp.belowGrade, limit: Infinity };
     const foot = lower.z;
@@ -209,11 +214,17 @@ export function frameRamps(
       }
       profile.push([end, bottom(end)], [upper.face, bottom(upper.face)]);
       const outline = clipBelow(profile, [0, -1], -foot);
+      // A sloped hanger needs wood behind the whole plumb cut. Below the floor framing or deck beam,
+      // a hanger board under it takes the hangers; below a slab, nothing takes the anchors.
+      const below = upper.low - bottom(upper.face);
+      const short = below > NEAR;
+      const hangerBoard = short && upper.fasten !== 'slab' ? right - left : 0;
+      const fastened = hangerBoard ? `${holder}, in a sloped hanger on a PT 2x12 hanger board under it` : butts(true);
       const width = right - left;
       const count = Math.max(3, Math.ceil((width - PLY) / STAIR_SPACING - NEAR) + 1);
       const starts = Array.from({ length: count }, (_, i) => left + (i * (width - PLY)) / (count - 1));
       const treadCount = `${treads} tread${treads === 1 ? '' : 's'}`;
-      const note = `Cut stringer: ${risers} risers of ${formatInches(riser)}, ${treadCount} of ${formatInches(unit)}. Plumb cut ${((angle * 180) / Math.PI).toFixed(1)}° at ${butts(true)}. Level cut ${footText}.`;
+      const note = `Cut stringer: ${risers} risers of ${formatInches(riser)}, ${treadCount} of ${formatInches(unit)}. Plumb cut ${((angle * 180) / Math.PI).toFixed(1)}° at ${fastened}. Level cut ${footText}.`;
       for (const u of starts) {
         const plane = { origin: at(along > 0 ? u : u + PLY, 0, 0), h: outward };
         const stringer = planeMember({ id: nextId('S'), assembly: 'ramp', role: 'stringer.stair', size: STAIR_STRINGER, note }, plane, outline, [cos, -sin]);
@@ -234,11 +245,17 @@ export function frameRamps(
       if (rise >= GUARD_RISE - NEAR) warn(`A total rise of ${formatInches(rise)} needs a stair guard (DCA6 Figure 30). The app does not build it.`);
       if (rise - riser > GUARD_RISE + NEAR) warn('Open risers more than 30" above the ground below must stop a 4" sphere (IRC R311.7.5.1). Add riser boards or fillers.');
       if (end - upper.face > MAX_STAIR_SPAN + NEAR) warn(`The stringers span ${formatInches(end - upper.face)}. A cut stringer spans at most 6' 0" (DCA6 Figure 28).`);
-      const topDepth = seat(1) - bottom(upper.face);
+      // The throat is square to the stringer.
+      const topDepth = (seat(1) - bottom(upper.face)) * cos;
       if (topDepth < MIN_THROAT - NEAR) warn(`The stringers are ${formatInches(topDepth)} deep at their top, under ${upper.name}'s outer board. A cut stringer keeps 5" (DCA6 Figure 28).`);
+      if (hangerBoard) {
+        warn(`The stringers' plumb cuts reach ${formatInches(below)} below ${holder}. Their sloped hangers go on a PT 2x12 hanger board under it, across the stairs (DCA6 Figure 31). The app counts the board but does not draw it.`);
+      } else if (short) {
+        warn(`The stringers' plumb cuts reach ${formatInches(below)} below ${holder}, where anchors cannot hold them. Set their tops on a block or footing.`);
+      }
       const spacing = formatInches((width - PLY) / (count - 1));
       const summary = `${levels}: ${risers} risers of ${formatInches(riser)}, ${treadCount} of two 5/4x6, PT 2x12 cut stringers, ${count} at ${spacing} o.c.`;
-      facts.push({ kind: 'stairs', stringers: count, top: upper.fasten, summary });
+      facts.push({ kind: 'stairs', stringers: count, top: upper.fasten, hangerBoard, summary });
       return;
     }
 
@@ -259,8 +276,8 @@ export function frameRamps(
     if (concrete) {
       // Over a flat base `thickness` under the foot.
       const base = foot - ramp.thickness;
-      const capped = surface(upper.face) > upper.under + NEAR;
-      const top: Point[] = capped ? [[upper.face, upper.under], [knee(0), upper.under]] : [[upper.face, surface(upper.face)]];
+      // Under an outer deck board that runs past the beam, the wedge stops at the board's underside.
+      const top: Point[] = upper.edge > upper.face + NEAR ? [[upper.face, upper.under], [upper.edge, upper.under], [upper.edge, upper.top]] : [[upper.face, upper.top]];
       solids.push({
         id: nextId('C'),
         label: 'Concrete ramp',
@@ -276,10 +293,18 @@ export function frameRamps(
           holes: [],
         },
       });
-      facts.push({ kind: 'ramp', stringers: 0, top: upper.fasten, summary: `${levels}: concrete, 1 in ${ramp.slope}, over a ${formatInches(ramp.thickness)} base.` });
+      facts.push({ kind: 'ramp', stringers: 0, top: upper.fasten, hangerBoard: 0, summary: `${levels}: concrete, 1 in ${ramp.slope}, over a ${formatInches(ramp.thickness)} base.` });
       return;
     }
 
+    // Whole boards down the slope from the top; with none, the stringers would carry nothing.
+    const boardWidth = LUMBER['2x6'].width;
+    const slopeLength = (ramp.slope * rise) / cos;
+    const rows = Math.floor((slopeLength + GAP) / (boardWidth + GAP));
+    if (rows < 1) {
+      leaveOut(`${upperName} is ${formatInches(rise)} above ${footName}, too low for one whole board down the slope.`);
+      return;
+    }
     // The stringer top runs a board's thickness under the surface.
     const lift = PLY / cos;
     const top = (x: number) => surface(x) - lift;
@@ -305,11 +330,8 @@ export function frameRamps(
     }
 
     // Boards across the stringers, from the top down the slope.
-    const boardWidth = LUMBER['2x6'].width;
     const downSlope: Vec3 = [outward[0] * cos, outward[1] * cos, -sin];
     const normal: Vec3 = [outward[0] * sin, outward[1] * sin, cos];
-    const slopeLength = (ramp.slope * rise) / cos;
-    const rows = Math.floor((slopeLength + GAP) / (boardWidth + GAP));
     const centers = starts.map((u) => u + PLY / 2);
     for (let row = 0; row < rows; row++) {
       const down = row * (boardWidth + GAP);
@@ -329,7 +351,7 @@ export function frameRamps(
       }
     }
     const summary = `${levels}: PT ${ramp.stringer} stringers at ${ramp.oc}" o.c., 1 in ${ramp.slope}, 2x6 deck boards.`;
-    facts.push({ kind: 'ramp', stringers: starts.length, top: upper.fasten, summary });
+    facts.push({ kind: 'ramp', stringers: starts.length, top: upper.fasten, hangerBoard: 0, summary });
   });
   return { members, solids, warnings, facts };
 }

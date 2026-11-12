@@ -91,6 +91,20 @@ describe('span checks', () => {
     expect(girders[0].allowed!).toBeLessThan(girders[1].allowed!);
   });
 
+  it('checks each girder line at its own pier spacing, when a deck continues only one of them', () => {
+    // Three lines, piers up to 144 apart: 134 in center to center on a 144 in run. A 40 in deck
+    // continues only the back line, whose piers spread anew, closer.
+    const pier = { ...leanToPier.foundation.pier, girderCount: 3, maxSpacing: 144 };
+    const deck = { side: 'left', length: 40, center: 20, depth: 30, floor: 'deck', deck: { support: 'shed', join: 'continue' } };
+    const config = shedSchema.parse({ ...leanToPier, foundation: { ...leanToPier.foundation, pier }, additions: [deck] });
+    const spans = checkSpans(config, buildModel(config), naming(config)).filter(({ member }) => member.endsWith('girder'));
+    expect(spans.map(({ member, span }) => [member, span])).toEqual([
+      ['Front girder', 134],
+      ['Inner girder', 134],
+      ['Back girder', 82.25],
+    ]);
+  });
+
   it('checks extension lean-to rafters at the main rafter spacing, as each sits beside a main rafter', () => {
     const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, oc: 24 }, additions: [{ side: 'front', attach: 'extension', oc: 16 }] });
     const [rafters] = checkSpans(config, buildModel(config), naming(config)).filter(({ member }) => member.endsWith('lean-to rafters'));

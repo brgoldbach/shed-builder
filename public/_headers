@@ -1,0 +1,9 @@
+# Cloudflare static asset headers. The file names under /assets carry a content hash, so a browser
+# may keep them for a year. Everything else, the page and version.txt, it checks on each visit.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

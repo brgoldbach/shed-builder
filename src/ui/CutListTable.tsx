@@ -37,7 +37,14 @@ export function CutListTable({ lines, names, selected, onSelect }: Props) {
             <tr
               key={line.mark}
               className={line.mark === selected ? 'selected' : undefined}
+              tabIndex={0}
+              aria-selected={line.mark === selected}
               onClick={() => onSelect(line.mark)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                onSelect(line.mark);
+              }}
             >
               <td className="nowrap">{line.mark}</td>
               <td className="number">{line.ids.length}</td>

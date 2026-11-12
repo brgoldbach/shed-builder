@@ -25,6 +25,7 @@ import {
   TextField,
   capitalize,
   setter,
+  useListKeys,
   type Edit,
   type SectionProps,
 } from './fields';
@@ -111,6 +112,7 @@ function uniqueName(name: string, types: readonly OpeningType[]): string {
 export function OpeningTypesEditor({ value, onChange }: SectionProps<ShedConfig>) {
   const types = value.openingTypes;
   const [added, setAdded] = useState<number | null>(null);
+  const typeKeys = useListKeys(types.length);
 
   const update =
     (index: number): Edit<OpeningType> =>
@@ -144,12 +146,13 @@ export function OpeningTypesEditor({ value, onChange }: SectionProps<ShedConfig>
     <>
       {types.map((type, index) => (
         <TypeCard
-          key={index}
+          key={typeKeys.keys[index]}
+          others={types.filter((_, at) => at !== index)}
           open={index === added}
           value={type}
           uses={value.openings.filter((row) => row.type === type.name).length}
           onChange={update(index)}
-          onRemove={() => onChange({ ...value, openingTypes: types.filter((_, at) => at !== index) })}
+          onRemove={() => onChange({ ...value, openingTypes: types.filter((_, at) => at !== index) }) === null && typeKeys.removed(index)}
         />
       ))}
       <div className="add-row">
@@ -164,20 +167,23 @@ export function OpeningTypesEditor({ value, onChange }: SectionProps<ShedConfig>
 }
 
 interface TypeCardProps extends SectionProps<OpeningType> {
+  others: readonly OpeningType[]; // the other types, whose names an automatic name must not take
   open: boolean;
   uses: number;
   onRemove: () => void;
 }
 
-function TypeCard({ value, open, uses, onChange, onRemove }: TypeCardProps) {
+function TypeCard({ value, others, open, uses, onChange, onRemove }: TypeCardProps) {
   const set = setter(value, onChange);
   const sizes = SIZES[value.kind];
   const size = sizes?.find((preset) => preset.width === value.width && preset.height === value.height);
-  const hasAutoName = value.name === autoName(value.kind, value.width, value.height);
+  // An automatic name, with the number `uniqueName` adds when another type has it.
+  const auto = autoName(value.kind, value.width, value.height);
+  const hasAutoName = value.name === auto || (value.name.startsWith(`${auto} `) && /^\d+$/.test(value.name.slice(auto.length + 1)));
 
-  // While the type keeps its automatic name, the name follows the size.
+  // While the type keeps its automatic name, the name follows the size, unique among the types.
   const resize = (kind: Kind, width: number, height: number) =>
-    onChange({ ...value, kind, width, height, name: hasAutoName ? autoName(kind, width, height) : value.name });
+    onChange({ ...value, kind, width, height, name: hasAutoName ? uniqueName(autoName(kind, width, height), others) : value.name });
 
   return (
     <Card
@@ -256,6 +262,7 @@ const defaultSill = (type: OpeningType) =>
 export function OpeningRowsEditor({ value, onChange }: SectionProps<ShedConfig>) {
   const names = value.openingTypes.map((type) => type.name);
   const setRows = (openings: Opening[]) => onChange({ ...value, openings });
+  const rowKeys = useListKeys(value.openings.length);
   // Ramps that follow a row keep their positions through its edits.
   const update =
     (index: number): Edit<Opening> =>
@@ -280,12 +287,12 @@ export function OpeningRowsEditor({ value, onChange }: SectionProps<ShedConfig>)
       </p>
       {value.openings.map((row, index) => (
         <OpeningRow
-          key={index}
+          key={rowKeys.keys[index]}
           value={row}
           config={value}
           names={names}
           onChange={update(index)}
-          onRemove={() => onChange(withoutOpeningRow(value, index))}
+          onRemove={() => onChange(withoutOpeningRow(value, index)) === null && rowKeys.removed(index)}
         />
       ))}
       <div className="add-row">

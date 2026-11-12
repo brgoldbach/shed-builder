@@ -24,6 +24,7 @@ export function View3D({ members, solids, finishes, missing, trimColor, front, g
   const view = useRef<FramingScene | null>(null);
   const pick = useRef(onPick);
   const [making, setMaking] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
     pick.current = onPick;
@@ -65,10 +66,13 @@ export function View3D({ members, solids, finishes, missing, trimColor, front, g
             if (!view.current) return;
             const pieces = view.current.pieces();
             setMaking(true);
+            setFailed(null);
             try {
               // Loaded on demand, outside the main bundle.
               const { toGlb } = await import('../view3d/export');
               download(glbName, await toGlb(pieces), 'model/gltf-binary');
+            } catch (error) {
+              setFailed(`The 3D file was not made: ${(error as Error).message}`);
             } finally {
               setMaking(false);
             }
@@ -76,6 +80,11 @@ export function View3D({ members, solids, finishes, missing, trimColor, front, g
         >
           {making ? 'Making 3D…' : 'Download 3D'}
         </button>
+        {failed && (
+          <small className="error" role="alert">
+            {failed}
+          </small>
+        )}
       </div>
       {children}
     </>

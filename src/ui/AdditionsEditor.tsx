@@ -20,7 +20,7 @@ import { deckHeights, onShed } from '../core/gen/deck';
 import { supportLines } from '../core/gen/supports';
 import { naming, type Naming } from '../core/naming';
 import { formatInches, formatLength } from '../core/units';
-import { Card, CheckField, Group, LengthField, NumberField, SelectField, capitalize, setter, type SectionProps } from './fields';
+import { Card, CheckField, Group, LengthField, NumberField, SelectField, capitalize, setter, useListKeys, type SectionProps } from './fields';
 import { EDITOR_HELP } from './help/editors';
 
 const FLOOR_LABELS = { none: 'None: posts on piers', slab: 'Slab', deck: 'Deck: posts on piers' };
@@ -38,6 +38,7 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
   const taken = new Set(additions.flatMap(sidesOf));
   const free = names.sides.find((side) => !taken.has(side));
   const [added, setAdded] = useState<number | null>(null);
+  const keys = useListKeys(additions.length);
 
   return (
     <>
@@ -46,13 +47,13 @@ export function AdditionsEditor({ value, onChange }: SectionProps<ShedConfig>) {
       </p>
       {additions.map((addition, index) => (
         <AdditionCard
-          key={index}
+          key={keys.keys[index]}
           open={index === added}
           value={addition}
           config={value}
           names={names}
           onChange={(next) => setAll(additions.map((other, at) => (at === index ? next : other)))}
-          onRemove={() => setAll(additions.filter((_, at) => at !== index))}
+          onRemove={() => setAll(additions.filter((_, at) => at !== index)) === null && keys.removed(index)}
         />
       ))}
       {free && (

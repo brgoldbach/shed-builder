@@ -186,7 +186,8 @@ The heights chain through z = 0:
 ## 4. Foundation and floor
 
 `frameFloor` builds the foundation and the floor framing, all below z = 0. It gives no warnings. On
-a slab it builds only concrete, and the walls stand on PT plates (5.6).
+a slab it builds only concrete, and the walls stand on PT plates (5.6). Its `unbuilt` sides keep the
+skids or girders from running out under a continued deck that `frameAdditions` left out.
 
 ### 4.1 Floor framing
 

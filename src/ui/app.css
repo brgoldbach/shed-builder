@@ -355,6 +355,8 @@ button {
 
 /* A popover: in the top layer, placed beside its `?` by useHelp. */
 .help {
+  position: fixed;
+  z-index: 20;
   inset: auto;
   margin: 0;
   max-width: min(340px, calc(100vw - 16px));
@@ -545,12 +547,29 @@ button {
   display: block;
 }
 
+.cutlist tr[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .loading-3d {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   margin: 0;
+}
+
+.panel-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px;
+  text-align: center;
 }
 
 .view-toolbar {
@@ -942,7 +961,7 @@ button {
 
 /* Phones: one column. The form is the Design tab, the header wraps, the 3D layer list folds, and
    inputs use 16 px text so a phone does not zoom in on a tap. */
-@media (max-width: 760px) {
+@media screen and (max-width: 760px) {
   .app {
     grid-template: 'top' auto 'tabs' auto 'main' minmax(0, 1fr) / minmax(0, 1fr);
   }

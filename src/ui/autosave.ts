@@ -46,11 +46,14 @@ export const savedDesign = (store: Store | null) => read(store, STORAGE_KEY);
 /** The backup's text as it is, or null. */
 export const backupDesign = (store: Store | null) => read(store, BACKUP_KEY);
 
-/** Move the stored design to the backup, so the next start opens the first preset. */
+/**
+ * Move the stored design to the backup, so the next start opens the first preset. The first preset
+ * itself does not go there: after a crash that repeats, it would replace the user's design.
+ */
 export function setAside(store: Store | null) {
   const text = read(store, STORAGE_KEY);
   if (text === null) return;
-  write(store, BACKUP_KEY, text);
+  if (text !== serializeConfig(PRESETS[0])) write(store, BACKUP_KEY, text);
   try {
     store?.removeItem(STORAGE_KEY);
   } catch {

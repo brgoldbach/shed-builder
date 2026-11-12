@@ -188,7 +188,7 @@ function floorPlan({ config, model, marks }: Context): Drawing | null {
   });
 }
 
-const DECK_FRAMING = new Set<Role>(['ledger.deck', 'joist.deck', 'beam.deck', 'stringer', 'stringer.stair']);
+const DECK_FRAMING = new Set<Role>(['ledger.deck', 'joist.deck', 'rim.deck', 'beam.deck', 'stringer', 'stringer.stair']);
 
 // Lean-to decks, ramps, and stairs in plan, without their boards, with the posts the deck beams bolt to.
 function deckPlan({ config, model, names, marks }: Context): Drawing | null {

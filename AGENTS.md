@@ -7,6 +7,6 @@ release. It links a detailed document for each subsystem in `docs/`.
 - A valid design never throws. Build what you can, and warn about the rest.
 - With each change, update the tests, the golden files after review, CHANGELOG `[Unreleased]`,
   and any of README.md and the documents in `docs/` that describe it.
-- Gate: `npm run gate` (tests, lint, type check, build). `main` takes pull requests only, and the
-  `gate` workflow must pass.
+- Gate: `npm run gate` (tests, lint, type checks, build). `main` takes pull requests only, and the
+  `gate`, `ui`, and Cloudflare checks must pass.
 - `release` is the live site. Only the release workflow moves it (DEVELOPER.md "Release").

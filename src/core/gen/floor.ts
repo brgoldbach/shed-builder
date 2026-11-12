@@ -4,7 +4,7 @@ import { corners, type Assembly, type Member, type Role, type Solid, type Vec3 }
 import { continuedDecks } from './deck';
 import { idMaker, planeMember } from './section';
 import { skidOutline, supportLines } from './supports';
-import { splitPlate } from './walls';
+import { splitPlate, type Wall } from './walls';
 
 const PLY = 1.5; // thickness of 2x lumber
 const X: Vec3 = [1, 0, 0];
@@ -14,9 +14,9 @@ const NEAR = 0.01;
 
 /**
  * Foundation and floor framing. The floor surface (subfloor or slab top) is z = 0, so everything
- * here is below it.
+ * here is below it. The skids or girders do not run out under a deck on an `unbuilt` side.
  */
-export function frameFloor(config: ShedConfig): { members: Member[]; solids: Solid[] } {
+export function frameFloor(config: ShedConfig, unbuilt: ReadonlySet<Wall> = new Set()): { members: Member[]; solids: Solid[] } {
   const { width, length, floor, foundation, catalog } = config;
   const members: Member[] = [];
   const solids: Solid[] = [];
@@ -102,7 +102,7 @@ export function frameFloor(config: ShedConfig): { members: Member[]; solids: Sol
   // Skids or girders run left to right under the joists. Under a gable-end deck that continues
   // them, a run goes on out to the deck's outer edge; the deck joists there give more splice points.
   const lines = supportLines(config)!;
-  const decks = continuedDecks(config);
+  const decks = continuedDecks(config).filter(({ side }) => !unbuilt.has(side));
   const runOf = (y: number): [number, number] => {
     const reach = (side: 'left' | 'right') =>
       Math.max(0, ...decks.filter((deck) => deck.side === side && y > deck.ys[0] - NEAR && y < deck.ys[1] + NEAR).map(({ reach }) => reach));

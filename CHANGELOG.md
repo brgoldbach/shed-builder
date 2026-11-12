@@ -3,6 +3,68 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **License:** Shed Builder is under the MIT license. The site serves the license of each package it
+  includes, linked from the changelog, with a link to report a problem.
+- The page has an icon, a description for shared links, and a line for a browser with no
+  JavaScript.
+
+### Changed
+
+- The site's file names that carry a content hash are cached for a year, and every page has a
+  Content-Security-Policy.
+- Development only: `/release patch`, `minor`, or `major` counts from the version on `main`, not on
+  the pull request's branch, so a branch that `main` has passed cannot repeat a version. The release
+  workflow releases any version on `main` that has no tag, so one that did not start releases on the
+  next push, and it refuses a version below the latest release. Its jobs take only the token rights
+  they need.
+- Development only: the Vite and Playwright configs have their own tsconfig with Node's types, and
+  the gate checks it.
+
+### Fixed
+
+- A browser without WebGL, or a failed download of the 3D view's code, replaced the whole app with
+  the "Shed Builder stopped" page. Now only the 3D panel says the 3D view did not start, with Retry.
+  The form, drawings, cut list, and BOM work.
+- After a crash that repeats, a second "Start a new design" replaced the backup of the user's design
+  with the first preset. The untouched preset no longer goes to the backup.
+- A deck on the shed's skids or girders with a drop deeper than its joists built joists notched
+  through and a beam "ripped" to a negative depth. The deck is now left out in red, with a warning,
+  and the lean-to stands on piers. The shed's skids or girders no longer run out under a continued
+  deck that is left out.
+- The pier girder span check took the widest pier gap over all lines together. A deck that
+  continues one line spaced that line's piers closer, and hid a long span on the others. Each line
+  is now checked at its own pier spacing.
+- A saved file or link dropped "Foot below grade" and "Starts at" from a ramp whose lean-to was left
+  out, so it opened as a different ramp. They now stay.
+- A wood ramp too low for one whole board built short stringers and no boards. It is now left out in
+  red, with a warning.
+- Stairs from the shed floor or a deck hung their stringers from framing that ends above the
+  stringer tops. The note, a warning, and the BOM now add a PT 2x12 hanger board under it.
+- The stair throat warning measured plumb, not square to the stringer, so it missed a shallow top.
+- A concrete ramp from a deck started 1 in below the deck surface.
+- The "Decks, ramps, and stairs" sheet left out a gable-end deck's rim joists.
+- Removing the opening row of a ramp narrower than 12 in was refused. The freed ramp is now 12 in wide.
+- After a list item was removed, a rejected draft and its error moved to the next item. Each item
+  now keeps its own.
+- A portrait print of the cut list used the phone layout and left out the Notes column.
+- Checkboxes and color pickers had no name for a screen reader.
+- Download PDF, Download 3D, the share link, and opening a file failed with no message. Each now says
+  why. A link too long for a QR code no longer stops the PDF: it has no link sheet.
+- On a phone, a design that did not load showed its message only on the Design tab, which the app
+  did not open. It now opens that tab.
+- Safari before 17.4 and Firefox before 125 stopped at load, on the setting help and on
+  `Map.groupBy`. The help now works without popover, and the app adds `Map.groupBy` where missing.
+- A switch that adds a group, such as Loft, lost keyboard focus when toggled. The tabs move with the
+  arrow keys, a cut list line opens with Enter, and the zoom viewer takes focus, pinches to zoom on
+  a touch screen, and keeps Ctrl+Z from changing the design behind it.
+- A window changed to a door could be refused as a duplicate name. It now takes a number.
+- Fit view with only sheathing or other non-lumber layers shown lost the ground grid.
+- On Safari a Save or CSV download could fail, because its file was gone before the user answered.
+
 ## [0.10.0] - 2026-11-12
 
 ### Added

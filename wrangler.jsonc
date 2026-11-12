@@ -1,4 +1,4 @@
-// Cloudflare Workers Builds: `npx wrangler deploy` on main, `npx wrangler preview` on other branches.
+// Cloudflare Workers Builds: `npx wrangler deploy` on release, the live site; `npx wrangler preview` on other branches.
 {
   "name": "shed-builder",
   "compatibility_date": "2026-11-10",
