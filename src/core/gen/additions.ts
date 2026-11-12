@@ -259,7 +259,8 @@ function frameLeanTo(
   const fasciaThick = addition.fascia === 'none' ? 0 : LUMBER[addition.fascia].thick;
   if (addition.fascia !== 'none') {
     for (const [from, to] of splitPlate([u0, u1], maxStock(addition.fascia), centers)) {
-      board('FA', 'fascia', addition.fascia, false, to - from, at(from, tail, top(tail)), { length: frame.u, width: DOWN, thick: outward });
+      // Set down until the roof plane passes over its outer top edge, as on the main roof.
+      board('FA', 'fascia', addition.fascia, false, to - from, at(from, tail, top(tail) - fasciaThick * rise), { length: frame.u, width: DOWN, thick: outward });
     }
   }
 

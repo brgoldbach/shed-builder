@@ -6,6 +6,7 @@ import { naming } from '../src/core/naming';
 import { PRESETS } from '../src/core/presets';
 import { bounds, shapesOf, type Dimension, type Drawing } from '../src/drawings/drawing';
 import { buildDrawings } from '../src/drawings/sheets';
+import { DESIGNS } from './designs';
 import { formatInches } from '../src/core/units';
 
 const [gableSkid, leanToPier] = PRESETS;
@@ -262,5 +263,15 @@ describe('gable front', () => {
     // The joists now run left to right, so their layout climbs the left side from the front.
     const [layout] = ofKind(find(drawings, 'floor'), 'running');
     expect(layout).toMatchObject({ side: 'left', origin: 0, at: [15.25, 31.25, 47.25, 63.25, 79.25, 95.25, 111.25, 118.5] });
+  });
+});
+
+describe('lean-to deck note', () => {
+  it('names the deck boards the design uses', () => {
+    const loftShed = DESIGNS.find(({ name }) => name === '10x16 loft shed')!;
+    const note = (design: typeof loftShed) => find(drawingsOf(design), 'decks').notes.find((text) => text.includes('lean-to deck'));
+    expect(note(loftShed)).toBe('Back lean-to deck: PT 2x6 joists at 16" o.c., 5/4x6 deck boards, on piers.');
+    const additions = loftShed.additions.map((addition) => ({ ...addition, deck: { ...addition.deck, boards: '2x6' as const } }));
+    expect(note(shedSchema.parse({ ...loftShed, additions }))).toContain('2x6 deck boards');
   });
 });

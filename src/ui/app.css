@@ -111,8 +111,28 @@ button {
   border-radius: 8px;
 }
 
-.changelog::backdrop {
+.changelog::backdrop,
+.confirm::backdrop {
   background: rgb(0 0 0 / 40%);
+}
+
+.confirm {
+  width: min(420px, calc(100vw - 32px));
+  padding: 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.confirm p {
+  margin: 0 0 16px;
+}
+
+.confirm-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .changelog-bar {

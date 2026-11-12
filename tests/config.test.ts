@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { APP_VERSION, parseConfig, parseConfigText, serializeConfig } from '../src/core/config';
+import { APP_VERSION, parseConfig, parseConfigText, serializeConfig, withRoofStyle } from '../src/core/config';
 import { PRESETS } from '../src/core/presets';
 import { DESIGNS } from './designs';
 
@@ -89,4 +89,19 @@ describe('presets', () => {
       expect(parseConfigText(serializeConfig(preset))).toEqual({ ok: true, config: preset });
     },
   );
+});
+
+describe('withRoofStyle', () => {
+  const { roof } = PRESETS[0];
+
+  it('gives a new gambrel the classic barn pitches', () => {
+    const gambrel = withRoofStyle(roof, 'gambrel');
+    expect([gambrel.style, gambrel.gambrel.lowerPitch, gambrel.pitch]).toEqual(['gambrel', 29, 5]);
+    expect(withRoofStyle({ ...gambrel, pitch: 7 }, 'gambrel').pitch).toBe(7);
+  });
+
+  it('changes only the style for a gable or a lean-to', () => {
+    expect(withRoofStyle(roof, 'lean-to')).toEqual({ ...roof, style: 'lean-to' });
+    expect(withRoofStyle(withRoofStyle(roof, 'gambrel'), 'gable').pitch).toBe(5);
+  });
 });

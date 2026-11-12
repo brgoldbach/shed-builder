@@ -7,6 +7,7 @@ import { buildCutList, LENGTH_RULE } from '../src/core/out/cutlist';
 import { bomCsv, cutListCsv } from '../src/core/out/csv';
 import { naming } from '../src/core/naming';
 import { PRESETS } from '../src/core/presets';
+import { DESIGNS } from './designs';
 
 const [gableSkid, leanToPier, garageSlab] = PRESETS;
 const bomOf = (config = gableSkid) => {
@@ -62,6 +63,11 @@ describe('sheet packing', () => {
   it('stacks ripped strips across one sheet', () => {
     expect(packSheets([{ long: 72, short: 20 }, { long: 72, short: 20 }], 0.125)).toBe(1);
   });
+
+  it('counts a piece larger than a sheet as a sheet of its own', () => {
+    expect(packSheets([{ long: 120, short: 24 }, { long: 48, short: 24 }], 0.125)).toBe(2);
+    expect(packSheets([{ long: 60, short: 50 }, { long: 30, short: 20 }], 0.125)).toBe(2);
+  });
 });
 
 describe('counted items', () => {
@@ -92,6 +98,14 @@ describe('counted items', () => {
     ]);
     // Lean-to rafters bear on both walls.
     expect(item(bom.hardware, 'Hurricane tie, rafter to plate')?.quantity).toBe(20);
+  });
+
+  it('gives each form-tube length when lean-to deck piers stop at the deck beam', () => {
+    const loftShed = DESIGNS.find(({ name }) => name === '10x16 loft shed')!;
+    const onPiers = shedSchema.parse({ ...loftShed, foundation: { ...loftShed.foundation, type: 'pier' } });
+    const tube = bomOf(onPiers).concrete.find(({ item }) => item.startsWith('Form tube'))!;
+    expect(tube.note).toMatch(/^\d+ at [^,]+, \d+ at [^,]+\.$/);
+    expect(tube.note!.match(/\d+(?= at)/g)!.map(Number).reduce((total, count) => total + count)).toBe(tube.quantity);
   });
 
   it('pours the slab with its thickened edge, and counts anchor bolts', () => {

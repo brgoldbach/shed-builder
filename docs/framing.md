@@ -454,6 +454,11 @@ warning. The heel height is `rise × seat`.
 - The tail runs `roof.eaveOverhang` out from the wall's outside face, horizontal.
 - A square tail cut needs an eave of `depth × sin` or more, so the cut's lower corner stays outside
   the wall face. On a shorter eave the tails are plumb cut, with a warning.
+- A plumb-and-level tail is plumb only as deep as the fascia hangs below the roof line (its drop plus
+  its depth), then level back to the bottom edge, so no rafter end shows below the fascia. It needs a
+  fascia, and an eave as long as the level cut; else the tails are plumb cut, with a warning. A
+  member whose plumb end is no deeper than the fascia hangs, such as a ladder rail, is plumb cut. A
+  lean-to roof's high end stays plumb.
 - A roof extension takes over a side's low eave ([additions-and-finishes.md](additions-and-finishes.md)
   "1. Lean-tos"). There the rafters stop at the wall's outside face, plumb cut, with no tail and no
   fascia.
@@ -489,8 +494,11 @@ at the ladder's high end.
 - The lowest purlin starts at the tail. The highest ends at the ridge face, the high end, or the
   break. On a gambrel, one purlin ends at the break and the next starts there.
 - With `metal-over-sheathing`, the purlins lie on the sheathing.
-- The fascia top is at the rafter top at the tail. On plumb tails the fascia hangs plumb. On square
-  tails it is square to the roof.
+- On plumb and plumb-and-level tails the fascia hangs plumb. At a low eave it is set down by its
+  thickness × rise, so the roof plane passes over its outer top edge and the sheathing and drip edge
+  run over it: 3/4 in for a 2x fascia at 6/12, 3-5/8 in at 29/12. A lean-to roof's high-end fascia
+  stays at the rafter top.
+- On square tails the fascia is square to the roof, its top in the roof plane.
 
 ### 7.8 Gambrel break, miter, and gussets
 

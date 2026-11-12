@@ -273,7 +273,7 @@ concrete ramp panels (layer `ramps`).
 
 - The sheet leaves out the deck boards, so the framing under them shows.
 - The shed's skids or girders that run on under a deck show on the foundation plan.
-- The lean-to deck note reads `<Side> lean-to deck: PT <joist> joists at <oc>" o.c., 2x6 deck boards,
+- The lean-to deck note reads `<Side> lean-to deck: PT <joist> joists at <oc>" o.c., <boards> deck boards,
   on the shed's foundation.` (or `on piers.`). A deck on a slab-founded shed reads `on piers.`
 - Each ramp in `config.ramps` has a note, numbered from 1. A left-out ramp keeps its note.
 
@@ -329,7 +329,9 @@ The cut position takes every member with role `rafter`, lean-to rafters too.
   on the same side.
 
 `cutDims` reads the outline. The longest edge is the top edge. A seat is a level edge. A heel is a
-plumb edge that shares a corner with a seat.
+plumb edge that shares a corner with a seat. A plumb-and-level tail is a heel and a seat too: the
+sheet gives its plumb depth and its level cut. Its mark on the top edge falls on the tail end, so the
+top-edge chain leaves it out, as it does any mark at the same point as the one before it.
 
 | Dimension | Place |
 |---|---|

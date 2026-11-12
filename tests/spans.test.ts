@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { LumberSize, Species } from '../src/core/catalog';
+import { bendingValue, type LumberSize, type Species } from '../src/core/catalog';
 import { shedSchema } from '../src/core/config';
 import { buildModel } from '../src/core/model';
 import { naming } from '../src/core/naming';
@@ -41,6 +41,11 @@ describe('joist and rafter spans match the IRC tables', () => {
 });
 
 describe('span checks', () => {
+  it('has no bending value for boards and timbers', () => {
+    expect(['1x4', '5/4x6', '6x6'].map((size) => bendingValue('spf', size as LumberSize))).toEqual([null, null, null]);
+    expect(bendingValue('spf', '2x6')).toBeCloseTo(875 * 1.3);
+  });
+
   const names = naming(gableSkid);
   const checks = checkSpans(gableSkid, buildModel(gableSkid), names);
   const find = (member: string) => checks.find((check) => check.member === member)!;

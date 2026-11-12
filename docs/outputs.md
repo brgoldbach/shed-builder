@@ -238,8 +238,7 @@ height runs across the 48 in width.
 A sheet takes one kerf between pieces on a shelf, and one kerf between shelves. The first piece and
 the first shelf take none.
 
-`packSheets` does not check that a panel fits on one sheet. A panel larger than 48 × 96 in still
-counts as one sheet.
+A panel larger than 48 × 96 in counts as one sheet of its own, and no other piece shares it.
 
 ### 3.3 What the user sees
 
@@ -286,8 +285,9 @@ Anchor bolts are `steel`, so they do not count.
 A shape kind with no solids gives no line. Each line chooses bags or ready-mix from its own volume,
 so a small ramp is in bags even next to a large slab.
 
-Form tubes take the diameter and the height of the first pier. Each pier, foundation or lean-to, uses
-`foundation.pier.diameter` and a height of `depth + aboveGrade`. So one size covers them.
+Each pier, foundation or lean-to, uses `foundation.pier.diameter`, so one line covers the tubes.
+A lean-to pier under a deck stops at the deck beam, so tube lengths can differ: the note then gives
+the count at each length, for example `8 at 38", 3 at 45".`
 
 ### 4.4 What the user sees
 

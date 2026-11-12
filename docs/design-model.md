@@ -47,7 +47,7 @@ The meaning of the pitch fields depends on `roof.style`:
 | `roof.style` | Shape | Pitch fields |
 |---|---|---|
 | `gable` (default) | Two slopes that meet at a ridge. | `pitch`: both slopes. |
-| `gambrel` | Two sides that meet at a ridge. Each side has a steep lower slope from the eave to the break, and an upper slope from the break to the ridge. | `gambrel.lowerPitch`: the lower slope. `pitch`: the upper slope. `gambrel.breakRun`: horizontal, from the eave wall's outside face to the break; `auto` is `width` / 4. `gambrel.ridgeBoard: false` butts the upper rafters at the peak, joined by gussets. |
+| `gambrel` | Two sides that meet at a ridge. Each side has a steep lower slope from the eave to the break, and an upper slope from the break to the ridge. | `gambrel.lowerPitch`: the lower slope. `pitch`: the upper slope. `gambrel.breakRun`: horizontal, from the eave wall's outside face to the break; `auto` makes the lower and upper rafters the same length along the slope. `gambrel.ridgeBoard: false` butts the upper rafters at the peak, joined by gussets. |
 | `lean-to` | One slope, high at `highSide`. | `pitch` |
 
 The break position and its 1 ft limit from the ridge line are in

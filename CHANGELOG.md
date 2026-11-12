@@ -5,7 +5,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Red barn preset:** a 12x16 classic red barn. It has a gambrel roof at 29/12 and 5/12, barn
+  doors with a ramp, a hay door in the front gable, attic windows in the back gable, a loft, and
+  red board and batten siding with white trim.
+- **Plumb and level tail cut:** a roof option that cuts each rafter tail plumb only as deep as the
+  fascia hangs, then level back, so no rafter end shows below the fascia. The red barn uses it.
+
+### Fixed
+
+- Each eave fascia is set down so the roof plane passes over its top, as the sheathing and drip edge
+  do on a real roof. Before, its top edge stood above the roof surface: 3-5/8 in at 29/12.
+- The rafter sheet of a lean-to roof drew a dimension of zero length, which showed errors in the
+  browser console.
+- "New from preset…" and a shared link ask in the app's own dialog. Some browsers, such as an
+  editor's preview pane, do not show the browser's confirm box, so a preset could not be picked.
+
+- The lean-to deck note on the Decks and ramps sheet names the deck boards the design uses. It
+  said "2x6 deck boards" also for 5/4x6 boards.
+- The BOM gives each form-tube length when lean-to piers under a deck are shorter than the shed's
+  piers. It gave the first pier's length for all of them.
+- The BOM counts a sheathing panel larger than a 48 × 96 in sheet as a sheet of its own. It could
+  add no sheet for it.
+
 ### Changed
+
+- **Gambrel roof:** a switch to Gambrel sets the classic barn pitches, 29/12 lower and 5/12 upper.
+  The auto break now makes the lower and upper rafters the same length, so with these pitches the
+  four rafters lie on a half circle. Before, the break sat 1/4 of the width in from the wall, and
+  the upper rafters came out short. A saved gambrel on the auto break gets the new break.
 
 - Development only: the `/release` reply says to approve the held `gate` run before the merge.
   The extra manual `gate` run is gone: GitHub did not count it for the pull request.

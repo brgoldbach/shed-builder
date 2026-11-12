@@ -18,8 +18,8 @@ const ofRole = (members: Member[], role: Role) => members.filter((member) => mem
 const cos3 = Math.cos(Math.atan(0.25));
 
 // Main eave: rafter underside at the wall face is the plate less the heel, falling 6/12 outward. The
-// fascia bottom hangs 5-1/2 below the rafter top at the 12 in tail.
-const fasciaBottom = 97.125 - 0.5 * 2.5625 - 0.5 * 12 + 3.5 * Math.hypot(1, 0.5) - 5.5;
+// fascia bottom hangs 5-1/2 below the rafter top at the 12 in tail, set down 1-1/2 × 6/12.
+const fasciaBottom = 97.125 - 0.5 * 2.5625 - 0.5 * 12 + 3.5 * Math.hypot(1, 0.5) - 5.5 - 0.75;
 // Rafter ends against the ledger at 7/16 + 1-1/2 out. Lean-to roof top (+7/16 OSB) clears the fascia
 // bottom, 13-1/2 out, by 1-1/2 in.
 const start = 0.4375 + 1.5;
@@ -56,7 +56,7 @@ describe('below-soffit lean-to', () => {
     expect(ofRole(model.members.filter(({ assembly }) => assembly === 'addition.back'), 'post').map(({ origin }) => origin[1])).toEqual([192, 192, 192]);
     // Beam bottom less grade: 8 ft walls are low under a 6/12 main eave.
     expect(model.warnings.map(({ source }) => source)).toEqual(['Front lean-to', 'Back lean-to']);
-    expect(model.warnings[0].message).toMatch(/^The clear height under the beam is 5' 5-5\/16"/);
+    expect(model.warnings[0].message).toMatch(/^The clear height under the beam is 5' 4-9\/16"/);
   });
 
   it('pours a slab in place of piers', () => {
@@ -129,7 +129,7 @@ describe('roof extension', () => {
     // At 20/12 a lean-to drops 20 in for each foot of depth: 30 in deep stays above grade.
     const gambrel = (pitch: number | 'main') =>
       buildModel(
-        shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', rafter: '2x6' }, additions: [{ side: 'front', attach: 'extension', depth: 30, pitch }] }),
+        shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, style: 'gambrel', rafter: '2x6', gambrel: { breakRun: 24 } }, additions: [{ side: 'front', attach: 'extension', depth: 30, pitch }] }),
       );
     // The 2x6 gussets reach 12 in down the 20/12 lower rafters from the break, 24 in from the wall.
     const [rafter] = ofRole(gambrel('main').members.filter(({ assembly }) => assembly === 'addition.front'), 'rafter');
@@ -259,7 +259,7 @@ describe('lean-to deck', () => {
 
   it('measures headroom from the deck', () => {
     expect(deckModel.warnings.find(({ message }) => message.startsWith('The clear height'))?.message).toBe(
-      'The clear height under the beam is 4\' 11-9/16", less than 6\' 8".',
+      'The clear height under the beam is 4\' 10-13/16", less than 6\' 8".',
     );
   });
 

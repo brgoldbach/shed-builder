@@ -53,13 +53,14 @@ the `RoofPlane` fields.
 
 | Wall | `x` range | `Soffit.under` |
 |---|---|---|
-| Eave wall | 0 to `roof.eaveOverhang` | The main rafter underside at that point. |
-| Eave wall | To `eaveOverhang` + fascia thickness | The fascia's bottom edge: the rafter top at the tail less the fascia depth. |
+| Eave wall | 0 to `roof.eaveOverhang` | The main rafter underside at that point, or a plumb-and-level tail's level cut where it is higher. |
+| Eave wall | To `eaveOverhang` + fascia thickness | The fascia's bottom edge: the rafter top at the tail less the fascia drop and depth ([framing.md](framing.md) "Purlins and fascia"). |
 | Gable end | 0 to `rake` | The rafter underside over that point along the wall, level across the rake. Of the end rafter, lookouts, and fly rafter, the rafter line is the lowest. |
 | Any | Past the last break | `null` |
 
 `rake` is `roof.rakeOverhang`, or 0 under 1-1/2 in ([framing.md](framing.md) "Silent
-rules"). The breaks are `[0, eave, eave + fasciaThick]` on an eave wall, and `[0, rake]` on a gable
+rules"). The breaks are `[0, eave, eave + fasciaThick]` on an eave wall, with the level cut's start
+before `eave` on a plumb-and-level tail, and `[0, rake]` on a gable
 end. `under` reads the profile's underside, so on a gambrel it follows the lower slope at an eave
 wall and both slopes across a gable end.
 
@@ -160,7 +161,7 @@ plane starts at the wall line, with one eave fewer; the lean-to plane covers the
 | `ledger` | `L` | no | Soffit only. `x` from `wallSheet` to `start`, top at `ledgerTop`, over `u0..u1`. |
 | `beam` | `B` | no | `beamPlies` plies of `beam`, centered on `line`, top at `beamTop`. |
 | `post` | `P` | yes | Centered on `line` and on each post center, from `postBottom` to the beam bottom. |
-| `fascia` | `FA` | no | On the rafter tails, top at `top(tail)`. |
+| `fascia` | `FA` | no | On the rafter tails, set down by its thickness × rise below `top(tail)`, as on the main roof. |
 | `purlin` | `PU` | no | Metal only. Flat on the rafter tops. |
 
 Both solids are on layer `foundation`, material `concrete`:
