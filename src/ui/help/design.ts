@@ -98,7 +98,7 @@ export const DESIGN_HELP = {
     about: 'On: the floor framing is pressure-treated (PT). Skids, girders, and posts are always PT.',
   },
   'floor.blocking': {
-    about: 'One row of blocks between the floor joists, at mid-span.',
+    about: 'One row of blocks between the floor joists, at half their length. With an odd number of skids or girders, the row sits over the middle one and holds the joists upright there.',
   },
   'floor.subfloor': {
     about: 'The sheets on the floor joists.',

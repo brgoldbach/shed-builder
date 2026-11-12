@@ -279,7 +279,7 @@ function FloorSection({ value, onChange }: SectionProps<Floor>) {
       <SelectField label="Joist" value={value.joist} options={TWO_BY} onChange={set('joist')} help={DESIGN_HELP['floor.joist']} />
       <SelectField label="Joist o.c. (in)" value={value.oc} options={SPACINGS} onChange={set('oc')} help={DESIGN_HELP['floor.oc']} />
       <CheckField label="Pressure treated" value={value.treated} onChange={set('treated')} help={DESIGN_HELP['floor.treated']} />
-      <CheckField label="Mid-span blocking" value={value.blocking} onChange={set('blocking')} help={DESIGN_HELP['floor.blocking']} />
+      <CheckField label="Blocking" value={value.blocking} onChange={set('blocking')} help={DESIGN_HELP['floor.blocking']} />
       <SelectField label="Subfloor" value={value.subfloor} options={SHEET_KEYS} describe={sheetLabel} onChange={set('subfloor')} help={DESIGN_HELP['floor.subfloor']} />
     </Section>
   );

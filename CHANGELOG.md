@@ -11,6 +11,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   shows what it does in a floating box, and for a list with less plain choices, what each choice
   does. A click or tap on the `?` or on the name keeps the box open until the next click.
 
+### Changed
+
+- **Blocking:** the floor switch "Mid-span blocking" is now "Blocking". The row stays at half the
+  joist length. With an odd number of skids or girders, such as the default 3, that is over the
+  middle one, where it holds the joists upright. The floor plan note now says where the row goes.
+
 ### Fixed
 
 - A wood ramp on a slab got lag screws into floor framing in the BOM. It now gets concrete anchors
