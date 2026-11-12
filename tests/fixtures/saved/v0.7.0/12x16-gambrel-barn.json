@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "name": "12x16 gambrel barn",
+  "width": 144,
+  "length": 192,
+  "front": "gable",
+  "foundation": { "type": "pier", "pier": { "girderCount": 3 } },
+  "openingTypes": [
+    { "name": "double door 60", "kind": "door", "width": 62, "height": 82.5 },
+    { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 },
+    { "name": "loft door", "kind": "door", "width": 38, "height": 40 }
+  ],
+  "openings": [
+    { "type": "double door 60", "wall": "left", "at": [50] },
+    { "type": "window 24x36", "wall": "front", "sill": 46.25, "at": [25, 75] },
+    { "type": "loft door", "wall": "left", "sill": 104, "at": [50] }
+  ],
+  "roof": {
+    "style": "gambrel",
+    "pitch": 6,
+    "gambrel": { "lowerPitch": 20, "ridgeBoard": false },
+    "roofing": "metal",
+    "loft": { "enabled": true, "hatches": [{ "x": 120, "y": 48, "width": 24, "depth": 30 }] }
+  },
+  "additions": [
+    { "side": "back", "attach": "extension", "depth": 72, "pitch": 4 },
+    { "side": "right", "depth": 72, "length": 96, "floor": "slab" }
+  ]
+}
