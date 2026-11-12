@@ -72,8 +72,6 @@ Cloudflare dashboard holds the commands:
    `workers.dev` address.
 5. On GitHub, protect `release` against force pushes and deletion. Do not require a pull request
    on it: the release workflow pushes to it directly.
-6. On GitHub, open Settings, then Actions, then General, and turn on "Allow GitHub Actions to
-   create and approve pull requests". The "prepare release" workflow needs it.
 
 A failed build, test, or lint check leaves the last good deployment live. The build check on a
 pull request links to its preview address.

@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
-  # Prepare release starts it on its pull request: a pull request made by a workflow starts no others.
+  # The release command starts it: its push to a pull request branch starts no workflows.
   workflow_dispatch:
 
 permissions:

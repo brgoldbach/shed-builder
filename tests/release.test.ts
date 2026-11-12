@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import changelog from '../CHANGELOG.md?raw';
 import lockFile from '../package-lock.json?raw';
 import packageFile from '../package.json?raw';
-import { checkVersion, releaseChangelog, releaseNotes, withVersion } from '../scripts/changelog';
+import { checkVersion, releaseChangelog, releaseNotes, resolveVersion, withVersion } from '../scripts/changelog';
 
 const SAMPLE = [
   '# Changelog',
@@ -24,6 +24,12 @@ const SAMPLE = [
 ].join('\n');
 
 describe('release', () => {
+  it('counts patch, minor, and major up from the current version, and keeps any other request', () => {
+    expect(['patch', 'minor', 'major'].map((request) => resolveVersion(request, '0.9.4'))).toEqual(['0.9.5', '0.10.0', '1.0.0']);
+    expect(resolveVersion('2.0.0', '0.9.4')).toBe('2.0.0');
+    expect(resolveVersion('Minor', '0.9.4')).toBe('Minor');
+  });
+
   it('takes only an X.Y.Z version above the current one', () => {
     for (const next of ['1.2.1', '1.3.0', '2.0.0', '1.10.0']) expect(() => checkVersion(next, '1.2.0')).not.toThrow();
     for (const next of ['1.2.0', '1.1.9', '0.9.0']) expect(() => checkVersion(next, '1.2.0')).toThrow('is not above');

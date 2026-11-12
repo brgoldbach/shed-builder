@@ -3,6 +3,17 @@
 const VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
 const RELEASES = 'https://github.com/brgoldbach/shed-builder/releases/tag';
 const UNRELEASED = '## [Unreleased]\n';
+const PARTS = ['major', 'minor', 'patch'];
+
+/** The version a release asks for: X.Y.Z as given, or `major`, `minor`, or `patch` counted up from `current`. */
+export function resolveVersion(request: string, current: string): string {
+  const part = PARTS.indexOf(request);
+  if (part < 0) return request;
+  return current
+    .split('.')
+    .map((value, index) => (index < part ? Number(value) : index === part ? Number(value) + 1 : 0))
+    .join('.');
+}
 
 /** Throw unless `next` is an X.Y.Z version above `current`. */
 export function checkVersion(next: string, current: string) {
@@ -19,7 +30,7 @@ export function checkVersion(next: string, current: string) {
 /** The changelog with `[Unreleased]` renamed to the version and date, and the version's link line added. */
 export function releaseChangelog(text: string, version: string, date: string): string {
   const start = text.indexOf(UNRELEASED);
-  if (start < 0) throw new Error('CHANGELOG.md has no "## [Unreleased]" section');
+  if (start < 0) throw new Error('CHANGELOG.md has no "## [Unreleased]" section. Is the version already set?');
   if (section(text, start + UNRELEASED.length).trim() === '') throw new Error('The [Unreleased] section is empty');
   const links = text.search(/^\[\d+\.\d+\.\d+\]: /m);
   if (links < 0) throw new Error('CHANGELOG.md has no version link lines');
