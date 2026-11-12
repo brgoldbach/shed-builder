@@ -276,9 +276,11 @@ Any pull request to `main` can be a release. You choose the version.
    or `major` to count up from the current version. Only the repo owner's comment works.
 2. `.github/workflows/release-command.yml` adds the commit "Release X.Y.Z" to the pull request's
    branch: the version in `package.json` and `package-lock.json`, `[Unreleased]` in CHANGELOG.md
-   dated as the version, and its link line. It replies in the pull request, and starts `gate` on
-   the new commit, because a push by a workflow starts no workflows.
-3. Merge the pull request.
+   dated as the version, and its link line. It replies in the pull request.
+3. Select "Approve workflows to run" on the pull request. The workflow's built-in token pushed the
+   commit, so GitHub treats it as a first-time contributor and holds `gate` until you approve.
+   A personal access token would avoid this step; the repo does not use one.
+4. When `gate` passes, merge the pull request.
 
 The merge changes the version on `main`, so `.github/workflows/release.yml` then:
 

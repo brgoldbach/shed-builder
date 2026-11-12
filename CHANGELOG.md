@@ -3,6 +3,13 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Development only: the `/release` reply says to approve the held `gate` run before the merge.
+  The extra manual `gate` run is gone: GitHub did not count it for the pull request.
+
 ## [0.8.2] - 2026-11-12
 
 ### Fixed
