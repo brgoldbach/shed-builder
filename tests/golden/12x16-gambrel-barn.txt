@@ -51,7 +51,7 @@ GB-5      2  2x4          46-5/8"  Gable stud. Top cut 26.6°.
 GB-6      2  2x4          38-5/8"  Gable stud. Top cut 26.6°.
 GB-7      2  2x4          13-3/4"  Gable stud. Top cut 59.0°.
 RF-1      9  2x6         83-9/16"  Rafter. Cut 16.2° from square at the break. Birdsmouth: heel line 51-1/8" from the break long point on the top edge; seat 2-1/8", heel 3-9/16". Tail 23-5/16" past the heel line on the top edge, plumb cut.
-RF-2      9  2x6          60-1/4"  Rafter. Cut 16.2° from square at the break. Birdsmouth: heel line 51-1/8" from the break long point on the top edge; seat 2-1/8", heel 3-9/16". No tail: plumb cut at the wall line, under the lean-to rafter beside it.
+RF-2      9  2x6          57-1/4"  Rafter. Cut 16.2° from square at the break. Birdsmouth: heel line 51-1/8" from the break long point on the top edge; seat 2-1/8", heel 3-9/16". No tail: plumb cut at the wall line, under the lean-to rafter beside it.
 RF-3     18  2x6          51-1/8"  Upper rafter. Cut 16.2° from square at the break. Plumb cut 26.6° at the peak, against the rafter on the other side.
 RF-4      2  2x6         83-9/16"  Fly rafter. No birdsmouth. Cut 16.2° from square at the break. Tail 23-5/16" past the heel line on the top edge, plumb cut.
 RF-5      2  2x6          60-1/4"  Fly rafter. No birdsmouth. Cut 16.2° from square at the break. No tail: plumb cut at the wall line, under the lean-to rafter beside it.

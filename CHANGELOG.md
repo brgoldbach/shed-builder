@@ -3,6 +3,14 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Rafters under a lean-to extension:** a main rafter cut at the wall line no longer has a thin
+  sliver below its birdsmouth seat, seen most on steep slopes such as a gambrel's. Its cut length
+  is now the true length, up to 3" shorter.
+
 ## [1.2.0] - 2026-11-13
 
 ### Added

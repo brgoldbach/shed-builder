@@ -102,9 +102,14 @@ describe('roof extension', () => {
 
   it('cuts the main rafters and fascia back to the wall line on that side', () => {
     // Top edge from the wall line to the ridge face, 47-1/4 × √1.25, plus the plumb low end's long
-    // point, 3-1/2 × √1.25 × sin.
-    const short = 47.25 * Math.hypot(1, 0.5) + 3.5 * Math.hypot(1, 0.5) * (0.5 / Math.hypot(1, 0.5));
-    for (const rafter of ofRole(roofFront, 'rafter')) expect(rafter.length).toBeCloseTo(short, 9);
+    // point. The plumb cut is on the heel line, so it stops at the seat: the plumb depth less the
+    // 1-9/32 heel, × sin.
+    const short = 47.25 * Math.hypot(1, 0.5) + (3.5 * Math.hypot(1, 0.5) - 0.5 * 2.5625) * (0.5 / Math.hypot(1, 0.5));
+    for (const rafter of ofRole(roofFront, 'rafter')) {
+      expect(rafter.length).toBeCloseTo(short, 9);
+      // Nothing below the seat, on the 97-1/8 plate: no sliver at the wall line.
+      expect(Math.min(...corners(rafter).map((point) => point[2]))).toBeCloseTo(97.125, 9);
+    }
     expect(ofRole(same.members.filter(({ assembly }) => assembly === 'roof'), 'fascia')).toHaveLength(1);
   });
 
