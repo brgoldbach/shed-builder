@@ -3,6 +3,14 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-11-13
+
+### Fixed
+
+- **Rafters under a lean-to extension:** a main rafter cut at the wall line no longer has a thin
+  sliver below its birdsmouth seat, seen most on steep slopes such as a gambrel's. Its cut length
+  is now the true length, up to 3" shorter.
+
 ## [1.2.0] - 2026-11-13
 
 ### Added
@@ -477,6 +485,7 @@ First release.
   next to `schemaVersion` 1.
 - **Setup:** `npm run setup` checks Node, installs, tests, and builds.
 
+[1.2.1]: https://github.com/brgoldbach/shed-builder/releases/tag/v1.2.1
 [1.2.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v1.2.0
 [1.1.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v1.1.0
 [1.0.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v1.0.0

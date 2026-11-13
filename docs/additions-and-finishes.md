@@ -150,7 +150,7 @@ and the main-wall seat.
 
 `frameRoof` cuts back the main roof on each side in `extensionSides`. The main rafters stop at the
 wall line, plumb cut, with no tail and no fascia ([framing.md](framing.md) "Rafter layout and
-tails"). That side's fly rafters, ladder rails, and purlins start at the wall line. The main roof
+tails"). The wall line is the birdsmouth's heel line, so the plumb cut stops at the seat. That side's fly rafters, ladder rails, and purlins start at the wall line. The main roof
 plane starts at the wall line, with one eave fewer; the lean-to plane covers the rest.
 
 ### Members and solids

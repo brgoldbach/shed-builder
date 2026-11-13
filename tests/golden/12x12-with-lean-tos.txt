@@ -36,7 +36,7 @@ GR-5      2  2x4           3-7/8"  Gable stud. Top cut 22.6°.
 GR-6      1  2x4        26-15/16"  Ridge post. Square cut.
 RF-1      1  2x8             144"  Ridge board
 RF-2      7  2x6          92-1/2"  Rafter. Plumb cut 22.6° at the ridge. Birdsmouth: heel line 77-3/16" from the ridge long point on the top edge; seat 3-1/2", heel 1-7/16". Tail 13" past the heel line on the top edge, plumb cut.
-RF-3      7  2x6          79-1/2"  Rafter. Plumb cut 22.6° at the ridge. Birdsmouth: heel line 77-3/16" from the ridge long point on the top edge; seat 3-1/2", heel 1-7/16". No tail: plumb cut at the wall line, under the lean-to rafter beside it.
+RF-3      7  2x6        78-15/16"  Rafter. Plumb cut 22.6° at the ridge. Birdsmouth: heel line 77-3/16" from the ridge long point on the top edge; seat 3-1/2", heel 1-7/16". No tail: plumb cut at the wall line, under the lean-to rafter beside it.
 RF-4      2  2x6         93-5/16"  Fly rafter. No birdsmouth. Plumb cut 22.6° at the ridge. Tail 13" past the heel line on the top edge, plumb cut.
 RF-5      2  2x6         80-5/16"  Fly rafter. No birdsmouth. Plumb cut 22.6° at the ridge. No tail: plumb cut at the wall line, under the lean-to rafter beside it.
 RF-6      2  2x4         92-7/16"  Ladder rail. Plumb cut 22.6° at the ridge. Tail 13" past the heel line on the top edge, plumb cut. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.

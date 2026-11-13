@@ -601,7 +601,10 @@ function outline(slope: Slope, from: number, to: number, notches: Notch[], lowCu
   const path: Point[] = [low[low.length - 1]];
   for (const { heel } of notches) {
     const level = bottom(heel + seat);
-    path.push([heel, bottom(heel)], [heel, level], [heel + seat, level]);
+    // A plumb end on the heel line, as at a lean-to extension, stops at the seat: no sliver below it.
+    if (Math.abs(heel - from) < NEAR) path[0] = [heel, level];
+    else path.push([heel, bottom(heel)], [heel, level]);
+    path.push([heel + seat, level]);
   }
   path.push(...[...high].reverse(), ...low.slice(0, -1));
   return path;
