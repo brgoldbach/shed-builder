@@ -298,23 +298,27 @@ function upperElevation({ config, model, names, marks }: Context, wall: Wall): D
   const view = elevationView(config, wall);
   const wallDepth = LUMBER[config.walls.stud].width;
   const gable = assembly.startsWith('gable');
-  // For reference: the end rafter over a gable end and the end wall's plates under it, or the loft
-  // rim under a knee wall.
+  // For reference: the end rafter over a gable end, the end wall's plates under it, and a platform
+  // end's rim; or the loft rim under a knee wall.
   const context = model.members.filter((member) => {
     const fits = gable
-      ? member.role === 'rafter' || member.role === 'rafter.upper' || (member.assembly === `wall.${wall}` && (member.role === 'plate.top' || member.role === 'plate.cap'))
+      ? member.role === 'rafter' ||
+        member.role === 'rafter.upper' ||
+        member.role === 'rim.loft' ||
+        (member.assembly === `wall.${wall}` && (member.role === 'plate.top' || member.role === 'plate.cap'))
       : member.role === 'rim.loft';
     if (!fits) return false;
     const depths = corners(member).map((point) => depthOf(view, point));
     return Math.min(...depths) > -NEAR && Math.max(...depths) < wallDepth + NEAR;
   });
-  // The deck's edge, which the knee wall stands on.
-  const deck = gable
-    ? []
-    : model.solids.filter(
-        ({ layer, material, shape }) =>
-          layer === 'loft' && material === 'sheet' && shape.kind === 'panel' && Math.abs(Math.min(...panelCorners(shape).map((point) => depthOf(view, point)))) < NEAR,
-      );
+  // The deck's edge, which a knee wall, or the gable at a platform end, stands on. Elsewhere the deck
+  // stops inside the end wall.
+  const deck = model.solids.filter(
+    ({ layer, material, shape }) =>
+      layer === 'loft' && material === 'sheet' && shape.kind === 'panel' && Math.abs(Math.min(...panelCorners(shape).map((point) => depthOf(view, point)))) < NEAR,
+  );
+  const platform = gable && deck.length > 0;
+  const holder = config.roof.loft.support === 'hung' ? "end wall's top plate" : 'end rim';
   const box = extentOf(view, framing);
   const panel = framing.filter((member) => member.role === 'plate.bottom');
   // A gable cut in place stands on the end wall and takes the wall's layout.
@@ -323,13 +327,15 @@ function upperElevation({ config, model, names, marks }: Context, wall: Wall): D
   const openings = model.openings
     .filter((opening) => opening.wall === wall && opening.bottom >= box.min[1] - NEAR)
     .sort((first, second) => first.left - second.left);
-  const origin = `Layout and RO positions run from the left end of the ${panel.length > 0 ? "panel's" : "end wall's"} bottom plate, viewed from outside.`;
+  const origin = `Layout and RO positions run from the left end of the ${platform ? "gable's" : panel.length > 0 ? "panel's" : "end wall's"} bottom plate, viewed from outside.`;
   const notes = gable
     ? [
         `${config.walls.stud} gable studs on the ${config.walls.oc}" wall layout, top cut to the gable top plates.`,
-        panel.length > 0
-          ? 'Built as a panel. Frame it flat on the floor. Stand it on the end wall. Nail the bottom plate down to the top plate.'
-          : "Cut in place. Cut each stud to fit between the end wall's top plate and the gable top plate. Toenail both ends.",
+        platform
+          ? `Platform framed on the loft deck. Frame it flat on the deck, and stand it up. Nail the bottom plate through the deck into the ${holder}.`
+          : panel.length > 0
+            ? 'Built as a panel. Frame it flat on the floor. Stand it on the end wall. Nail the bottom plate down to the top plate.'
+            : "Cut in place. Cut each stud to fit between the end wall's top plate and the gable top plate. Toenail both ends.",
         origin,
       ]
     : [

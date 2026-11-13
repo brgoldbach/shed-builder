@@ -3,6 +3,23 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-13
+
+### Added
+
+- **Loft gable ends:** a loft setting picks balloon framing, as before and the default, or platform
+  framing. With platform framing, each closed loft end bears on its end wall, with an end rim on
+  joists on the plates. The deck runs to the end wall's outside face, and the gable framing stands
+  on a bottom plate on the deck. An open loft end stays balloon framed. A gable opening that starts
+  below the plate it would stand on is left out in red.
+- **2x14 loft joists:** the loft joists take 2x14, for I-joists of that depth. The app does not
+  check their span: check it against the maker's span table. The default price is an estimate.
+
+### Removed
+
+- **Knee wall rim plies:** across an open loft end, the knee wall no longer gets extra rim plies.
+  It overhangs the single rim by the rest of its depth.
+
 ## [1.0.0] - 2026-11-12
 
 ### Added
@@ -430,6 +447,7 @@ First release.
   next to `schemaVersion` 1.
 - **Setup:** `npm run setup` checks Node, installs, tests, and builds.
 
+[1.1.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v1.1.0
 [1.0.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v1.0.0
 [0.10.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.10.0
 [0.9.0]: https://github.com/brgoldbach/shed-builder/releases/tag/v0.9.0

@@ -346,6 +346,8 @@ group is a strict object, so an unknown price key fails.
   Each table is a `Record<LumberSize, …>`, so the type check fails until each table has the size.
 - `5/4x6` decking is in `LUMBER_SIZES` for the cut list, BOM, and prices. `FRAMING_SIZES` leaves it
   out of the header and girder choices.
+- `2x14` is for loft joists only (`LOFT_JOISTS`), for I-joists of that depth. `FRAMING_SIZES` leaves
+  it out. Its price is an estimate: the 2x12 price scaled by depth. `bendingValue` gives null for it.
 - `bendingValue` reads thickness and width from the size name, for example `2x8`. A new size name
   must keep the `<thickness>x<width>` form.
 
@@ -449,7 +451,7 @@ design with each unused setting at its default and each type placed prunes to an
 | `roof.highSide` | `style` is `lean-to`. | |
 | `roof.rafterTies` | Gable or gambrel roof, and no loft. When off, only `{ enabled: false }`. | Loft joists take the place of rafter ties. |
 | `roof.collarTies` | Gable or gambrel roof. When off, only `{ enabled: false }`. | |
-| `roof.loft` | Gable or gambrel roof with `loft.enabled`. | |
+| `roof.loft` | Gable or gambrel roof with `loft.enabled`. | `loft.gableEnds` (`balloon`, the default, or `platform`) goes with it. |
 | `roof.loft.open.length` | Also `open.end` is not `none`. | |
 | `roof.kneeWalls` | `style` is `gable`, with a loft. When off, only `{ enabled: false }`. | `frameRoof` raises the roof on knee walls only with a gable loft. A gambrel takes no knee walls: its steep lower slope gives the headroom. |
 | `additions[].purlin`, `purlinSpacing` | `roofing` is `metal`. | |

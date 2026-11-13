@@ -46,6 +46,14 @@ describe('span checks', () => {
     expect(bendingValue('spf', '2x6')).toBeCloseTo(875 * 1.3);
   });
 
+  it('leaves 2x14 loft joists unchecked, and offers 2x14 only for loft joists', () => {
+    expect((['spf', 'dfl', 'hf', 'sp'] as const).map((species) => bendingValue(species, '2x14'))).toEqual([null, null, null, null]);
+    const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, rafterTies: { enabled: false }, loft: { enabled: true, joist: '2x14' } } });
+    const loft = checkSpans(config, buildModel(config), naming(config)).find((check) => check.member === 'Loft joists')!;
+    expect([loft.lumber, loft.allowed]).toEqual(['2x14 at 16" o.c.', null]);
+    expect(shedSchema.safeParse({ ...gableSkid, roof: { ...gableSkid.roof, rafter: '2x14' } }).success).toBe(false);
+  });
+
   const names = naming(gableSkid);
   const checks = checkSpans(gableSkid, buildModel(gableSkid), names);
   const find = (member: string) => checks.find((check) => check.member === member)!;

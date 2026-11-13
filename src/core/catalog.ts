@@ -1,12 +1,14 @@
-export const LUMBER_SIZES = ['1x4', '2x4', '2x6', '2x8', '2x10', '2x12', '4x4', '4x6', '6x6', '5/4x6'] as const;
+export const LUMBER_SIZES = ['1x4', '2x4', '2x6', '2x8', '2x10', '2x12', '2x14', '4x4', '4x6', '6x6', '5/4x6'] as const;
 export type LumberSize = (typeof LUMBER_SIZES)[number];
-/** The sizes for framing: every size but 5/4 decking. */
-export const FRAMING_SIZES = LUMBER_SIZES.filter((size) => size !== '5/4x6') as Exclude<LumberSize, '5/4x6'>[];
+/** The sizes for headers and girders: every size but 5/4 decking and 2x14. */
+export const FRAMING_SIZES = LUMBER_SIZES.filter((size) => size !== '5/4x6' && size !== '2x14') as Exclude<LumberSize, '5/4x6' | '2x14'>[];
 /** Deck boards: 5/4 radius-edge decking, or 2x6. */
 export const DECK_BOARDS = ['5/4x6', '2x6'] as const satisfies readonly LumberSize[];
 
 export const TWO_BY = ['2x4', '2x6', '2x8', '2x10', '2x12'] as const satisfies readonly LumberSize[];
 export type TwoBy = (typeof TWO_BY)[number];
+/** Loft joists also take 2x14, the depth of common I-joists. */
+export const LOFT_JOISTS = [...TWO_BY, '2x14'] as const satisfies readonly LumberSize[];
 
 // Dry dressed sizes, inches: American Softwood Lumber Standard (DOC PS 20).
 export const LUMBER: Record<LumberSize, { thick: number; width: number }> = {
@@ -16,6 +18,7 @@ export const LUMBER: Record<LumberSize, { thick: number; width: number }> = {
   '2x8': { thick: 1.5, width: 7.25 },
   '2x10': { thick: 1.5, width: 9.25 },
   '2x12': { thick: 1.5, width: 11.25 },
+  '2x14': { thick: 1.5, width: 13.25 },
   '4x4': { thick: 3.5, width: 3.5 },
   '4x6': { thick: 3.5, width: 5.5 },
   '6x6': { thick: 5.5, width: 5.5 },
@@ -33,6 +36,7 @@ export const DEFAULT_STOCK: Record<LumberSize, readonly number[]> = {
   '2x8': EVEN_FEET,
   '2x10': EVEN_FEET,
   '2x12': EVEN_FEET,
+  '2x14': EVEN_FEET,
   '4x4': EVEN_FEET,
   '4x6': EVEN_FEET,
   '6x6': EVEN_FEET,
@@ -75,9 +79,10 @@ export const SHEETS: Record<SheetKey, { label: string; thick: number }> = {
  * `treatedMarkup` percent. Check them against a local yard.
  */
 export const DEFAULT_PRICES = {
+  // 2x14: no retail price found. $2.50/ft is the 2x12 price scaled by depth, rounded up.
   // 5/4x6: $0.40/ft untreated is $0.60/ft treated: $7.20 for 12 ft, against $6.68 at Home Depot and
   // $7.25 at Northside Material Brokers, November 2026.
-  lumber: { '1x4': 0.45, '2x4': 0.45, '2x6': 0.75, '2x8': 1.05, '2x10': 1.5, '2x12': 2, '4x4': 1.4, '4x6': 2.1, '6x6': 3.5, '5/4x6': 0.4 } satisfies Record<
+  lumber: { '1x4': 0.45, '2x4': 0.45, '2x6': 0.75, '2x8': 1.05, '2x10': 1.5, '2x12': 2, '2x14': 2.5, '4x4': 1.4, '4x6': 2.1, '6x6': 3.5, '5/4x6': 0.4 } satisfies Record<
     LumberSize,
     number
   >,
@@ -108,11 +113,15 @@ export const SPECIES: Record<Species, { label: string; fb: number | Record<numbe
 const SIZE_FACTOR: Record<number, number> = { 4: 1.5, 6: 1.3, 8: 1.2, 10: 1.1, 12: 1.0 };
 const SIZE_FACTOR_4IN: Record<number, number> = { 4: 1.5, 6: 1.3, 8: 1.3, 10: 1.2, 12: 1.1 };
 
-/** Fb with its size factor, psi; null for sizes without dimension lumber values: 1x boards and 6x6 timbers. */
+/**
+ * Fb with its size factor, psi; null for sizes without values here: 1x boards, 6x6 timbers, and
+ * 2x14, which the loft offers for I-joists.
+ */
 export function bendingValue(species: Species, size: LumberSize): number | null {
   const [thick, width] = size.split('x').map(Number);
   if (!(thick >= 2 && thick <= 4)) return null; // also 5/4, which reads as NaN
   const { fb } = SPECIES[species];
-  if (typeof fb !== 'number') return fb[width];
-  return fb * (thick === 4 ? SIZE_FACTOR_4IN : SIZE_FACTOR)[width];
+  const factor = (thick === 4 ? SIZE_FACTOR_4IN : SIZE_FACTOR)[width];
+  if (factor === undefined) return null;
+  return typeof fb === 'number' ? fb * factor : fb[width];
 }

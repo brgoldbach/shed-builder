@@ -200,7 +200,8 @@
         "end": "left",
         "length": 48
       },
-      "hatches": []
+      "hatches": [],
+      "gableEnds": "platform"
     },
     "kneeWalls": {
       "enabled": true,
