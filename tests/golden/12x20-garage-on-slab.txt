@@ -1,7 +1,7 @@
-FW-1      1  2x4 PT      174-1/4"  Mud sill
-FW-2      1  2x4 PT       58-3/4"  Mud sill. After anchoring, cut out door 36 (front 22" from right) from 2-1/4" to 40-1/4" from the left end, viewed from outside.
-FW-3      1  2x4         174-1/4"  Bottom plate
-FW-4      1  2x4          58-3/4"  Bottom plate. After anchoring, cut out door 36 (front 22" from right) from 2-1/4" to 40-1/4" from the left end, viewed from outside.
+FW-1      1  2x4 PT      156-1/2"  Mud sill
+FW-2      1  2x4 PT       76-1/2"  Mud sill. After anchoring, cut out door 36 (front 22" from right) from 20" to 58" from the left end, viewed from outside.
+FW-3      1  2x4         156-1/2"  Bottom plate
+FW-4      1  2x4          76-1/2"  Bottom plate. After anchoring, cut out door 36 (front 22" from right) from 20" to 58" from the left end, viewed from outside.
 FW-5      1  2x4         174-1/4"  Top plate
 FW-6      1  2x4          58-3/4"  Top plate
 FW-7      1  2x4             144"  Cap plate
@@ -65,7 +65,7 @@ RF-7      2  2x6             184"  Fascia
 RF-8      2  2x6              72"  Fascia
 RF-9     14  2x4             144"  Rafter tie. Square ends.
 RF-10    14  2x4          54-7/8"  Collar tie. Ends cut 26.6° to the roof line.
-SOLID Anchor bolt, 1/2" x17
+SOLID Anchor bolt, 1/2" x20
 SOLID Roof sheathing, 7/16" OSB x14
 SOLID Slab x1
 SOLID Thickened edge x4
@@ -77,24 +77,24 @@ STOCK 2x4 8' 0" x1
 STOCK 2x4 7' 8-5/8" x1
 STOCK 2x8 16' 0" x1
 STOCK 2x8 8' 0" x3
-STOCK 2x4 PT 16' 0" x2
-STOCK 2x4 PT 12' 0" x2
-STOCK 2x4 PT 8' 8-5/8" x1
+STOCK 2x4 PT 16' 0" x1
+STOCK 2x4 PT 14' 0" x1
+STOCK 2x4 PT 12' 0" x3
 STOCK 2x12 10' 0" x2
 STOCK 2x6 16' 0" x20
 STOCK 2x6 14' 0" x1
 SHEETS 7/16" OSB, 4×8 x34
 ITEM Concrete, slab: 4.44 cu yd
-ITEM Anchor bolt, 1/2", with nut and washer: 17 ea
+ITEM Anchor bolt, 1/2", with nut and washer: 20 ea
 ITEM Hurricane tie, rafter to plate: 32 ea
 ITEM Roof area, shingles: 339.9 sq ft
 ITEM Drip edge: 74.5 ft
-COST lumber $856.12
+COST lumber $856.99
 COST sheets $561.00
 COST concrete $732.60
-COST hardware $66.50
+COST hardware $74.00
 COST roofing $621.60
-COST total $2,837.82
+COST total $2,846.19
 SPAN Rafters: 2x6 at 16" o.c. 67-3/4" of 172-1/4" (bending)
 SPAN door 36 header (front wall): 2-ply 2x8 38" of 120-5/8" (bending)
 SPAN window 24x36 header (back wall): 2-ply 2x8 24" of 120-5/8" (bending)

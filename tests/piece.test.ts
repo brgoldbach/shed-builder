@@ -28,15 +28,15 @@ describe('piece drawings', () => {
   });
 
   it('dimensions a rafter long point to long point, past both of its edges', () => {
-    // 2x4 at 6/12 with plumb cuts at both ends: each edge is 66-1/4, and the long points sit
-    // 3-1/2 × 6/12 = 1-3/4 farther apart, on opposite edges.
+    // 2x6 at 6/12 with plumb cuts at both ends: each edge is 66-1/4, and the long points sit
+    // 5-1/2 × 6/12 = 2-3/4 farther apart, on opposite edges.
     const { dims } = pieceDrawing(first('rafter'));
-    expect(dims.map(reading)).toEqual(['68"', '66-1/4"', '66-1/4"', '3-1/2"']);
+    expect(dims.map(reading)).toEqual(['69"', '66-1/4"', '66-1/4"', '5-1/2"']);
   });
 
   it('dimensions a gable stud by its long side, with the short side above', () => {
     // The top cut crosses the 1-1/2 in face seen in the gable wall: 1-1/2 × 6/12 = 3/4 in shorter.
-    expect(pieceDrawing(first('stud.gable')).dims.map(reading)).toEqual(['5-7/16"', '4-11/16"', '1-1/2"']);
+    expect(pieceDrawing(first('stud.gable')).dims.map(reading)).toEqual(['4-15/16"', '4-3/16"', '1-1/2"']);
   });
 
   it('gives one example of each kind of end cut, simplest outline first', () => {
@@ -45,7 +45,7 @@ describe('piece drawings', () => {
     expect(key.notes[0]).toBe(LENGTH_RULE);
     expect(key.notes[3]).toBe(
       'fly rafter: Both ends cut the same way. The long points are on opposite edges, so the cut length is longer than ' +
-        'either edge. Here 68", with edges of 66-1/4" and 66-1/4".',
+        'either edge. Here 69", with edges of 66-1/4" and 66-1/4".',
     );
   });
 });

@@ -51,6 +51,7 @@ RF-2      2  2x8         150-1/4"  Fly rafter. No birdsmouth. Both ends plumb cu
 RF-3      2  2x4        149-5/16"  Ladder rail. Both ends plumb cut 14.0°. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
 RF-4     12  2x4               5"  Lookout
 RF-5      2  2x6             160"  Fascia
+WARNING Walls: Front wall: its 121-3/4" 2x4 studs are taller than the 10 ft that IRC Table R602.3(5) allows in a bearing wall. Have the wall engineered, or meet an exception of IRC R602.3.1.
 SOLID Pier, 10" diameter x9
 SOLID Roof sheathing, 7/16" OSB x10
 SOLID Subfloor, 23/32" T&G (3/4") x6

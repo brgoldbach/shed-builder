@@ -13,7 +13,7 @@
   ],
   "openings": [
     { "type": "barn doors 72x80", "wall": "left", "at": [50] },
-    { "type": "hay door 36x40", "wall": "left", "sill": 104, "at": [50] },
+    { "type": "hay door 36x40", "wall": "left", "sill": 106.5, "at": [50] },
     { "type": "attic window 18x24", "wall": "right", "sill": 108, "at": [30, 70] },
     { "type": "window 24x36", "wall": "front", "sill": 46.25, "at": [50] },
     { "type": "window 24x36", "wall": "back", "sill": 46.25, "at": [50] }
@@ -22,8 +22,9 @@
     "style": "gambrel",
     "pitch": 5,
     "gambrel": { "lowerPitch": 29 },
+    "eaveOverhang": 3,
     "tailCut": "plumb-level",
-    "loft": { "enabled": true }
+    "loft": { "enabled": true, "hatches": [{ "x": 144, "y": 48, "width": 24, "depth": 48 }] }
   },
   "ramps": [{ "opening": { "row": 0, "index": 0 } }],
   "finishes": {

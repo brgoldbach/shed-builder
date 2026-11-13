@@ -14,6 +14,8 @@ const CAP_SPLICE_OFFSET = 24; // min distance from a cap-plate splice to a top-p
 const MIN_PLATE_PIECE = 24; // no short offcut pieces at a plate end
 const MIN_CRIPPLE = 3; // a smaller gap above a header closes: the header goes tight to the plate
 const BOLT_EMBED = 7; // shown embedment of the anchor bolts in the slab
+const BOLT_END = 3.5; // IRC R403.1.6: 7 diameters of a 1/2 in bolt from a plate end
+const MIN_TWO_BOLTS = 3 * BOLT_END; // two bolts, each BOLT_END from an end and from each other
 const NEAR = 0.01;
 const UP: Vec3 = [0, 0, 1];
 
@@ -144,6 +146,22 @@ export function frameWalls(config: ShedConfig): {
   const sillSize = mudSillSize(config);
   if (sillSize && LUMBER[sillSize].width < LUMBER[config.walls.stud].width) {
     warnings.push({ source: 'Walls', message: `The ${sillSize} mud sill is narrower than the ${config.walls.stud} walls.` });
+  }
+  // IRC Table R602.3(5): laterally unsupported stud height. The eave walls bear the roof; the end
+  // walls carry only the gable above them.
+  const stud = config.walls.stud;
+  for (const wall of WALLS) {
+    const bearing = isEave(wall);
+    const limit = bearing ? 120 : stud === '2x4' ? 168 : 240;
+    if (heights[wall] > limit + NEAR) {
+      const name = naming(config).assembly(`wall.${wall}`).label;
+      warnings.push({
+        source: 'Walls',
+        message:
+          `${name}: its ${formatInches(heights[wall])} ${stud} studs are taller than the ${limit / 12} ft that IRC Table R602.3(5) ` +
+          `allows in a ${bearing ? 'bearing' : 'nonbearing'} wall. Have the wall engineered, or meet an exception of IRC R602.3.1.`,
+      });
+    }
   }
   const solids: Solid[] = [];
   const openings: RoughOpening[] = [];
@@ -438,7 +456,13 @@ function frameWall(
   // The bottom plate runs through doorways so the wall goes up in one piece. The doorway part is
   // cut out after the wall is anchored.
   const doorways = fitted.filter(({ sill }) => sill === 0);
-  for (const piece of splitPlate([start, end], maxStock, centers)) {
+  // On a slab, no splice just beside a doorway, where it would leave a part too short for two bolts.
+  const joints = onSlab
+    ? centers.filter((center) =>
+        doorways.every(({ offset, type }) => !(center > offset - MIN_TWO_BOLTS && center < offset) && !(center > offset + type.width && center < offset + type.width + MIN_TWO_BOLTS)),
+      )
+    : centers;
+  for (const piece of splitPlate([start, end], maxStock, joints)) {
     const cuts = doorways
       .filter(({ offset, type }) => overlaps(piece, [offset, offset + type.width]))
       .map(
@@ -459,6 +483,13 @@ function frameWall(
       const sillWidth = LUMBER[sillSize ?? walls.stud].width;
       const doorSpans: Span[] = doorways.map(({ offset, type }) => [offset, offset + type.width]);
       for (const [low, high] of subtract(piece, doorSpans)) {
+        if (high - low < MIN_TWO_BOLTS - NEAR) {
+          const name = naming(config).assembly(assembly).label;
+          warnings.push({
+            source: 'Walls',
+            message: `${name}: the ${formatInches(high - low)} plate part from ${formatInches(low)} has room for one anchor bolt, not two (IRC R403.1.6). Add a strap or hold-down there.`,
+          });
+        }
         for (const u of boltPositions(low, high, anchorEndDistance, anchorSpacing)) {
           const [x, y] = at(frame, u, sillWidth / 2, 0);
           solids.push({
@@ -564,11 +595,17 @@ function subtract([start, end]: Span, holes: readonly Span[]): Span[] {
 
 /**
  * Bolts along [low, high]: one `end` in from each end, the rest evenly spaced at most `spacing`
- * apart. A part shorter than two end distances gets one bolt at its middle.
+ * apart. IRC R403.1.6 wants two in each plate part, each at least 7 bolt diameters from its end: a
+ * part no longer than two end distances gets two a quarter of its length in, and a part too short
+ * for two gets one at its middle.
  */
 function boltPositions(low: number, high: number, end: number, spacing: number): number[] {
   const length = high - low;
-  if (length <= 2 * end) return [low + length / 2];
+  if (length < MIN_TWO_BOLTS - NEAR) return [low + length / 2];
+  if (length <= 2 * end) {
+    const inset = Math.max(BOLT_END, length / 4);
+    return [low + inset, high - inset];
+  }
   const count = Math.ceil((length - 2 * end) / spacing) + 1;
   return Array.from({ length: count }, (_, index) => low + end + (index * (length - 2 * end)) / (count - 1));
 }

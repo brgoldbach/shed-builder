@@ -18,7 +18,6 @@ import {
   FOUNDATION_TYPES,
   FRONTS,
   LOFT_OPEN_ENDS,
-  LOFT_GABLE_ENDS,
   LOFT_SUPPORTS,
   LOFT_USES,
   MUD_SILLS,
@@ -91,7 +90,6 @@ const LOFT_USE_LABELS = { storage: 'Storage (20 psf)', sleeping: 'Sleeping (30 p
 
 const MUD_SILL_LABELS: Record<string, string> = { none: 'None: PT bottom plate', match: 'Same as wall stud' };
 const LOFT_SUPPORT_LABELS = { plates: 'On the wall plates', hung: 'Hung from ledgers' };
-const LOFT_GABLE_END_LABELS = { balloon: 'Balloon: studs from the end wall', platform: 'Platform: on the loft deck' };
 
 const CORNER_LABELS = {
   'four-stud': '4-stud post',
@@ -475,14 +473,6 @@ function LoftSection({ value, onChange, names }: SectionProps<Roof> & { names: N
         describe={(support) => LOFT_SUPPORT_LABELS[support]}
         onChange={loft('support')}
         help={DESIGN_HELP['roof.loft.support']}
-      />
-      <SelectField
-        label="Gable ends"
-        value={value.loft.gableEnds}
-        options={LOFT_GABLE_ENDS}
-        describe={(framing) => LOFT_GABLE_END_LABELS[framing]}
-        onChange={loft('gableEnds')}
-        help={DESIGN_HELP['roof.loft.gableEnds']}
       />
       <SelectField label="Deck" value={value.loft.deck} options={SHEET_KEYS} describe={sheetLabel} onChange={loft('deck')} help={DESIGN_HELP['roof.loft.deck']} />
       <SelectField

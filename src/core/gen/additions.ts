@@ -3,7 +3,7 @@ import { OPPOSITE, type Addition, type ShedConfig } from '../config';
 import { ASSEMBLIES, corners, LEFT_OUT, type Member, type Point, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
 import { formatInches, formatLength } from '../units';
-import type { RoofPlane, Soffit } from './roof';
+import { checkTailNotch, type RoofPlane, type Soffit } from './roof';
 import { idMaker, planeMember } from './section';
 import { deckHeights, deckReach, frameDeck, type DeckFacts } from './deck';
 import { gradeOf } from './floor';
@@ -164,6 +164,7 @@ function frameLeanTo(
   }
   const beamTop = bottom(heel - seat);
   const tail = Math.max(addition.depth + addition.eaveOverhang, heel);
+  checkTailNotch(addition.rafter, seat, sin, tail - heel, warn);
   // A deck's heights (`deck.ts`). Its piers rise to the deck beam, unless a deck post of MIN_POST
   // or more fits under it.
   let deckHeight = deckHeights(config, addition);

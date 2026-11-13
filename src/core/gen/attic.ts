@@ -208,9 +208,8 @@ function frameLoft(
     warn('Loft', 'The open end leaves no loft floor.');
     return { members, deck: null, ends: NO_DECK_ENDS };
   }
-  // Platform framing at a closed end: the floor bears on the end wall, and the gable stands on its deck.
-  const platform = loft.gableEnds === 'platform';
-  const [leftPlatform, rightPlatform] = [platform && leftEdge === null, platform && rightEdge === null];
+  // A closed end is platform framed: the floor bears on the end wall, and the gable stands on its deck.
+  const [leftPlatform, rightPlatform] = [leftEdge === null, rightEdge === null];
   const fixed: Span[] = [];
   const place = (code: string, role: Role, x: number) => {
     fixed.push([x, x + PLY]);
@@ -288,16 +287,31 @@ function frameLoft(
     }
   });
 
-  // Layout joists on o.c. multiples, moved beside a rafter they land on. Between a hatch's
-  // trimmers they become tail joists from each header to the eave.
+  // Layout joists. Lapping joists are the rafter ties, which IRC R802.5.2.2 wants at each rafter:
+  // one beside each common rafter, then evenly spaced fill so no space passes `loft.oc`. Other
+  // joists sit on o.c. multiples. Between a hatch's trimmers they become tail joists from each
+  // header to the eave.
   const tailNote = (cut: string | null) =>
     ['Joist hanger at the hatch header.', cut ? `Eave end cut ${cut} to the roof line.` : '', hung ? 'Joist hanger at the ledger.' : '']
       .filter(Boolean)
       .join(' ');
-  for (let index = 1; index * loft.oc < length; index++) {
-    const from = clear(index * loft.oc - PLY / 2, 1, 1);
+  const overlapsFixed = (from: number) => fixed.some(([low, high]) => from < high && from + PLY > low);
+  const layout: number[] = [];
+  if (lapping) {
+    const ties = rafters.slice(1, -1).map((rafter) => rafter + PLY).filter((from) => from >= inner[0] && from + PLY <= inner[1] && !overlapsFixed(from));
+    const marks = [...new Set([...fixed.map(([low]) => low), ...ties])].sort((first, second) => first - second);
+    layout.push(...ties);
+    marks.slice(1).forEach((next, index) => {
+      const gap = next - marks[index];
+      const fill = Math.ceil(gap / loft.oc - NEAR) - 1;
+      for (let step = 1; step <= fill; step++) layout.push(clear(marks[index] + (step * gap) / (fill + 1), 1, -1));
+    });
+  } else {
+    for (let index = 1; index * loft.oc < length; index++) layout.push(index * loft.oc - PLY / 2);
+  }
+  for (const from of layout.sort((first, second) => first - second)) {
     if (from < inner[0] || from + PLY > inner[1]) continue;
-    if (fixed.some(([low, high]) => from < high && from + PLY > low)) continue;
+    if (overlapsFixed(from)) continue;
     const hatch = hatches.find((candidate) => from >= candidate.left + 2 * PLY && from + PLY <= candidate.right);
     if (!hatch) {
       joist('J', 'joist.loft', from);
@@ -309,8 +323,8 @@ function frameLoft(
 
   // Along the eaves: ledgers for hung joists, under the floor; rim joists under knee walls, full length.
   const centers = members.filter((member) => member.axes.length[1] === 1).map((member) => member.origin[0] + PLY / 2);
-  const edge: { code: string; role: Role; y: number; span: Span } | null = hung
-    ? { code: 'L', role: 'ledger.loft', y: wallDepth, span: floor }
+  const edge: { code: string; role: Role; y: number; span: Span; note?: string } | null = hung
+    ? { code: 'L', role: 'ledger.loft', y: wallDepth, span: floor, note: 'Fasten to each stud.' }
     : raised
       ? { code: 'R', role: 'rim.loft', y: 0, span: [leftPlatform ? 0 : wallDepth, rightPlatform ? length : length - wallDepth] }
       : null;
@@ -327,18 +341,20 @@ function frameLoft(
           length: to - from,
           origin: [from, y, bottom],
           axes: { length: X, width: UP, thick: [0, inward, 0] },
+          ...(edge.note && { note: edge.note }),
         });
       }
     }
   }
 
-  // The deck runs over the rims to the outside faces under knee walls, to the walls' inside faces
-  // over ledgers, and otherwise stops where the rafter undersides meet its top. An open end keeps
-  // a strip under each knee wall. At a platform end it runs out to the end wall's outside face.
+  // Under knee walls the deck runs out to the eave walls' outside faces, over the rims or the cap
+  // plates; an open end keeps a strip under each knee wall. Else it stops at the walls' inside faces
+  // over ledgers, or where the rafter undersides meet its top. At a closed end it runs out to the
+  // end wall's outside face.
   const deckBottom = bottom + joistDepth;
-  const strips = raised && !hung;
+  const strips = raised;
   const kneeDepth = strips ? LUMBER[roof.kneeWalls.stud].width : 0;
-  const reach = hung ? wallDepth : raised ? 0 : Math.max(0, profile.reachBottom(deckBottom + SHEETS[loft.deck].thick));
+  const reach = strips ? 0 : hung ? wallDepth : Math.max(0, profile.reachBottom(deckBottom + SHEETS[loft.deck].thick));
   const [from, to] = [leftPlatform ? 0 : strips ? wallDepth : floor[0], rightPlatform ? length : strips ? length - wallDepth : floor[1]];
   const holes: Rect[] = hatches.map(({ left, right, front, back }) => ({ min: [left + 2 * PLY, front + 2 * PLY], max: [right, back - 2 * PLY] }));
   if (strips && leftEdge !== null) holes.push({ min: [from, kneeDepth], max: [leftEdge, width - kneeDepth] });

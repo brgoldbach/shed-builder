@@ -14,6 +14,13 @@ describe('parseConfig', () => {
     expect(result.config.openings).toEqual([]);
   });
 
+  it('loads a 1.1.0 file with a loft gable-end setting, which every closed end now ignores', () => {
+    for (const gableEnds of ['balloon', 'platform']) {
+      const result = parseConfig({ schemaVersion: 1, roof: { loft: { enabled: true, gableEnds } } });
+      expect(result.ok && 'gableEnds' in result.config.roof.loft).toBe(false);
+    }
+  });
+
   it('keeps the wall height of a file saved without a stud height', () => {
     const result = parseConfig({ schemaVersion: 1, wallHeight: 109.125 });
     expect(result.ok && [result.config.studHeight, result.config.wallHeight]).toEqual(['custom', 109.125]);

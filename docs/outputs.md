@@ -552,6 +552,7 @@ Load cases in `spans.ts`, from AWC Span Tables for Joists and Rafters 2021, Tabl
 | `{Side} lean-to beam` | beam | `postSpacing`: post center to post center | Roof + roof dead over `beamTributary` | Roof | L/240 |
 | `{Side} lean-to deck joists` | `joistSpan` | `deck.joistSpan` | `FLOOR`, at `addition.deck.oc` | 1.0 | L/360 |
 | `{Side} lean-to deck beam`, `deck.plies` plies of the deck joist size | beam | `deck.beamSpan`; no check when it is 0 | `FLOOR` over `deck.beamTributary` | 1.0 | L/360 |
+| `Ramp N stringers`, wood ramps | `joistSpan`, as deck joists (DCA 6 Table 2) | `RampFacts.check.span`: horizontal, from the upper end to where the stringer bottom meets the foot | `FLOOR`, at `ramps[].oc` | 1.0 | L/360 |
 | `Front girder`, `Inner girder`, `Back girder`, on a pier foundation | beam | The largest center-to-center gap between the foundation piers of that line, along x. A deck that continues one line spaces its piers anew. | Floor tributary, plus the eave wall load on the outer lines | 1.0 | L/360 |
 
 Joists, rafters, and headers use clear spans. Lean-to beams, deck beams, and girders use the
@@ -656,7 +657,7 @@ species, the roof load, the roof dead load, and the loft use.
 
 | Area | Not checked |
 |---|---|
-| Members | Studs; the ridge board; rafter and collar ties; a gambrel's gussets; skids, and a deck's own girders; loft ledgers; loft edge joists, trimmers, hatch headers, and tail joists; posts; ramps; purlins, lookouts, fascia, rim joists, blocking, and deck boards |
+| Members | Studs; the ridge board; rafter and collar ties; a gambrel's gussets; skids, and a deck's own girders; loft ledgers; loft edge joists, trimmers, hatch headers, and tail joists; posts; ramp boards, and stairs (their stringers warn past 6 ft); purlins, lookouts, fascia, rim joists, blocking, and deck boards |
 | Foundation | Pier bearing on soil |
 | Loads | Wind, seismic, and uplift; point loads; drift and unbalanced snow; the thrust at a gambrel's break; lean-to loads on main-wall headers and girders; deck loads on the shed floor framing. The checks use uniform gravity loads on simple spans only. |
 | Strength | Shear in joists and rafters, as in the AWC tables; bearing length; notches; lateral stability |

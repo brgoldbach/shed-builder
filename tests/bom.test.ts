@@ -112,9 +112,10 @@ describe('counted items', () => {
     const bom = bomOf(garageSlab);
     // 240 x 144 x 4 slab plus a 12 in wide ring 8 in under it: 207,360 cu in = 120 cu ft.
     expect(bom.concrete[0]).toMatchObject({ item: 'Concrete, slab', quantity: 4.44, cost: { basis: '$165.00 per cu yd, ready-mix' } });
-    // 16 ft sills: the front splices at the door's left king (177-3/4), the back at the 192 stud.
-    // Each part clear of a doorway takes its own end bolts: front 4 + 1 + 1, back 4 + 2, right 3, left 1 + 1.
-    expect(item(bom.hardware, 'Anchor bolt, 1/2", with nut and washer')?.quantity).toBe(17);
+    // 16 ft sills: the front splices at the 160 stud, clear of the door, the back at the 192 stud.
+    // Each part clear of a doorway takes two or more bolts (IRC R403.1.6): front 3 + 2 + 2, back
+    // 4 + 2, right 3, and left 2 + 2 beside the overhead door.
+    expect(item(bom.hardware, 'Anchor bolt, 1/2", with nut and washer')?.quantity).toBe(20);
   });
 
   it('counts post bases and caps under posts', () => {

@@ -1,4 +1,4 @@
-import { LUMBER, SHEETS, stockFor } from '../catalog';
+import { LUMBER, SHEETS, stockFor, type LumberSize } from '../catalog';
 import { MIN_RAMP_WIDTH, type Addition, type Opening, type Ramp, type ShedConfig } from '../config';
 import { ASSEMBLIES, LEFT_OUT, type Member, type Point, type Solid, type Vec3, type Warning } from '../member';
 import { naming } from '../naming';
@@ -88,6 +88,7 @@ export interface RampFacts {
   top: 'framing' | 'deck' | 'slab'; // what the stringer tops fasten to: the shed's floor framing, a lean-to deck beam, or a slab edge
   hangerBoard: number; // the length of a hanger board under the floor framing or deck beam, for stair hangers; 0 for none
   summary: string; // for the drawings
+  check?: { name: string; size: LumberSize; oc: number; span: number }; // a wood ramp's stringers, for the span checks
 }
 
 // Stairs take a fixed step. A riser of at most 7-1/2 in keeps the 5 in throat of a 2x12 cut stringer
@@ -273,6 +274,9 @@ export function frameRamps(
     const knee = (lift: number) => upper.edge + ramp.slope * (upper.top - lift - upper.under);
     const run = upper.edge + rise * ramp.slope;
     if (!fits(run)) return;
+    if (rise > GUARD_RISE + NEAR) {
+      warn(`A total rise of ${formatInches(rise)} needs a guard on each open side more than 30" above the ground below (IRC R312.1.1). The app does not build it.`);
+    }
     if (concrete) {
       // Over a flat base `thickness` under the foot.
       const base = foot - ramp.thickness;
@@ -351,7 +355,9 @@ export function frameRamps(
       }
     }
     const summary = `${levels}: PT ${ramp.stringer} stringers at ${ramp.oc}" o.c., 1 in ${ramp.slope}, 2x6 deck boards.`;
-    facts.push({ kind: 'ramp', stringers: starts.length, top: upper.fasten, hangerBoard: 0, summary });
+    // Clear span, horizontal: from the upper end to where the stringer bottom meets the foot.
+    const span = Math.max(0, Math.min(toe, upper.edge + ramp.slope * (upper.top - lift - foot - deep)) - upper.face);
+    facts.push({ kind: 'ramp', stringers: starts.length, top: upper.fasten, hangerBoard: 0, summary, check: { name: source, size: ramp.stringer, oc: ramp.oc, span } });
   });
   return { members, solids, warnings, facts };
 }

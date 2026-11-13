@@ -9,6 +9,7 @@ import { splitPlate, type Frame, type Wall } from './walls';
 const PLY = 1.5;
 const GAP = 0.25; // between deck boards
 const MIN_PIECE = 3; // shortest deck board piece worth cutting
+const GUARD_HEIGHT = 30; // IRC R312.1.1: a deck surface higher above grade needs a guard
 const NEAR = 0.01;
 const UP: Vec3 = [0, 0, 1];
 
@@ -302,6 +303,9 @@ export function frameDeck(site: DeckSite): DeckFacts {
       : [];
 
   if (joistBottom < site.grade) warn(`The deck framing runs ${formatInches(site.grade - joistBottom)} below grade.`);
+  if (top - site.grade > GUARD_HEIGHT + NEAR) {
+    warn(`The deck surface is ${formatInches(top - site.grade)} above grade. A deck more than 30" above grade needs a guard (IRC R312.1.1). The app does not build it.`);
+  }
   if (notch > joistDepth / 4 + NEAR) {
     warn(`The deck joists are notched ${formatInches(notch)} at their bearings, more than 1/4 of their depth. A smaller deck joist needs less.`);
   }
@@ -375,8 +379,10 @@ export function frameDeck(site: DeckSite): DeckFacts {
     lineXs = Array.from({ length: count }, (_, index) => (line * (index + 1)) / count);
     for (const x of lineXs) supportLine('along', x, [u0, u1]);
   }
-  for (const span of splitPlate([u0, u1], maxStock(joist), joistCenters)) {
-    onEdge('DL', 'ledger.deck', joist, 'along', span, 0, joistBottom, 'Lag-bolt into the floor framing, two at each joist.');
+  // IRC R507.9.1.1: a deck ledger is at least a 2x8. Its top is flush with the joist tops.
+  const ledger = LUMBER[joist].width >= LUMBER['2x8'].width ? joist : '2x8';
+  for (const span of splitPlate([u0, u1], maxStock(ledger), joistCenters)) {
+    onEdge('DL', 'ledger.deck', ledger, 'along', span, 0, joistTop - LUMBER[ledger].width, 'Lag-bolt into the floor framing, two at each joist.');
   }
   const joistNote = supports && lineXs.length > 1 ? `Joist hangers at both ends; bears on the ${lineName}s between.` : 'Joist hangers at both ends.';
   for (const low of joists) {

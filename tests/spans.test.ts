@@ -59,9 +59,9 @@ describe('span checks', () => {
   const find = (member: string) => checks.find((check) => check.member === member)!;
 
   it('measures each member clear between its bearings', () => {
-    // Rafter: seat end (2-9/16) to the ridge face (47-1/4). Floor: from an outer skid's inner face
+    // Rafter: seat end (3-1/2) to the ridge face (47-1/4). Floor: from an outer skid's inner face
     // (3-1/2) to the center skid (46-1/4 to 49-3/4).
-    expect(find('Rafters').span).toBeCloseTo(47.25 - 2.5625, 9);
+    expect(find('Rafters').span).toBeCloseTo(47.25 - 3.5, 9);
     expect(find('Floor joists').span).toBe(42.75);
     expect(find('window 24x36 header (front wall)').span).toBe(24);
   });

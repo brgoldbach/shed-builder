@@ -10,7 +10,9 @@ import { formatInches } from '../src/core/units';
 
 // 8x10 on skids: 6/12 main roof, 2x4 rafters (seat 2-9/16), 12 in eave, 2x6 fascia, 7/16 OSB walls
 // and roof. A 3/12 lean-to 96 in deep with 2x6 rafters, a 2-ply 2x8 beam on 4x4 posts.
-const [gableSkid] = PRESETS;
+// The 8x10 preset with its earlier 2x4 main rafters and 2x6 ridge: the geometry below is worked out
+// for them. Their notched tails warn (IRC R802.7.1.1).
+const gableSkid = shedSchema.parse({ ...PRESETS[0], roof: { ...PRESETS[0].roof, rafter: '2x4', ridge: '2x6' } });
 const withLeanTo = (addition: object) => shedSchema.parse({ ...gableSkid, additions: [addition] });
 const model = buildModel(withLeanTo({ side: 'front', mirror: true }));
 const front = model.members.filter(({ assembly }) => assembly === 'addition.front');
@@ -63,8 +65,8 @@ describe('below-soffit lean-to', () => {
   it('mirrors to the opposite side and warns about low headroom', () => {
     expect(ofRole(model.members.filter(({ assembly }) => assembly === 'addition.back'), 'post').map(({ origin }) => origin[1])).toEqual([192, 192, 192]);
     // Beam bottom less grade: 8 ft walls are low under a 6/12 main eave.
-    expect(model.warnings.map(({ source }) => source)).toEqual(['Front lean-to', 'Back lean-to']);
-    expect(model.warnings[0].message).toMatch(/^The clear height under the beam is 5' 4-9\/16"/);
+    expect(model.warnings.map(({ source }) => source)).toEqual(['Roof', 'Front lean-to', 'Back lean-to']);
+    expect(model.warnings[1].message).toMatch(/^The clear height under the beam is 5' 4-9\/16"/);
   });
 
   it('pours a slab in place of piers', () => {
@@ -263,6 +265,14 @@ describe('lean-to deck', () => {
   it('warns when the boards span farther than they may', () => {
     const wide = withLeanTo({ side: 'front', depth: 72, floor: 'deck', deck: { oc: 24 } });
     expect(buildModel(wide).warnings).toContainEqual({ source: 'Front lean-to', message: '5/4x6 deck boards span 16" at most; the joists are 24" apart.' });
+  });
+
+  it('makes the ledger at least a 2x8 (IRC R507.9.1.1), its top flush with the joist tops', () => {
+    const shallow = buildModel(withLeanTo({ side: 'front', depth: 72, floor: 'deck', deck: { boards: '2x6', joist: '2x6' } }));
+    const [ledger] = ofRole(shallow.members.filter(({ assembly }) => assembly === 'addition.front'), 'ledger.deck');
+    const [joist] = ofRole(shallow.members.filter(({ assembly }) => assembly === 'addition.front'), 'joist.deck');
+    expect(ledger.size).toBe('2x8');
+    expect(range([ledger], 2)[1]).toBeCloseTo(range([joist], 2)[1], 9);
   });
 
   it('measures headroom from the deck', () => {

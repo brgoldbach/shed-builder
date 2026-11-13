@@ -3,6 +3,36 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Code checks from a framing review:** new warnings for a birdsmouth that leaves less than
+  3-1/2" of rafter over a tail, or a tail over 24" (IRC R802.7.1.1); studs taller than IRC Table
+  R602.3(5) allows; a lean-to deck or ramp more than 30" above grade with no guard (IRC R312.1.1);
+  and knee walls, whose tops nothing ties, with a request for an engineer's review. Wood ramp
+  stringers get a span check, as deck joists.
+- **Gable base bracing:** each gable elevation says what braces the gable's base: the loft deck, the
+  loft joist beside the gable studs, or nothing, with a note to brace it.
+
+### Changed
+
+- **Platform loft ends:** every closed loft end is now platform framed, and the "Gable ends" setting
+  is gone. Its other choice, "balloon", stood the gable on the end wall, which braced nothing and
+  was not balloon framing. Under hung joists with knee walls, the deck now runs over the eave walls
+  too, and the knee walls stand on it. Files from 1.1.0 load. The red barn's hay door sits 2-1/2"
+  higher, on the gable's new bottom plate.
+- **Loft joists as rafter ties:** loft joists on the plates sit beside every rafter, with fill joists
+  between, so each rafter has a tie (IRC R802.5.2.2).
+- **Anchor bolts:** a short plate part on a slab gets two bolts, as IRC R403.1.6 asks, and sill
+  splices keep clear of doorway sides. A part too short for two warns.
+- **Deck ledgers** are at least 2x8 (IRC R507.9.1.1). A hung loft's ledgers say to fasten to each
+  stud.
+- **8x10 preset:** 2x6 rafters and a 2x8 ridge, since 2x4 rafters cannot keep 3-1/2" over the
+  birdsmouth with a tail.
+- **Red barn preset:** a 3" eave overhang, for a barn's close eaves, and a 2 x 4 ft loft hatch near
+  the back gable.
+
 ## [1.1.0] - 2026-11-13
 
 ### Added

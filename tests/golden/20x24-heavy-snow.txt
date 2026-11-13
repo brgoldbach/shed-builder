@@ -108,4 +108,5 @@ SPAN Floor joists: 2x8 at 12" o.c. 41-3/8" of 169-9/16" (deflection)
 SPAN overhead 8x7 header (front wall): 2-ply 2x12 96" of 75-7/8" (bending)
 SPAN window 36x24 header (left wall): 2-ply 2x10 36" of 178" (bending)
 SPAN window 36x24 header (left wall): 2-ply 2x10 36" of 178" (bending)
+SPAN Ramp 1 stringers: 2x6 at 16" o.c. 38-1/4" of 116-7/8" (deflection)
 WARNING overhead 8x7 header (front wall): 2-ply 2x12 spans 8' 0". Douglas Fir-Larch No. 2 allows 6' 3-7/8" (bending; 70 psf roof snow + 20 psf dead over 12' 0", wall 10 psf, L/240).

@@ -108,14 +108,14 @@ describe('panel sheets', () => {
 
   it('draws the loft rim, dashed, and the deck edge under a knee wall', () => {
     const { shapes } = find(drawings, 'knee-front');
-    // The rim on the wall top at 97-1/8, 5-1/2 deep, between the gable-end walls. The deck's edge on
-    // top: two sheets, 23/32 thick, under the knee wall at 103-11/32.
+    // The rim on the wall top at 97-1/8, 5-1/2 deep, out to the corners at the platform ends. The
+    // deck's edge on top: two sheets, 23/32 thick, under the knee wall at 103-11/32.
     expect(shapes.filter((shape) => shape.role === 'rim.loft').map((shape) => [shape.kind, bounds([shape])])).toEqual([
-      ['context', { min: [3.5, 97.125], max: [116.5, 102.625] }],
+      ['context', { min: [0, 97.125], max: [120, 102.625] }],
     ]);
     expect(shapes.filter((shape) => shape.kind === 'sheet').map((shape) => bounds([shape]))).toEqual([
-      { min: [3.5, 102.625], max: [96, 103.34375] },
-      { min: [96, 102.625], max: [116.5, 103.34375] },
+      { min: [0, 102.625], max: [96, 103.34375] },
+      { min: [96, 102.625], max: [120, 103.34375] },
     ]);
   });
 
@@ -125,7 +125,7 @@ describe('panel sheets', () => {
       { kind: 'running', side: 'bottom', tier: 1, origin: 0, at: [15.25, 31.25, 63.25, 79.25] },
       { kind: 'chain', side: 'bottom', tier: 2, at: [0, 96], feet: true },
       // From the end wall's top plate to the peak.
-      { kind: 'chain', side: 'right', tier: 1, at: [97.125, 119.46875], feet: true },
+      { kind: 'chain', side: 'right', tier: 1, at: [97.125, 119], feet: true },
     ]);
     // Dashed: the end wall's top and cap plates, and the end rafters.
     expect(gable.shapes.filter((shape) => shape.kind === 'context').map((shape) => shape.role)).toEqual(['plate.top', 'plate.cap', 'rafter', 'rafter']);
@@ -134,9 +134,10 @@ describe('panel sheets', () => {
   it('lays out a gable panel from its own bottom plate', () => {
     const config = shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, gablePanel: true } });
     const [layout, length] = find(drawingsOf(config), 'gable-left').dims;
-    // The plate stops where the 2x4 end rafters clear it, 5-9/16 in from each corner.
-    expect(layout).toMatchObject({ origin: 5.5625, at: [15.25, 31.25, 63.25, 79.25] });
-    expect(length).toMatchObject({ at: [5.5625, 90.4375] });
+    // The plate stops where the 2x6 end rafters clear it, 6-1/2 in from each corner. Under them the
+    // studs at 15-1/4 and 79-1/4 would be shorter than 3 in, so they are left out.
+    expect(layout).toMatchObject({ origin: 6.5, at: [31.25, 63.25] });
+    expect(length).toMatchObject({ at: [6.5, 89.5] });
   });
 });
 
@@ -151,17 +152,17 @@ describe('rafter detail', () => {
   });
 
   it('dimensions the birdsmouth seat and heel', () => {
-    // 2x4 at 6/12: the seat stops at 1/3 of the depth, 41/16; heel = seat × 6/12.
+    // 2x6 at 6/12: the seat takes the full 3-1/2 wall depth, under 1/3 of the depth; heel = seat × 6/12.
     expect(aligned).toHaveLength(5);
-    expect(aligned[2]).toBeCloseTo(2.5625, 9);
-    expect(aligned[3]).toBeCloseTo(1.28125, 9);
+    expect(aligned[2]).toBeCloseTo(3.5, 9);
+    expect(aligned[3]).toBeCloseTo(1.75, 9);
   });
 
   it('dimensions the cut length long point to long point, along the rafter', () => {
     // The tail and ridge plumb cuts are parallel, so the long points sit on opposite edges.
     const { from, to, along } = ofKind(rafter, 'aligned')[4];
     const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
-    expect(formatInches(Math.abs(dx * along![0] + dy * along![1]) / Math.hypot(...along!))).toBe('68"');
+    expect(formatInches(Math.abs(dx * along![0] + dy * along![1]) / Math.hypot(...along!))).toBe('69"');
   });
 });
 
@@ -230,7 +231,7 @@ describe('building section', () => {
     const [heights] = ofKind(section, 'chain');
     // Skid bottom: 23/32 subfloor, 5-1/2 joist, 5-1/2 skid on edge. Ridge: rafter top at the ridge face.
     expect(heights.at.slice(0, 3)).toEqual([-11.71875, 0, 97.125]);
-    expect(heights.at[3]).toBeCloseTo(97.125 + 0.5 * (47.25 - 2.5625) + 3.5 * SLOPE, 6);
+    expect(heights.at[3]).toBeCloseTo(97.125 + 0.5 * (47.25 - 3.5) + 5.5 * SLOPE, 6);
   });
 });
 
@@ -273,5 +274,21 @@ describe('lean-to deck note', () => {
     expect(note(loftShed)).toBe('Back lean-to deck: PT 2x6 joists at 16" o.c., 5/4x6 deck boards, on piers.');
     const additions = loftShed.additions.map((addition) => ({ ...addition, deck: { ...addition.deck, boards: '2x6' as const } }));
     expect(note(shedSchema.parse({ ...loftShed, additions }))).toContain('2x6 deck boards');
+  });
+});
+
+describe('gable base bracing notes', () => {
+  const notes = (roof: object) => find(drawingsOf(shedSchema.parse({ ...gableSkid, roof: { ...gableSkid.roof, ...roof } })), 'gable-left').notes;
+  const loose = "No floor or deck braces the gable's base at the end wall's top plate. Brace it, and have the bracing checked.";
+
+  it('asks for bracing where no loft deck reaches the gable: no loft, or an open loft end', () => {
+    expect(notes({})).toContain(loose);
+    expect(notes({ rafterTies: { enabled: false }, loft: { enabled: true, open: { end: 'left', length: 48 } } })).toContain(loose);
+  });
+
+  it('needs no note at a closed loft end, where the gable stands on the deck', () => {
+    for (const support of ['plates', 'hung']) {
+      expect(notes({ rafterTies: { enabled: false }, loft: { enabled: true, support } })).not.toContain(loose);
+    }
   });
 });

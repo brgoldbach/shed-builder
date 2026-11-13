@@ -62,11 +62,11 @@ describe('loft', () => {
   const { members } = roofOf({ loft: { enabled: true, joist: '2x6', oc: 16 } });
   const joists = ofRole(members, 'joist.loft');
 
-  it('replaces the rafter ties with loft joists on their own layout, beside the rafters', () => {
+  it('replaces the rafter ties with loft joists, one beside each rafter, with fill at most 16 in apart', () => {
     expect(ofRole(members, 'tie.rafter')).toHaveLength(0);
-    // Ends inside the gable studs (3-1/2 and 115). 47-1/4 and 95-1/4 land on rafters and move to
-    // their +x sides, 48-3/4 and 96-3/4.
-    expect(xs(joists)).toEqual([3.5, 15.25, 31.25, 48.75, 63.25, 79.25, 96.75, 111.25, 115]);
+    // Ends inside the gable studs (3-1/2 and 115). A joist on the +x side of each common rafter
+    // (23-1/4, 47-1/4, 71-1/4, 95-1/4), and one fill joist midway in each space wider than 16 in.
+    expect(xs(joists)).toEqual([3.5, 14.125, 24.75, 36.75, 48.75, 60.75, 72.75, 84.75, 96.75, 105.875, 115]);
   });
 
   it('spans wall face to wall face with ends trimmed to the roof line', () => {
@@ -82,8 +82,11 @@ describe('knee walls raise the roof', () => {
   const { members, warnings } = roofOf({ loft, kneeWalls: { enabled: true, height: 36 } });
   const front = members.filter((member) => member.assembly === 'knee.front');
 
-  it('stands a knee wall on the deck at each eave, between the gable-end walls', () => {
-    expect(warnings).toEqual([]);
+  it('stands a knee wall on the deck at each eave, between the gable-end walls, and asks for review', () => {
+    // Only the loft floor ties the knee walls, at their bases.
+    expect(warnings).toEqual([
+      { source: 'Roof', message: 'The rafters bear on the knee walls, and no tie holds the knee-wall tops. Have an engineer review the roof framing (IRC R802.5.2).' },
+    ]);
     // From the gable walls' inside faces: 120 - 2 x 3-1/2 = 113.
     expect(ofRole(front, 'plate.bottom')[0].origin).toEqual([3.5, 0, 103.34375]);
     expect(ofRole(front, 'plate.bottom')[0].length).toBe(113);
@@ -102,7 +105,13 @@ describe('knee walls raise the roof', () => {
 
   it('frames the loft floor with rim joists under the knee walls and joists between', () => {
     const rims = ofRole(members, 'rim.loft');
-    expect(rims.map((rim) => [rim.length, rim.origin[0], rim.origin[2]])).toEqual([[113, 3.5, 97.125], [113, 3.5, 97.125]]);
+    // An end rim on each end wall, between eave rims that run to the corners (platform ends).
+    expect(rims.map((rim) => [rim.length, rim.origin[0], rim.origin[2]])).toEqual([
+      [93, 0, 97.125],
+      [93, 118.5, 97.125],
+      [120, 0, 97.125],
+      [120, 0, 97.125],
+    ]);
     const joists = ofRole(members, 'joist.loft');
     // The rafters are far above, so no joist moves.
     expect(xs(joists)).toEqual([3.5, 15.25, 31.25, 47.25, 63.25, 79.25, 95.25, 111.25, 115]);
@@ -122,31 +131,31 @@ describe('knee walls raise the roof', () => {
       [[0, 3.5], [0, 5], [136.34375, 137.84375]],
       [[0, 3.5], [91, 96], [136.34375, 137.84375]],
     ]);
-    // Two studs under each, at the outside face and the knee wall's inside face, from the end-wall
-    // plate at 97-1/8.
+    // Two studs under each, at the outside face and the knee wall's inside face, from the gable's
+    // bottom plate on the deck, whose top is at 104-27/32.
     const cornerStuds = ofRole(left, 'stud.gable').filter(({ note }) => note === 'Square cut. Under the corner plate.');
     expect(cornerStuds.map((stud) => [box(stud)[1][0], stud.length])).toEqual([
-      [0, 39.21875],
-      [3.5, 39.21875],
-      [94.5, 39.21875],
-      [91, 39.21875],
+      [0, 31.5],
+      [3.5, 31.5],
+      [94.5, 31.5],
+      [91, 31.5],
     ]);
     // The sloped top plate starts at the knee wall's inside face, against the lap.
     const [sloped] = ofRole(left, 'plate.gable').filter(({ note }) => note?.startsWith('Plumb cut against'));
     expect(sloped.note).toBe("Plumb cut against the knee wall's cap plate, level cut on the corner plate. Plumb cut 26.6° at the ridge post.");
     expect(box(sloped)[1][0]).toBeCloseTo(3.5, 9);
-    // Layout 16 and 80: rafter underside 145.969, less 1.677, less the end-wall plate at 97-1/8.
+    // Layout 16 and 80: rafter underside 145.969, less 1.677, less the gable plate top at 104-27/32.
     const layout = ofRole(left, 'stud.gable').filter(({ note }) => note?.startsWith('Top cut'));
-    expect(Math.min(...layout.map((stud) => stud.length))).toBeCloseTo(47.1667, 3);
+    expect(Math.min(...layout.map((stud) => stud.length))).toBeCloseTo(39.448, 3);
   });
 
   it('runs the gable panel bottom plate to the corners, under the corner studs', () => {
     const left = roofOf({ loft, kneeWalls: { enabled: true, height: 36 }, gablePanel: true }).members.filter((member) => member.assembly === 'gable.left');
     const [plate] = ofRole(left, 'plate.bottom');
     expect(plate.length).toBe(96);
-    // Corner studs stand on it: 39-7/32 less 1-1/2.
+    // A platform end has its bottom plate on the deck already: the panel adds no second one.
     const cornerStuds = ofRole(left, 'stud.gable').filter(({ note }) => note === 'Square cut. Under the corner plate.');
-    expect(cornerStuds.map(({ length }) => length)).toEqual(new Array(4).fill(37.71875));
+    expect(cornerStuds.map(({ length }) => length)).toEqual(new Array(4).fill(31.5));
   });
 
   it('shows gable ends, knee walls, and rake ladders on their own 3D layers', () => {
@@ -189,18 +198,18 @@ describe('loft joists hung from ledgers', () => {
     expect(ofRole(members, 'rim.loft')).toHaveLength(0);
   });
 
-  it('stands knee walls on the wall top, so the roof bears 36 in above it', () => {
+  it('stands knee walls on the deck over the wall top, so the roof bears 36 in above it', () => {
     const { members } = roofOf({ loft: hung, kneeWalls: { enabled: true, height: 36 } });
     const front = members.filter((member) => member.assembly === 'knee.front');
-    expect(ofRole(front, 'plate.bottom')[0].origin[2]).toBe(97.125);
-    // Bearing 133-1/8; ridge bottom 133.125 + 21-7/8 + 6.149 - 7-1/4.
-    expect(ofRole(members, 'ridge')[0].origin[2]).toBeCloseTo(153.899, 3);
+    expect(ofRole(front, 'plate.bottom')[0].origin[2]).toBe(97.84375);
+    // Bearing 97-27/32 + 36 = 133-27/32; ridge bottom 133.844 + 21-7/8 + 6.149 - 7-1/4.
+    expect(ofRole(members, 'ridge')[0].origin[2]).toBeCloseTo(154.618, 3);
   });
 });
 
-describe('platform gable ends', () => {
+describe('platform loft ends', () => {
   // Joists on the plates: 97-1/8 + 5-1/2 + 23/32 deck = 103-11/32, the gable plate on it to 104-27/32.
-  const platform = { enabled: true, joist: '2x6', oc: 16, gableEnds: 'platform' };
+  const platform = { enabled: true, joist: '2x6', oc: 16 };
   const deckTop = 97.125 + 5.5 + 0.71875;
   const zRange = (members: Member[]) => {
     const zs = members.flatMap((member) => corners(member).map((point) => point[2]));
@@ -236,7 +245,7 @@ describe('platform gable ends', () => {
     expect(range(ends, 1)[0]).toBe(1.5);
   });
 
-  it('keeps an open end balloon framed, from the end wall', () => {
+  it('keeps an open end inside the walls, the gable on the end wall', () => {
     const { members } = roofOf({ loft: { ...platform, open: { end: 'left', length: 48 } } });
     expect(xs(ofRole(members, 'rim.loft'))).toEqual([118.5]);
     expect(ofRole(gableOf(members, 'left'), 'plate.bottom')).toEqual([]);
@@ -253,9 +262,19 @@ describe('platform gable ends', () => {
     expect(plate[0].note).toBe("Bottom plate of the gable, on the loft deck. Nail it through the deck into the end wall's top plate.");
   });
 
+  it('runs the deck over the eave walls under hung joists and knee walls, and stands the knee walls on it', () => {
+    const knees = (members: Member[]) => members.filter((member) => member.assembly === 'knee.front');
+    // The deck runs over the cap plates to the outside faces, 23/32 above the wall top. Without knee
+    // walls it stops at the walls' inside faces, where the rafters bear on the cap plates.
+    const over = roofOf({ loft: { ...platform, support: 'hung' }, kneeWalls: { enabled: true, height: 36 } });
+    expect([over.deck!.min[1], over.deck!.max[1]]).toEqual([0, 96]);
+    expect(zRange(knees(over.members))[0]).toBe(97.125 + 0.71875);
+    const open = roofOf({ loft: { ...platform, support: 'hung' } });
+    expect([open.deck!.min[1], open.deck!.max[1]]).toEqual([3.5, 92.5]);
+  });
+
   it('leaves out a gable opening that starts below the plate on the deck', () => {
     const vent = { openingTypes: [{ name: 'vent', kind: 'custom', width: 12, height: 6 }], openings: [{ type: 'vent', wall: 'left', sill: 100, along: 'percent', at: [50] }] };
-    expect(roofOf({ loft: { ...platform, gableEnds: 'balloon' } }, vent).warnings).toEqual([]);
     expect(roofOf({ loft: platform }, vent).warnings.map(({ message }) => message)).toEqual([
       `The opening starts below the top of the plate the gable stands on, at 104-7/8". ${LEFT_OUT}`,
     ]);

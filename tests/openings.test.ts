@@ -203,7 +203,7 @@ describe('opening rules', () => {
 
 describe('gable openings', () => {
   // 10 ft wide gable, 2x4 rafters at 6/12 on 8 ft walls (top 97-1/8): a 12 x 12 vent centered, sill 102,
-  // flat header.
+  // flat header. No eave overhang, so the notched 2x4 rafters have no tail (IRC R802.7.1.1).
   const SLOPE = Math.hypot(1, 0.5);
   const vent = { name: 'vent', kind: 'window', width: 12, height: 12, girder: 'flat' };
   const config = (row: object) =>
@@ -213,7 +213,7 @@ describe('gable openings', () => {
       length: 144,
       openingTypes: [vent],
       openings: [{ type: 'vent', wall: 'right', sill: 102, at: [50], ...row }],
-      roof: { rafter: '2x4', ridge: '2x6' },
+      roof: { rafter: '2x4', ridge: '2x6', eaveOverhang: 0 },
     });
   const model = buildModel(config({}));
   const gable = model.members.filter((member) => member.assembly === 'gable.right');

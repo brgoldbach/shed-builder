@@ -63,18 +63,21 @@ AB-4      1  2x8             192"  Ledger. Lag-bolt through the sheathing into e
 AB-5      2  2x8             192"  Beam ply
 AB-6      3  4x4 PT      91-7/16"  Post. Stands on the deck beam.
 AB-7     10  6x6 PT           18"  Post. Under the deck girder.
-AB-8      1  2x6 PT          192"  Deck ledger. Lag-bolt into the floor framing, two at each joist.
+AB-8      1  2x8 PT          192"  Deck ledger. Lag-bolt into the floor framing, two at each joist.
 AB-9     13  2x6 PT       66-1/2"  Deck joist. Joist hangers at both ends; bears on the girders between.
 AB-10     3  2x6 PT          192"  Deck beam ply. On the outer girder; the posts stand on it.
 AB-11    11  5/4x6 PT        192"  Deck board
 AB-12     2  5/4x6 PT        192"  Deck board. Notch around the posts.
 RP-1     23  2x6 PT           50"  Deck board
 RP-2      4  2x6 PT    131-11/16"  Ramp stringer. Plumb cut 18.4° at the floor framing, lagged to it. Level cut on grade.
+WARNING Walls: Front wall: its 161-11/16" 2x6 studs are taller than the 10 ft that IRC Table R602.3(5) allows in a bearing wall. Have the wall engineered, or meet an exception of IRC R602.3.1.
+WARNING Back lean-to: The deck surface is 41-3/4" above grade. A deck more than 30" above grade needs a guard (IRC R312.1.1). The app does not build it.
+WARNING Ramp 1: A total rise of 43-1/4" needs a guard on each open side more than 30" above the ground below (IRC R312.1.1). The app does not build it.
 SOLID Pier, 12" diameter x25
 SOLID Roof sheathing, 7/16" OSB x5
 SOLID Subfloor, 23/32" T&G (3/4") x7
 SOLID Wall sheathing, 7/16" OSB x34
-STOCK 2x8 PT 16' 0" x2
+STOCK 2x8 PT 16' 0" x3
 STOCK 2x8 PT 12' 0" x13
 STOCK 2x10 PT 16' 0" x5
 STOCK 6x6 PT 8' 0" x5
@@ -88,7 +91,7 @@ STOCK 2x8 14' 0" x1
 STOCK 2x4 16' 0" x9
 STOCK 2x4 7' 8-5/8" x3
 STOCK 4x4 PT 8' 0" x3
-STOCK 2x6 PT 16' 0" x14
+STOCK 2x6 PT 16' 0" x13
 STOCK 2x6 PT 14' 0" x4
 STOCK 2x6 PT 8' 8-5/8" x1
 STOCK 5/4x6 PT 16' 0" x13
@@ -108,12 +111,12 @@ ITEM Ramp lag screw, 1/2": 8 ea
 ITEM Roof area, shingles: 115 sq ft
 ITEM Roof area, metal panels: 274.1 sq ft
 ITEM Drip edge: 96.7 ft
-COST lumber $2,201.77
+COST lumber $2,208.97
 COST sheets $766.00
 COST concrete $840.55
 COST hardware $656.25
 COST roofing $797.23
-COST total $5,261.79
+COST total $5,268.99
 SPAN Rafters: 2x8 at 16" o.c. 133" of 218-3/16" (bending)
 SPAN Floor joists: 2x8 at 16" o.c. 64-1/2" of 147-3/8" (deflection)
 SPAN window 36x48 header (front wall): 2-ply 2x8 36" of 106-7/16" (bending)
@@ -126,3 +129,4 @@ SPAN Back lean-to deck joists: 2x6 at 16" o.c. 33-5/8" of 111-13/16" (deflection
 SPAN Front girder: 1-ply 2x10 45" of 57" (shear)
 SPAN Inner girder: 1-ply 2x10 45" of 84-3/4" (bending)
 SPAN Back girder: 1-ply 2x10 45" of 61-1/2" (shear)
+SPAN Ramp 1 stringers: 2x6 at 16" o.c. 107-1/2" of 111-13/16" (deflection)
