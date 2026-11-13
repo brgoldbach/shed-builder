@@ -19,6 +19,13 @@ type LeaveOut = (source: string, assembly: Assembly, message: string, outline: V
 type Rect = { min: Point; max: Point };
 
 /** The loft deck in plan: `min` to `max` less the holes, laid on the joists at `bottom`. */
+/** The loft deck's top at each gable end framed as a platform on it, else null. */
+export interface DeckEnds {
+  left: number | null;
+  right: number | null;
+}
+const NO_DECK_ENDS: DeckEnds = { left: null, right: null };
+
 export interface Deck {
   bottom: number;
   min: Point;
@@ -59,7 +66,7 @@ export function frameAttic(
   wallTop: number,
   kneeBase: number | null,
   gussets: Gussets | null,
-): { members: Member[]; warnings: Warning[]; deck: Deck | null } {
+): { members: Member[]; warnings: Warning[]; deck: Deck | null; ends: DeckEnds } {
   const { width, roof } = config;
   const [slope] = profile.slopes; // at the eave
   const members: Member[] = [];
@@ -140,13 +147,15 @@ export function frameAttic(
   }
 
   let deck: Deck | null = null;
+  let ends: DeckEnds = NO_DECK_ENDS;
   if (roof.loft.enabled) {
     const loft = frameLoft(config, profile, rafters, wallDepth, wallTop, kneeBase !== null, level, warn, leaveOut);
     members.push(...loft.members);
     deck = loft.deck;
+    ends = loft.ends;
   }
   if (kneeBase !== null) members.push(...frameKneeWalls(config, kneeBase));
-  return { members, warnings, deck };
+  return { members, warnings, deck, ends };
 }
 
 /** Loft floor joists, open end, and hatches, with the ledgers or rim joists along the eaves, and the deck. */
@@ -160,7 +169,7 @@ function frameLoft(
   level: Level,
   warn: Warn,
   leaveOut: LeaveOut,
-): { members: Member[]; deck: Deck | null } {
+): { members: Member[]; deck: Deck | null; ends: DeckEnds } {
   const { width, length, roof, catalog } = config;
   const { loft } = roof;
   const ids = idMaker('LF');
@@ -197,8 +206,11 @@ function frameLoft(
   const inner: Span = [leftEdge === null ? wallDepth + PLY : leftEdge + 2 * PLY, rightEdge ?? length - wallDepth - PLY];
   if (inner[1] - inner[0] < PLY) {
     warn('Loft', 'The open end leaves no loft floor.');
-    return { members, deck: null };
+    return { members, deck: null, ends: NO_DECK_ENDS };
   }
+  // Platform framing at a closed end: the floor bears on the end wall, and the gable stands on its deck.
+  const platform = loft.gableEnds === 'platform';
+  const [leftPlatform, rightPlatform] = [platform && leftEdge === null, platform && rightEdge === null];
   const fixed: Span[] = [];
   const place = (code: string, role: Role, x: number) => {
     fixed.push([x, x + PLY]);
@@ -208,6 +220,23 @@ function frameLoft(
   else [leftEdge, leftEdge + PLY].forEach((x) => place('E', 'edge.loft', x));
   if (rightEdge === null) place('J', 'joist.loft', length - wallDepth - PLY);
   else [rightEdge, rightEdge + PLY].forEach((x) => place('E', 'edge.loft', x));
+
+  // A platform end's rim, on the end wall's top plate, flush with its outside face. It lies under
+  // the gable-end rafter, so it stops at the rafter's underside. Hung joists need none: their tops
+  // are flush with the end wall's top plate, which carries the deck.
+  const endRim = (x: number) => {
+    const [from, to] = extent;
+    const box: Point[] = [[from, bottom], [to, bottom], [to, bottom + joistDepth], [from, bottom + joistDepth]];
+    const outline = profile.slopes.reduce(
+      (kept, slope) => clipBelow(clipBelow(kept, [-slope.pitch.rise, 1], slope.bottom(0)), [slope.pitch.rise, 1], slope.bottom(width)),
+      box,
+    );
+    const cut = outline.length === box.length && outline.every(([y, z], index) => y === box[index][0] && z === box[index][1]) ? '' : ` Ends cut ${degrees(profile.slopes[0].pitch)} under the gable-end rafters.`;
+    const note = `End rim, on the end wall's top plate, flush with its outside face.${cut}`;
+    members.push(planeMember({ id: ids('ER'), assembly: 'loft', role: 'rim.loft', size: loft.joist, note }, { origin: [x, 0, 0], h: [0, 1, 0] }, outline, [1, 0]));
+  };
+  if (!hung && leftPlatform) endRim(0);
+  if (!hung && rightPlatform) endRim(length - PLY);
 
   // Hatches: doubled trimmers outside each x edge, doubled headers across each y end, in hangers.
   const hatches: { left: number; right: number; front: number; back: number }[] = [];
@@ -283,7 +312,7 @@ function frameLoft(
   const edge: { code: string; role: Role; y: number; span: Span } | null = hung
     ? { code: 'L', role: 'ledger.loft', y: wallDepth, span: floor }
     : raised
-      ? { code: 'R', role: 'rim.loft', y: 0, span: [wallDepth, length - wallDepth] }
+      ? { code: 'R', role: 'rim.loft', y: 0, span: [leftPlatform ? 0 : wallDepth, rightPlatform ? length : length - wallDepth] }
       : null;
   if (edge) {
     const maxStock = Math.max(...stockFor(catalog, loft.joist));
@@ -302,45 +331,21 @@ function frameLoft(
       }
     }
   }
-  // Across an open end no joists carry the knee walls' inside edge: more rim plies, face-nailed
-  // inside the rim, fill the knee wall's depth to within 1-1/2 in.
-  if (raised && !hung) {
-    const plies = Math.floor(LUMBER[roof.kneeWalls.stud].width / PLY);
-    const open: Span[] = [];
-    if (leftEdge !== null) open.push([wallDepth, leftEdge]);
-    if (rightEdge !== null) open.push([rightEdge + 2 * PLY, length - wallDepth]);
-    for (const [from, to] of open) {
-      for (let ply = 1; ply < plies; ply++) {
-        for (const [y, inward] of [[ply * PLY, 1], [width - ply * PLY, -1]] as const) {
-          members.push({
-            id: ids('R'),
-            assembly: 'loft',
-            role: 'rim.loft',
-            size: loft.joist,
-            treated: false,
-            length: to - from,
-            origin: [from, y, bottom],
-            axes: { length: X, width: UP, thick: [0, inward, 0] },
-            note: 'Under the knee wall across the open end. Face-nail to the rim.',
-          });
-        }
-      }
-    }
-  }
 
   // The deck runs over the rims to the outside faces under knee walls, to the walls' inside faces
   // over ledgers, and otherwise stops where the rafter undersides meet its top. An open end keeps
-  // a strip under each knee wall.
+  // a strip under each knee wall. At a platform end it runs out to the end wall's outside face.
   const deckBottom = bottom + joistDepth;
   const strips = raised && !hung;
   const kneeDepth = strips ? LUMBER[roof.kneeWalls.stud].width : 0;
   const reach = hung ? wallDepth : raised ? 0 : Math.max(0, profile.reachBottom(deckBottom + SHEETS[loft.deck].thick));
-  const [from, to] = strips ? [wallDepth, length - wallDepth] : floor;
+  const [from, to] = [leftPlatform ? 0 : strips ? wallDepth : floor[0], rightPlatform ? length : strips ? length - wallDepth : floor[1]];
   const holes: Rect[] = hatches.map(({ left, right, front, back }) => ({ min: [left + 2 * PLY, front + 2 * PLY], max: [right, back - 2 * PLY] }));
   if (strips && leftEdge !== null) holes.push({ min: [from, kneeDepth], max: [leftEdge, width - kneeDepth] });
   if (strips && rightEdge !== null) holes.push({ min: [rightEdge + 2 * PLY, kneeDepth], max: [to, width - kneeDepth] });
   const deck: Deck | null = reach < width / 2 - NEAR ? { bottom: deckBottom, min: [from, reach], max: [to, width - reach], holes } : null;
-  return { members, deck };
+  const deckTop = deckBottom + SHEETS[loft.deck].thick;
+  return { members, deck, ends: { left: leftPlatform && deck ? deckTop : null, right: rightPlatform && deck ? deckTop : null } };
 }
 
 /**

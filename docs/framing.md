@@ -576,6 +576,17 @@ The gable framing stands on the end wall's top plate. With `roof.gablePanel`, ea
 panel on its own bottom plate, nailed down to the end wall's top plate. Every gable stud is then
 1-1/2 in shorter.
 
+With `loft.gableEnds: 'platform'`, a closed loft end is platform framed: the gable framing stands
+on a bottom plate on the loft deck (`GableFloor`, from `frameAttic`'s `ends`). Every gable stud,
+king, jack, cripple, corner stud, and the top plate's level cut start from that plate, and
+`gablePanel` adds no second one. An open end, and every end with balloon framing (the default),
+stand on the end wall as above.
+
+Decision: platform framing is an option, and balloon the default. A platform-framed gable wall has
+a hinge at the floor line. At a closed end the loft deck is the diaphragm that braces it; at an
+open end nothing does, so the studs run on down to the end wall. Balloon framing stays steadier in
+high wind (HUD *Residential Structural Design Guide*, ch. 5).
+
 ### 8.1 Gable top plate
 
 The gable top plate (`plate.gable`) lies under each end rafter, with its top against the rafter's
@@ -619,6 +630,7 @@ A gable opening is a row on an end wall with its sill at or above the end-wall t
 | Gap under 3 in above the header | Tight header: the RO grows (6.3) | No cripple. The RO stays. No warning. |
 | Rough sill | When `sill > 0` | When `sill` is above the plate top |
 | Rough sill too low | Below the bottom plate's top: left out | Below the plate top: left out |
+| Opening below the plate | — | `sill` below the plate top, as on a deck that rose past it: left out |
 | Cripples | Above the header: 3 in or more. Below the sill: any length. | 3 in or more, above and below |
 | Thick header | Built, with a warning | Built, with a warning |
 | Flat header on a bearing wall | Warning on front and back | No check |
@@ -683,8 +695,13 @@ Decision: joists on the plates with no knee walls lap the rafters, as rafter tie
 rafters' bearing level, so a joist on a rafter's position collides with it. `clear` moves such a
 joist, or a pair, beside the rafter. Hung joists and joists under knee walls do not move.
 
-Loft joists lay out on `loft.oc` from x = 0. A closed end has one joist inside the gable studs. An
-open end (`loft.open`) has a doubled edge joist, and no joists across the open part. When the open
+Loft joists lay out on `loft.oc` from x = 0. A closed end has one joist inside the end wall. At a
+platform end (8), joists on the plates also get an end rim: one ply of the joist size on the end
+wall's top plate, flush with its outside face. It lies under the gable-end rafter, so its ends are
+cut to the rafter's underside, not the roof's top line. A single ply is enough: it bears on the
+plate along its whole length and does not span (IRC R502.7 accepts a band or rim joist). Hung
+joists need no end rim: their tops are flush with the end wall's top plate, which carries the deck.
+An open end (`loft.open`) has a doubled edge joist, and no joists across the open part. When the open
 end leaves no loft floor, `frameLoft` warns. It then builds no loft members and no deck. The rafter
 ties stay off, because the loft is on.
 
@@ -707,11 +724,12 @@ A left-out hatch has its outline at the joist tops.
 ### 9.6 Ledgers and rims
 
 Hung joists hang from a ledger on each eave wall's inside face, under the loft floor only. Knee walls
-on the plates stand on a rim on each eave wall's top, between the end walls. Ledgers and rims splice
-on the loft members that run front to back.
+on the plates stand on a rim on each eave wall's top, between the end walls. At a platform end, the
+rim runs to the end wall's outside face, and the end rim fits between the two rims, like a joist.
+Ledgers and rims splice on the loft members that run front to back.
 
-Decision: across an open end, no joists carry the knee wall's inside edge. More rim plies fill the
-knee wall's depth to within 1-1/2 in.
+Decision: across an open end, no joists carry the knee wall's inside edge. The knee wall and its
+deck strip overhang the single rim by the rest of the knee wall's depth. No extra rim plies.
 
 ### 9.7 Knee walls
 
@@ -724,7 +742,9 @@ building corners and laps over the gable-end corner plates (8.2).
 ### 9.8 Loft deck
 
 `frameLoft` returns the loft deck for `frameSheathing`. The deck runs over the rims to the outside
-faces under knee walls, and to the walls' inside faces over ledgers. Else it stops where the rafter
+faces under knee walls, and to the walls' inside faces over ledgers. At a platform end it runs out
+to the end wall's outside face. `frameLoft` also returns the deck top at each platform end, which
+`frameRoof` passes to `frameGableEnds`. Else it stops where the rafter
 undersides meet its top. Each hatch is a hole. An open end is a hole, less a strip under each knee
 wall.
 

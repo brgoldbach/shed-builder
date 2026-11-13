@@ -164,20 +164,6 @@ describe('knee walls raise the roof', () => {
     expect(rafters.every(({ note }) => note?.includes('Birdsmouth: heel line'))).toBe(true);
   });
 
-  it('adds rim plies under the knee walls across an open end', () => {
-    const plies = (stud: string) =>
-      ofRole(roofOf({ loft: { ...loft, open: { end: 'left', length: 24 } }, kneeWalls: { enabled: true, height: 36, stud } }).members, 'rim.loft').filter(
-        ({ note }) => note === 'Under the knee wall across the open end. Face-nail to the rim.',
-      );
-    // From the gable wall's inside face to the doubled edge joist at 24: 20-1/2 in, inside each rim.
-    expect(plies('2x4').map(({ length, origin }) => [length, origin[0], origin[1]])).toEqual([
-      [20.5, 3.5, 1.5],
-      [20.5, 3.5, 94.5],
-    ]);
-    // A 2x6 knee wall takes two more plies a side: 4-1/2 of its 5-1/2 in.
-    expect(plies('2x6')).toHaveLength(4);
-  });
-
   it('keeps collar ties at the same place relative to the raised rafters', () => {
     expect(ofRole(members, 'tie.collar')[0].length).toBeCloseTo(44.5, 9);
     expect(ofRole(members, 'tie.rafter')).toHaveLength(0);
@@ -209,6 +195,70 @@ describe('loft joists hung from ledgers', () => {
     expect(ofRole(front, 'plate.bottom')[0].origin[2]).toBe(97.125);
     // Bearing 133-1/8; ridge bottom 133.125 + 21-7/8 + 6.149 - 7-1/4.
     expect(ofRole(members, 'ridge')[0].origin[2]).toBeCloseTo(153.899, 3);
+  });
+});
+
+describe('platform gable ends', () => {
+  // Joists on the plates: 97-1/8 + 5-1/2 + 23/32 deck = 103-11/32, the gable plate on it to 104-27/32.
+  const platform = { enabled: true, joist: '2x6', oc: 16, gableEnds: 'platform' };
+  const deckTop = 97.125 + 5.5 + 0.71875;
+  const zRange = (members: Member[]) => {
+    const zs = members.flatMap((member) => corners(member).map((point) => point[2]));
+    return [Math.min(...zs), Math.max(...zs)];
+  };
+  const gableOf = (members: Member[], end: 'left' | 'right') => members.filter((member) => member.assembly === `gable.${end}`);
+
+  it('sets an end rim on each end wall, and the gable framing on a plate on the deck', () => {
+    const { members, deck } = roofOf({ loft: platform });
+    const rims = ofRole(members, 'rim.loft');
+    expect(xs(rims)).toEqual([0, 118.5]);
+    expect(zRange(rims)).toEqual([97.125, 102.625]);
+    // The rim lies under the gable-end rafter, so it stops at the rafter's underside.
+    expect(rims[0].note).toBe("End rim, on the end wall's top plate, flush with its outside face. Ends cut 26.6° under the gable-end rafters.");
+    for (const end of ['left', 'right'] as const) {
+      const plate = ofRole(gableOf(members, end), 'plate.bottom');
+      expect(zRange(plate)).toEqual([deckTop, deckTop + 1.5]);
+      expect(plate[0].note).toBe('Bottom plate of the gable, on the loft deck. Nail it through the deck into the end rim.');
+      expect(zRange(ofRole(gableOf(members, end), 'stud.gable'))[0]).toBeCloseTo(deckTop + 1.5, 9);
+    }
+    // The deck runs out to the end walls' outside faces.
+    expect([deck!.min[0], deck!.max[0]]).toEqual([0, 120]);
+  });
+
+  it('runs the eave rims under knee walls through the corners, outside the end rims', () => {
+    const rims = ofRole(roofOf({ loft: platform, kneeWalls: { enabled: true, height: 36 } }).members, 'rim.loft');
+    const range = (members: Member[], axis: number) => {
+      const values = members.flatMap((member) => corners(member).map((point) => point[axis]));
+      return [Math.min(...values), Math.max(...values)];
+    };
+    const [ends, eaves] = [rims.filter(({ note }) => note), rims.filter(({ note }) => !note)];
+    expect(range(eaves, 0)).toEqual([0, 120]);
+    expect(range(ends, 1)[0]).toBe(1.5);
+  });
+
+  it('keeps an open end balloon framed, from the end wall', () => {
+    const { members } = roofOf({ loft: { ...platform, open: { end: 'left', length: 48 } } });
+    expect(xs(ofRole(members, 'rim.loft'))).toEqual([118.5]);
+    expect(ofRole(gableOf(members, 'left'), 'plate.bottom')).toEqual([]);
+    expect(zRange(ofRole(gableOf(members, 'left'), 'stud.gable'))[0]).toBe(97.125);
+    expect(zRange(ofRole(gableOf(members, 'right'), 'stud.gable'))[0]).toBeCloseTo(deckTop + 1.5, 9);
+  });
+
+  it('stands the gable on the deck over the end wall plate under hung joists, with no end rim', () => {
+    const { members } = roofOf({ loft: { ...platform, support: 'hung' } });
+    expect(ofRole(members, 'rim.loft')).toEqual([]);
+    // Hung joist tops are flush with the wall top: the deck is 23/32 above it.
+    const plate = ofRole(gableOf(members, 'left'), 'plate.bottom');
+    expect(zRange(plate)).toEqual([97.84375, 99.34375]);
+    expect(plate[0].note).toBe("Bottom plate of the gable, on the loft deck. Nail it through the deck into the end wall's top plate.");
+  });
+
+  it('leaves out a gable opening that starts below the plate on the deck', () => {
+    const vent = { openingTypes: [{ name: 'vent', kind: 'custom', width: 12, height: 6 }], openings: [{ type: 'vent', wall: 'left', sill: 100, along: 'percent', at: [50] }] };
+    expect(roofOf({ loft: { ...platform, gableEnds: 'balloon' } }, vent).warnings).toEqual([]);
+    expect(roofOf({ loft: platform }, vent).warnings.map(({ message }) => message)).toEqual([
+      `The opening starts below the top of the plate the gable stands on, at 104-7/8". ${LEFT_OUT}`,
+    ]);
   });
 });
 

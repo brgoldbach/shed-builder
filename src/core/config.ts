@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { version } from '../../package.json';
-import { DECK_BOARDS, DEFAULT_PRICES, FRAMING_SIZES, LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
+import { DECK_BOARDS, DEFAULT_PRICES, FRAMING_SIZES, LOFT_JOISTS, LUMBER_SIZES, PRECUT_STUDS, SHEET_KEYS, SPECIES_KEYS, TWO_BY } from './catalog';
 import { formatLength } from './units';
 
 // All lengths are inches.
@@ -24,6 +24,9 @@ export const HEADER_STYLES = ['single', 'double', 'triple', 'flat'] as const;
 export const ALONG = ['percent', 'left', 'right'] as const;
 export const ROOF_STYLES = ['gable', 'gambrel', 'lean-to'] as const;
 export const LOFT_SUPPORTS = ['plates', 'hung'] as const;
+// balloon: the gable studs stand on the end wall and run past the loft floor. platform: at a closed
+// end, the loft floor bears on the end wall and the gable framing stands on its deck.
+export const LOFT_GABLE_ENDS = ['balloon', 'platform'] as const;
 export const LOFT_OPEN_ENDS = ['none', 'left', 'right'] as const;
 export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
 // plumb-level: plumb only as deep as the fascia hangs, then level back to the rafter's bottom edge.
@@ -204,11 +207,12 @@ const roof = z.strictObject({
   loft: z
     .strictObject({
       enabled: z.boolean().default(false),
-      joist: twoBy.default('2x6'),
+      joist: z.enum(LOFT_JOISTS).default('2x6'),
       oc: spacing.default(16),
       deck: z.enum(SHEET_KEYS).default('tg-23/32'),
       // plates: on the eave-wall plates. hung: in hangers between ledgers, tops flush with the walls.
       support: z.enum(LOFT_SUPPORTS).default('plates'),
+      gableEnds: z.enum(LOFT_GABLE_ENDS).default('balloon'),
       // No loft floor for `length` from one gable end.
       open: z
         .strictObject({

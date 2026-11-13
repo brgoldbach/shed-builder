@@ -3,6 +3,23 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Loft gable ends:** a loft setting picks balloon framing, as before and the default, or platform
+  framing. With platform framing, each closed loft end bears on its end wall, with an end rim on
+  joists on the plates. The deck runs to the end wall's outside face, and the gable framing stands
+  on a bottom plate on the deck. An open loft end stays balloon framed. A gable opening that starts
+  below the plate it would stand on is left out in red.
+- **2x14 loft joists:** the loft joists take 2x14, for I-joists of that depth. The app does not
+  check their span: check it against the maker's span table. The default price is an estimate.
+
+### Removed
+
+- **Knee wall rim plies:** across an open loft end, the knee wall no longer gets extra rim plies.
+  It overhangs the single rim by the rest of its depth.
+
 ## [1.0.0] - 2026-11-12
 
 ### Added

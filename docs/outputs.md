@@ -661,7 +661,7 @@ species, the roof load, the roof dead load, and the loft use.
 | Loads | Wind, seismic, and uplift; point loads; drift and unbalanced snow; the thrust at a gambrel's break; lean-to loads on main-wall headers and girders; deck loads on the shed floor framing. The checks use uniform gravity loads on simple spans only. |
 | Strength | Shear in joists and rafters, as in the AWC tables; bearing length; notches; lateral stability |
 | Factors | Wet service, temperature, incising, flat use, and beam stability factors. PT members outdoors use dry-service values. |
-| Other | Wall bracing; connections (the BOM counts hardware, it does not size it); grades other than No. 2; `1x4` and `6x6` (no design values); local code requirements |
+| Other | Wall bracing; connections (the BOM counts hardware, it does not size it); grades other than No. 2; `1x4`, `6x6`, and `2x14` (no design values; 2x14 loft joists stand for I-joists, which have their maker's span tables); local code requirements |
 
 ### 8.11 Edge cases
 

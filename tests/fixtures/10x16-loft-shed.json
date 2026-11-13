@@ -28,6 +28,7 @@
     "loft": {
       "enabled": true,
       "support": "hung",
+      "gableEnds": "platform",
       "open": { "end": "right", "length": 48 },
       "hatches": [
         { "x": 24, "y": 36, "width": 24, "depth": 30 },

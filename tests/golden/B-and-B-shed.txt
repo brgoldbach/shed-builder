@@ -55,21 +55,22 @@ GF-12     2  2x4        58-15/16"  Gable stud. Top cut 26.6°.
 GF-13     2  2x4        50-15/16"  Gable stud. Top cut 26.6°.
 GF-14     4  2x4              43"  Gable stud. Square cut. Under the corner plate.
 GF-15     1  2x4          20-1/8"  Ridge post. Square cut.
-GB-1      2  2x4        83-13/16"  King stud. Top cut 26.6°.
-GB-2      2  2x4          69-3/8"  Jack stud. Square cut.
-GB-3      1  2x4              27"  Header
-GB-4      1  2x4              27"  Header plate
-GB-5      1  2x4              24"  Rough sill
-GB-6      1  2x4          43-7/8"  Cripple. Square cut.
-GB-7      2  2x4         103-1/4"  Gable top plate. Plumb cut against the knee wall's cap plate, level cut on the corner plate. Plumb cut 26.6° at the ridge post.
-GB-8      2  2x4               5"  Gable top plate. Level, under the knee wall's cap plate, which laps over it.
-GB-9      2  2x4        82-15/16"  Gable stud. Top cut 26.6°.
-GB-10     2  2x4        74-15/16"  Gable stud. Top cut 26.6°.
-GB-11     2  2x4        66-15/16"  Gable stud. Top cut 26.6°.
-GB-12     2  2x4        58-15/16"  Gable stud. Top cut 26.6°.
-GB-13     2  2x4        50-15/16"  Gable stud. Top cut 26.6°.
-GB-14     4  2x4              43"  Gable stud. Square cut. Under the corner plate.
-GB-15     1  2x4          20-1/8"  Ridge post. Square cut.
+GB-1      1  2x4             192"  Bottom plate. Bottom plate of the gable, on the loft deck. Nail it through the deck into the end rim.
+GB-2      2  2x4         72-5/16"  King stud. Top cut 26.6°.
+GB-3      2  2x4        57-15/16"  Jack stud. Square cut.
+GB-4      1  2x4              27"  Header
+GB-5      1  2x4              27"  Header plate
+GB-6      1  2x4              24"  Rough sill
+GB-7      1  2x4         32-7/16"  Cripple. Square cut.
+GB-8      2  2x4         103-1/4"  Gable top plate. Plumb cut against the knee wall's cap plate, level cut on the corner plate. Plumb cut 26.6° at the ridge post.
+GB-9      2  2x4               5"  Gable top plate. Level, under the knee wall's cap plate, which laps over it.
+GB-10     2  2x4         71-7/16"  Gable stud. Top cut 26.6°.
+GB-11     2  2x4         63-7/16"  Gable stud. Top cut 26.6°.
+GB-12     2  2x4         55-7/16"  Gable stud. Top cut 26.6°.
+GB-13     2  2x4         47-7/16"  Gable stud. Top cut 26.6°.
+GB-14     2  2x4         39-7/16"  Gable stud. Top cut 26.6°.
+GB-15     4  2x4          31-1/2"  Gable stud. Square cut. Under the corner plate.
+GB-16     1  2x4          20-1/8"  Ridge post. Square cut.
 RF-1      1  2x6             176"  Ridge board
 RF-2      1  2x6              32"  Ridge board
 RF-3     18  2x6       122-11/16"  Rafter. Plumb cut 26.6° at the ridge. Birdsmouth: heel line 106-1/2" from the ridge long point on the top edge; seat 3-1/2", heel 1-3/4". Tail 13-7/16" past the heel line on the top edge, plumb cut.
@@ -80,8 +81,8 @@ RF-7      2  2x6             176"  Fascia
 RF-8      2  2x6              32"  Fascia
 RF-9      7  2x4          70-7/8"  Collar tie. Ends cut 26.6° to the roof line.
 LF-1      9  2x10            189"  Loft joist. Square ends.
-LF-2      2  2x10            185"  Loft rim joist
-LF-3      2  2x10         44-1/2"  Loft rim joist. Under the knee wall across the open end. Face-nail to the rim.
+LF-2      1  2x10            189"  Loft rim joist. End rim, on the end wall's top plate, flush with its outside face.
+LF-3      2  2x10        188-1/2"  Loft rim joist
 LF-4      2  2x10            189"  Loft edge joist. Square ends.
 KL-1      1  2x4             185"  Bottom plate
 KL-2      1  2x4             185"  Top plate
@@ -112,7 +113,7 @@ SOLID Slab x1
 SOLID Thickened edge x4
 SOLID Wall sheathing, 7/16" OSB x36
 STOCK 2x4 16' 0" x49
-STOCK 2x4 14' 0" x1
+STOCK 2x4 12' 0" x1
 STOCK 2x4 7' 8-5/8" x50
 STOCK 2x6 PT 16' 0" x4
 STOCK 2x6 16' 0" x7
@@ -120,8 +121,7 @@ STOCK 2x6 14' 0" x4
 STOCK 2x6 12' 0" x34
 STOCK 2x8 16' 0" x6
 STOCK 2x8 10' 0" x2
-STOCK 2x10 16' 0" x13
-STOCK 2x10 8' 0" x1
+STOCK 2x10 16' 0" x14
 STOCK 6x6 PT 8' 0" x6
 STOCK 1x4 16' 0" x12
 SHEETS 7/16" OSB, 4×8 x44
@@ -137,12 +137,12 @@ ITEM Joist hanger, 2x6: 18 ea
 ITEM Roof area, shingles: 353.7 sq ft
 ITEM Roof area, metal panels: 332.8 sq ft
 ITEM Drip edge: 149.1 ft
-COST lumber $1,820.97
+COST lumber $1,832.07
 COST sheets $998.00
 COST concrete $981.60
 COST hardware $208.80
 COST roofing $1,336.60
-COST total $5,345.97
+COST total $5,357.07
 SPAN Rafters: 2x6 at 24" o.c. 91-3/4" of 109-9/16" (bending)
 SPAN Loft joists: 2x10 at 16" o.c. 185" of 217-5/16" (bending)
 SPAN door 36 header (left wall): 2-ply 2x6 38" of 47-11/16" (bending)
