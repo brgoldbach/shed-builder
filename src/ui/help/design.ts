@@ -281,13 +281,6 @@ export const DESIGN_HELP = {
       hung: 'In joist hangers on ledgers inside the eave walls. The loft floor is lower by the joist depth.',
     },
   },
-  'roof.loft.gableEnds': {
-    about: 'How the gable framing meets the loft floor at a closed end. An open end is always balloon framed.',
-    options: {
-      balloon: 'The gable studs stand on the end wall and run past the loft floor. Steadier in high wind.',
-      platform: "The loft floor bears on the end wall, with an end rim on joists on the plates. The gable framing stands on a bottom plate on the deck, which braces its base.",
-    },
-  },
   'roof.loft.deck': {
     about: 'The sheets on the loft joists.',
   },

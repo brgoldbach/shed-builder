@@ -308,6 +308,9 @@ Decisions:
 - A gable cut in place has no bottom plate, and its studs take the end wall's layout.
 - The knee-wall sheet draws the loft deck's edge as `sheet` shapes, not as context: each loft sheet
   panel whose least depth is at the wall's outside face.
+- A gable that stands on the end wall, with no loft deck at its base, has a note that nothing braces
+  its base, to brace it and have the bracing checked. A platform gable stands on the deck, which
+  braces it.
 
 Change safely: the wall sheet and the gable sheet split the ROs by height. Keep the two tests
 complementary.

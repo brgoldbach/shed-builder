@@ -229,6 +229,11 @@ export function checkSpans(config: ShedConfig, model: Model, names: Naming): Spa
       beam(name, `${pier.girderPlies}-ply ${pier.girder}`, pier.girder, pier.girderPlies * thick, depth, spanOf(center), load, FLOOR.limit, basis);
     });
   }
+
+  // Wood ramp stringers as deck joists (DCA 6 Table 2), over their horizontal clear span.
+  for (const { check } of model.ramps) {
+    if (check) joists(`${check.name} stringers`, check.size, check.oc, check.span, FLOOR, 1, `${FLOOR.live} psf live + ${FLOOR.dead} psf dead, L/${FLOOR.limit}`);
+  }
   return checks;
 }
 

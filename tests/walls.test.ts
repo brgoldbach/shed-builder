@@ -200,3 +200,38 @@ describe('lean-to walls', () => {
     expect(lengths(ofRole(wall(members, 'right'), 'plate.cap'))).toEqual([116.5]);
   });
 });
+
+describe('anchor bolts and stud heights', () => {
+  // On a slab, a 36 in door placed `at` from the left end of the front wall, which starts inside the
+  // left end wall at 3-1/2.
+  const door = { name: 'door', kind: 'door', width: 36, height: 80 };
+  const slab = (at: number) =>
+    frameWalls(shedSchema.parse({ ...base, foundation: { type: 'slab' }, openingTypes: [door], openings: [{ type: 'door', wall: 'front', sill: 0, along: 'left', at: [at] }] }));
+  const frontBolts = (at: number) =>
+    slab(at)
+      .solids.filter(({ label, shape }) => label.startsWith('Anchor bolt') && shape.kind === 'cylinder' && shape.base[1] < 10 && shape.base[0] < at)
+      .map(({ shape }) => (shape.kind === 'cylinder' ? shape.base[0] : NaN));
+
+  it('sets two bolts in a short plate part, a quarter of its length in from each end (IRC R403.1.6)', () => {
+    // 3-1/2 to 22: 18-1/2 in long, bolts 4-5/8 in from each end.
+    expect(frontBolts(22)).toEqual([8.125, 17.375]);
+    expect(slab(22).warnings).toEqual([]);
+  });
+
+  it('sets one bolt, and warns, in a plate part too short for two', () => {
+    // 3-1/2 to 12: 8-1/2 in, under 3 × 3-1/2.
+    expect(frontBolts(12)).toEqual([7.75]);
+    expect(slab(12).warnings.map(({ message }) => message)).toEqual([
+      'Front wall: the 8-1/2" plate part from 3-1/2" has room for one anchor bolt, not two (IRC R403.1.6). Add a strap or hold-down there.',
+    ]);
+  });
+
+  it('warns about studs taller than IRC Table R602.3(5) allows: 10 ft in the bearing eave walls', () => {
+    // 140 in to the plate tops less 4-1/2 in of plates: 135-1/2 in studs, under the 14 ft of the end walls.
+    const { warnings } = frameWalls(shedSchema.parse({ ...base, studHeight: 'custom', wallHeight: 140 }));
+    expect(warnings.map(({ message }) => message.split(':')[0])).toEqual(['Front wall', 'Back wall']);
+    expect(warnings[0].message).toBe(
+      'Front wall: its 135-1/2" 2x4 studs are taller than the 10 ft that IRC Table R602.3(5) allows in a bearing wall. Have the wall engineered, or meet an exception of IRC R602.3.1.',
+    );
+  });
+});

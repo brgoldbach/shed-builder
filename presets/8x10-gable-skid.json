@@ -12,5 +12,5 @@
     { "type": "shed door 64x76", "wall": "left", "at": [50] },
     { "type": "window 24x36", "wall": "front", "sill": 46.25, "along": "left", "at": [48] }
   ],
-  "roof": { "style": "gable", "pitch": 6, "rafter": "2x4", "oc": 24, "ridge": "2x6" }
+  "roof": { "style": "gable", "pitch": 6, "rafter": "2x6", "oc": 24, "ridge": "2x8" }
 }

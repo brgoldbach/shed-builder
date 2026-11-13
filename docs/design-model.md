@@ -139,6 +139,7 @@ wall top. `custom` sets the wall top to `wallHeight`, and the stud is shorter by
 |---|---|
 | `wallHeight` has an effect only with `custom`. Prune resets it otherwise, so a compact file holds it only with `custom`. | `studLengths`, `pruneConfig` |
 | A file with `wallHeight` and no `studHeight` loads as `custom`. Files saved before stud heights existed had only `wallHeight`. | `keepWallHeight` (6.1) |
+| A 1.1.0 file with `roof.loft.gableEnds` loads without it: every closed loft end is platform framed. | `dropGableEnds` (6.1) |
 | Because of `keepWallHeight`, a compact file must hold `studHeight` whenever it holds `wallHeight`. | `restore` in `compactDesign` (8.3) |
 
 ### 1.7 Change the config safely
@@ -363,7 +364,9 @@ and the check in `compactDesign`. The steps run in this order:
    not keep it.
 3. `keepWallHeight`: for an object with `wallHeight` and no `studHeight`, add
    `studHeight: 'custom'`. Each upgrade step goes here.
-4. `shedSchema.safeParse`. A failure gives one `<path>: <message>` string for each issue, or
+4. `dropGableEnds`: drop `roof.loft.gableEnds`, which 1.1.0 saved. Every closed loft end is now
+   platform framed.
+5. `shedSchema.safeParse`. A failure gives one `<path>: <message>` string for each issue, or
    `file: <message>` for the root.
 
 Steps 2 and 3 accept any value and return a non-object as it is.
@@ -451,7 +454,7 @@ design with each unused setting at its default and each type placed prunes to an
 | `roof.highSide` | `style` is `lean-to`. | |
 | `roof.rafterTies` | Gable or gambrel roof, and no loft. When off, only `{ enabled: false }`. | Loft joists take the place of rafter ties. |
 | `roof.collarTies` | Gable or gambrel roof. When off, only `{ enabled: false }`. | |
-| `roof.loft` | Gable or gambrel roof with `loft.enabled`. | `loft.gableEnds` (`balloon`, the default, or `platform`) goes with it. |
+| `roof.loft` | Gable or gambrel roof with `loft.enabled`. | |
 | `roof.loft.open.length` | Also `open.end` is not `none`. | |
 | `roof.kneeWalls` | `style` is `gable`, with a loft. When off, only `{ enabled: false }`. | `frameRoof` raises the roof on knee walls only with a gable loft. A gambrel takes no knee walls: its steep lower slope gives the headroom. |
 | `additions[].purlin`, `purlinSpacing` | `roofing` is `metal`. | |

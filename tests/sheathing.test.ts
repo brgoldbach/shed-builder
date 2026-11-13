@@ -72,9 +72,9 @@ describe('8x10 sheathing', () => {
     const left = panelsOf(solids, 'LW-SH');
     expect(left).toHaveLength(4);
     // Upper row: from the 8 ft wall top at the corners to the rafter underside at the ridge post,
-    // 97-1/8 + (47-1/4 - 2-9/16 seat) × 6/12.
+    // 97-1/8 + (47-1/4 - 3-1/2 seat) × 6/12.
     const [upperLeft] = left.slice(2).map(extent);
-    expect(upperLeft).toEqual([0, 48, 96, 97.125 + (47.25 - 2.5625) / 2]);
+    expect(upperLeft).toEqual([0, 48, 96, 97.125 + (47.25 - 3.5) / 2]);
     expect(left[2].outline).toContainEqual([0, 97.125]);
   });
 
@@ -117,25 +117,26 @@ describe('loft deck', () => {
     const [knee] = model.members.filter((member) => member.assembly === 'knee.front' && member.role === 'plate.bottom');
     expect(knee.origin[2]).toBe(102.625 + 0.71875);
     expect(model.solids.filter((solid) => solid.label.startsWith('Subfloor')).every((solid) => solid.layer === 'floor')).toBe(true);
-    // Between the gable walls, over the rims to both outside faces. The 24 in open end leaves a
-    // 3-1/2 in strip under each knee wall, so the sheets at that end are L-shaped.
+    // Over the rims to both outside faces, and to the closed right end wall's outside face. The
+    // 24 in open end leaves a 3-1/2 in strip under each knee wall, so the sheets at that end are
+    // L-shaped.
     expect(deck.map((solid) => extent(solid.shape as Panel))).toEqual([
       [3.5, 96, 0, 48],
-      [96, 116.5, 0, 48],
+      [96, 120, 0, 48],
       [3.5, 48, 48, 96],
-      [48, 116.5, 48, 96],
+      [48, 120, 48, 96],
     ]);
     expect((deck[0].shape as Panel).outline).toEqual([[96, 0], [96, 48], [24, 48], [24, 3.5], [3.5, 3.5], [3.5, 0]]);
   });
 
   it('stops the deck where the rafter undersides meet its top, without knee walls', () => {
-    // 2-9/16 seat + (102-5/8 + 23/32 - 97-1/8) / (6/12) = 15 in from each wall face. The joists
-    // lap the rafters, so the joints land on 49-1/2 and 97-1/2.
+    // 3-1/2 seat + (102-5/8 + 23/32 - 97-1/8) / (6/12) = 15-15/16 in from each wall face, and out to
+    // both end walls' outside faces. The joints land on the fill joists' centers, 37-1/2 and 85-1/2.
     expect(deckOf(withLoft({ loft })).map((solid) => extent(solid.shape as Panel))).toEqual([
-      [3.5, 97.5, 15, 63],
-      [97.5, 116.5, 15, 63],
-      [3.5, 49.5, 63, 81],
-      [49.5, 116.5, 63, 81],
+      [0, 85.5, 15.9375, 63.9375],
+      [85.5, 120, 15.9375, 63.9375],
+      [0, 37.5, 63.9375, 80.0625],
+      [37.5, 120, 63.9375, 80.0625],
     ]);
   });
 });

@@ -6,7 +6,10 @@ import { compactDesign } from '../src/core/share';
 import { corners, LEFT_OUT, type Member, type Role } from '../src/core/member';
 import { buildModel } from '../src/core/model';
 import { buildBom } from '../src/core/out/bom';
+import { naming } from '../src/core/naming';
+import { checkSpans } from '../src/core/out/spans';
 import { PRESETS } from '../src/core/presets';
+import { DESIGNS } from './designs';
 
 // 8x10 on 4x6 skids: the floor is 23/32 + 5-1/2 + 5-1/2 = 11-23/32 above grade. Row 0 is the 64 in
 // door at 50% of the 96 in left wall: RO 16 to 80 in from the wall's left corner.
@@ -309,5 +312,26 @@ describe('ramps and stairs between levels', () => {
     // Stairs take no ramp settings. A start at the lean-to stays only where a lean-to floor meets it.
     expect(compactDesign(withRamps([{ ...door, kind: 'stairs', slope: 6, from: 'lean-to' }])).ramps).toEqual([{ ...door, kind: 'stairs' }]);
     expect(compactDesign(withLeanTo(deck(2), [{ ...door, from: 'lean-to' }])).ramps).toEqual([{ ...door, from: 'lean-to' }]);
+  });
+});
+
+describe('guards and stringer spans', () => {
+  // The 12x16 lean-to studio: a back deck and a wood ramp, 43-1/4 in up from grade.
+  const studio = DESIGNS.find(({ name }) => name === '12x16 lean-to studio')!;
+  const model = buildModel(studio);
+
+  it('warns that a deck or ramp more than 30 in above grade needs a guard (IRC R312.1.1)', () => {
+    expect(model.warnings.map(({ message }) => message)).toEqual(
+      expect.arrayContaining([
+        'The deck surface is 41-3/4" above grade. A deck more than 30" above grade needs a guard (IRC R312.1.1). The app does not build it.',
+        'A total rise of 43-1/4" needs a guard on each open side more than 30" above the ground below (IRC R312.1.1). The app does not build it.',
+      ]),
+    );
+  });
+
+  it('checks wood ramp stringers as deck joists, over their clear span to where they meet the ground', () => {
+    const check = checkSpans(studio, model, naming(studio)).find(({ member }) => member === 'Ramp 1 stringers')!;
+    expect(check.lumber).toBe('2x6 at 16" o.c.');
+    expect(check.span).toBeCloseTo(107.5, 1);
   });
 });

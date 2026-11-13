@@ -8,12 +8,12 @@
   "openingTypes": [
     { "name": "double door 60", "kind": "door", "width": 62, "height": 82.5 },
     { "name": "window 24x36", "kind": "window", "width": 24, "height": 36 },
-    { "name": "loft door", "kind": "door", "width": 38, "height": 40 }
+    { "name": "loft door", "kind": "door", "width": 38, "height": 38 }
   ],
   "openings": [
     { "type": "double door 60", "wall": "left", "at": [50] },
     { "type": "window 24x36", "wall": "front", "sill": 46.25, "at": [25, 75] },
-    { "type": "loft door", "wall": "left", "sill": 104, "at": [50] }
+    { "type": "loft door", "wall": "left", "sill": 106.5, "at": [50] }
   ],
   "roof": {
     "style": "gambrel",

@@ -104,6 +104,7 @@ AR-3      1  2x8             192"  Ledger. Lag-bolt through the sheathing into e
 AR-4      6  1x4             192"  Purlin
 AR-5      2  2x8             192"  Beam ply
 AR-6      3  6x6 PT       87-3/4"  Post
+WARNING Roof: The rafters bear on the knee walls, and no tie holds the knee-wall tops. Have an engineer review the roof framing (IRC R802.5.2).
 WARNING Roof: The ridge board (2x6) is shallower than the rafter plumb cut (6-1/8").
 SOLID Anchor bolt, 1/2" x18
 SOLID Loft deck, 23/32" T&G (3/4") x9

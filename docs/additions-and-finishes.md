@@ -258,7 +258,7 @@ The load path from the roof to the ground:
 
 | Part | Role, code | Rule |
 |---|---|---|
-| Ledger | `ledger.deck`, `DL` | `x` from 0 to `ledgerFace = 1.5`, on the floor framing. Two lags at each joist. |
+| Ledger | `ledger.deck`, `DL` | `x` from 0 to `ledgerFace = 1.5`, on the floor framing. The joist size, but at least a 2x8 (IRC R507.9.1.1), its top flush with the joist tops. Two lags at each joist. |
 | Joists | `joist.deck`, `DJ` | The o.c. rule over `[u0, u1]`, from `ledgerFace` out to `beamInner`, in hangers at both ends. |
 | Beam | `beam.deck`, `DB` | A flush beam on the post line: `plies = max(2, ⌈post / 1.5 − 0.01⌉)`, enough plies to bear the post's full width (4x4: 3, 6x6: 4). It runs from `beamInner` to `beamOuter`, tops level with the joists. |
 | Deck posts | `post`, `DP` | Not seated only. From the pier top to the beam bottom. |
@@ -328,7 +328,7 @@ boards on a gable end run out from the wall, across the joists, notched around t
 
 ### Change it safely
 
-- The deck joists, ledger, beam plies, and the beam seat share `deck.joist`. A separate beam size
+- The deck joists, beam plies, and the beam seat share `deck.joist`; the ledger is never under a 2x8. A separate beam size
   needs a config field, a span check change, a BOM label change, and a prune rule.
 - The pier top and the post base depend on the deck heights. Compute them before the posts and
   piers, as `frameLeanTo` does.
@@ -408,7 +408,7 @@ lean-to floor, or meets an open lean-to's post, gets a warning.
 
 | Part | Role, code | Rule |
 |---|---|---|
-| Stringers | `stringer`, `S`, PT | The ramp surface falls 1 in `slope` from `top` at `edge`. The stringer top lies one board thickness, square to the slope, under it: `top(x) = top − (x − edge) / slope − 1.5 / cos`. Plumb cut at `face`: lagged to the floor framing or a deck beam, or anchored to a slab edge. Level cut at the foot (`clipBelow`). The o.c. rule across `[left, right]` at `oc`. |
+| Stringers | `stringer`, `S`, PT | The ramp surface falls 1 in `slope` from `top` at `edge`. The stringer top lies one board thickness, square to the slope, under it: `top(x) = top − (x − edge) / slope − 1.5 / cos`. Plumb cut at `face`: lagged to the floor framing or a deck beam, or anchored to a slab edge. Level cut at the foot (`clipBelow`). The o.c. rule across `[left, right]` at `oc`. `RampFacts.check` gives the span checks the clear span, horizontal, from `face` to where the stringer bottom meets the foot. |
 | Boards | `decking`, `B`, 2x6, PT | `rows = ⌊(slopeLength + 0.25) / 5.75⌋`, 1/4 in apart, with `slopeLength = slope × rise / cos`. Row `r` starts `r × 5.75` down the slope from `edge`. Each row runs from `left` to `right`. The gap at the foot is less than one board and one gap. |
 
 ### Stairs
@@ -642,13 +642,16 @@ assembly.
 | Lean-to | Post length under 0.01 in. | The beam is at or below the post bases. | Left out: red footprint at grade. |
 | Lean-to | Post length under `MIN_POST` (12 in). | The posts are only L long. | Built. |
 | Lean-to | Clear height under the beam under `HEADROOM` (80 in). | The clear height under the beam is H, less than 6' 8". | Built. |
+| Lean-to | A notched rafter with a tail keeps less than 3-1/2 in above the notch, or its tail runs over 24 in past the beam (IRC R802.7.1.1). | The birdsmouth leaves L of the R rafter above the notch. Or: The R rafter tails run T past the bearing. | Built. |
 | Lean-to, extension | The main-wall notch is deeper than the 1/3 limit. | The birdsmouth on the main wall cuts deeper than 1/3 of the R rafter. | Built. |
 | Lean-to, extension | A steeper lean-to pitch lifts the upper ends over the main roof plane by `stand = (rise − eave.pitch / 12) × (−start)`, more than 1/8 in. | At the steeper pitch the lean-to rafters stand S over the main roof plane at their upper ends. | Built. |
 | Lean-to, extension | `gap` over 0.01 in: the underside passes over the main wall's plate. | The lean-to rafters pass G over the main wall's plate. | Built, with no main-wall birdsmouth. |
 | Lean-to deck | `deckBeamBottom < grade` | The deck framing runs D below grade. | Built. |
+| Lean-to deck | The deck surface is more than 30 in above grade (IRC R312.1.1). | The deck surface is H above grade. A deck more than 30" above grade needs a guard. The app does not build it. | Built, with no guard. |
 | Lean-to deck | On the shed's foundation, a notch deeper than 1/4 of the joist depth. | The deck joists are notched D at their bearings, more than 1/4 of their depth. | Built. |
 | Lean-to deck | 5/4 boards on joists more than 16 in apart (2x6 boards: 24 in), per IRC R507.7. | 5/4x6 deck boards span 16" at most; the joists are N" apart. | Built. |
 | Lean-to deck | A gable-end deck on the shed's foundation with no shed line under it. | No shed skids (or girders) run under the deck. | Built, with its own lines at its ends. |
 | Ramp N | The opening it follows is gone. | The opening it follows is gone. | Built at its own `wall`, `along`, `at`, and `width`. |
 | Ramp N, wood | `rise < 1.5 / cos + 0.01`: no room for a stringer under the boards. | The floor is R above the ramp's foot, too low for stringers under the boards. | Left out: red outline at floor level, from the framing face out 24 in, across the ramp's width. |
 | Ramp N, concrete | `rise < 0.01` | The floor is R above the ramp's foot, so the ramp has no rise. | Left out, as wood. |
+| Ramp N | A total rise over 30 in (IRC R312.1.1). | A total rise of R needs a guard on each open side more than 30" above the ground below. The app does not build it. | Built, with no guard. |

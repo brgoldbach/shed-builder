@@ -483,3 +483,19 @@ describe('eave fascia and tail cuts', () => {
     expect(shallow.warnings).toEqual([]);
   });
 });
+
+describe('birdsmouth over a tail (IRC R802.7.1.1)', () => {
+  const messages = (roof: object) => roofOf({ ...gableRoof, ...roof }).warnings.map(({ message }) => message);
+  const notch = 'The birdsmouth leaves 2-3/8" of the 2x4 rafter above the notch. IRC R802.7.1.1 needs 3-1/2" with a tail. Use a deeper rafter.';
+
+  it('warns when a notched rafter with a tail keeps less than 3-1/2 in above the notch', () => {
+    // 2x4 at 6/12: a 2-9/16 seat cuts 2-9/16 × sin 26.6° = 1-1/8 in square to the edge.
+    expect(messages({ rafter: '2x4', ridge: '2x6' })).toContain(notch);
+    expect(messages({ rafter: '2x4', ridge: '2x6', eaveOverhang: 0 })).not.toContain(notch);
+    expect(messages({})).toEqual([]);
+  });
+
+  it('warns about a tail longer than 24 in past a notched bearing', () => {
+    expect(messages({ eaveOverhang: 30 })).toContain('The 2x6 rafter tails run 30" past the bearing. IRC R802.7.1.1 allows 24" past a notched bearing.');
+  });
+});

@@ -31,6 +31,7 @@ RF-2      2  2x4         61-7/16"  Fly rafter. No birdsmouth. Both ends plumb cu
 RF-3      2  2x4         61-7/16"  Ladder rail. Both ends plumb cut 9.5°. Assemble the rake ladder on the ground, then face-nail this rail to the gable-end rafter, tops flush.
 RF-4      2  2x6              80"  Fascia
 RF-5      4  1x4              80"  Purlin
+WARNING Roof: The birdsmouth leaves 2-15/16" of the 2x4 rafter above the notch. IRC R802.7.1.1 needs 3-1/2" with a tail. Use a deeper rafter.
 SOLID Subfloor, 19/32" plywood (5/8") x1
 STOCK 2x4 PT 16' 0" x1
 STOCK 2x4 PT 12' 0" x1

@@ -106,14 +106,17 @@ export function frameRoof(config: ShedConfig): {
   const gable = ridged(roof);
   const lowWall = gable || roof.highSide === 'back' ? 'front' : 'back';
   // Knee walls in a gable roof's loft raise the roof: the rafters bear on them. They stand on the
-  // deck over joists on the plates, or on the wall top when the joists hang between ledgers.
+  // loft deck: over the rims on joists on the plates, or over the wall top under hung joists.
   const raised = roof.style === 'gable' && roof.loft.enabled && roof.kneeWalls.enabled;
   const kneeBase =
     roof.loft.support === 'hung'
-      ? tops.front
+      ? tops.front + SHEETS[roof.loft.deck].thick
       : tops.front + LUMBER[roof.loft.joist].width + SHEETS[roof.loft.deck].thick;
   const bearingDepth = raised ? LUMBER[roof.kneeWalls.stud].width : wallDepth;
   const seat = seatLength(depth, bearingDepth, pitch, warn);
+  checkTailNotch(roof.rafter, seat, pitch.sin, roof.eaveOverhang, warn);
+  // The loft floor ties the knee walls' bases, not their tops, where the rafters push out.
+  if (raised) warn('The rafters bear on the knee walls, and no tie holds the knee-wall tops. Have an engineer review the roof framing (IRC R802.5.2).');
   const plate = raised ? kneeBase + roof.kneeWalls.height : tops[lowWall];
   const plumb = depth / pitch.cos;
   // The eave slope: the whole side, or a gambrel's lower slope.
@@ -565,6 +568,19 @@ function seatLength(depth: number, wallDepth: number, pitch: Pitch, warn: (messa
       'Use a deeper rafter or a lower pitch.',
   );
   return PLY;
+}
+
+/**
+ * IRC R802.7.1.1: a rafter notched over its bearing, with a tail past it, keeps 3-1/2 in above the
+ * notch, and its tail runs 24 in at most. `seat` and `tail` are horizontal.
+ */
+export function checkTailNotch(size: LumberSize, seat: number, sin: number, tail: number, warn: (message: string) => void) {
+  if (tail < NEAR) return;
+  const left = LUMBER[size].width - seat * sin;
+  if (left < 3.5 - NEAR) {
+    warn(`The birdsmouth leaves ${formatInches(left)} of the ${size} rafter above the notch. IRC R802.7.1.1 needs 3-1/2" with a tail. Use a deeper rafter.`);
+  }
+  if (tail > 24 + NEAR) warn(`The ${size} rafter tails run ${formatInches(tail)} past the bearing. IRC R802.7.1.1 allows 24" past a notched bearing.`);
 }
 
 // Rafter outline in the drawn section: low end, along the bottom edge through each birdsmouth,

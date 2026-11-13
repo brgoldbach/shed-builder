@@ -71,6 +71,7 @@ RP-4      5  2x8 PT      32-1/16"  Ramp stringer. Plumb cut 18.4° at the floor 
 WARNING double door (front 50%): The header goes tight to the top plate, because cripples would be shorter than 3". The RO height grows by 2-5/8" to 84-7/8".
 WARNING window 24x36 (front 80%): The framing overlaps a corner or another opening. It is left out: red in 3D and on the drawings.
 WARNING vent (left 2" from left): The framing runs past the wall end. The king and jacks need 3" on each side of the RO. It is left out: red in 3D and on the drawings.
+WARNING Roof: The birdsmouth leaves 2-5/16" of the 2x4 rafter above the notch. IRC R802.7.1.1 needs 3-1/2" with a tail. Use a deeper rafter.
 WARNING vent (right 50%): The header does not fit. RO top 118" plus 10-1/4" of header is above the gable top plate at 107-1/2". It is left out: red in 3D and on the drawings.
 WARNING Right lean-to: The clear height under the beam is 5' 8-11/16", less than 6' 8".
 SOLID Roof sheathing, 7/16" OSB x13
@@ -126,3 +127,5 @@ SPAN Right lean-to rafters: 2x6 at 24" o.c. 54-13/16" of 140-11/16" (bending)
 SPAN Right lean-to beam: 2-ply 2x8 92-1/2" of 177-13/16" (bending)
 SPAN Right lean-to deck joists: 2x4 at 16" o.c. 30-3/16" of 71-1/8" (deflection)
 SPAN Right lean-to deck beam: 3-ply 2x4 30-3/16" of 111-7/16" (deflection)
+SPAN Ramp 1 stringers: 2x6 at 16" o.c. 18" of 111-13/16" (deflection)
+SPAN Ramp 2 stringers: 2x8 at 12" o.c. 7-1/2" of 162-3/16" (deflection)

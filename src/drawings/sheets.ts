@@ -328,6 +328,8 @@ function upperElevation({ config, model, names, marks }: Context, wall: Wall): D
     .filter((opening) => opening.wall === wall && opening.bottom >= box.min[1] - NEAR)
     .sort((first, second) => first.left - second.left);
   const origin = `Layout and RO positions run from the left end of the ${platform ? "gable's" : panel.length > 0 ? "panel's" : "end wall's"} bottom plate, viewed from outside.`;
+  // The gable's base hinges at the plate it stands on. The loft deck braces it at a platform end.
+  const brace = platform ? null : "No floor or deck braces the gable's base at the end wall's top plate. Brace it, and have the bracing checked.";
   const notes = gable
     ? [
         `${config.walls.stud} gable studs on the ${config.walls.oc}" wall layout, top cut to the gable top plates.`,
@@ -336,6 +338,7 @@ function upperElevation({ config, model, names, marks }: Context, wall: Wall): D
           : panel.length > 0
             ? 'Built as a panel. Frame it flat on the floor. Stand it on the end wall. Nail the bottom plate down to the top plate.'
             : "Cut in place. Cut each stud to fit between the end wall's top plate and the gable top plate. Toenail both ends.",
+        ...(brace ? [brace] : []),
         origin,
       ]
     : [

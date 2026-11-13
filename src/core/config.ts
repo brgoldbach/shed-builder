@@ -24,9 +24,6 @@ export const HEADER_STYLES = ['single', 'double', 'triple', 'flat'] as const;
 export const ALONG = ['percent', 'left', 'right'] as const;
 export const ROOF_STYLES = ['gable', 'gambrel', 'lean-to'] as const;
 export const LOFT_SUPPORTS = ['plates', 'hung'] as const;
-// balloon: the gable studs stand on the end wall and run past the loft floor. platform: at a closed
-// end, the loft floor bears on the end wall and the gable framing stands on its deck.
-export const LOFT_GABLE_ENDS = ['balloon', 'platform'] as const;
 export const LOFT_OPEN_ENDS = ['none', 'left', 'right'] as const;
 export const MUD_SILLS = ['none', 'match', ...TWO_BY] as const;
 // plumb-level: plumb only as deep as the fascia hangs, then level back to the rafter's bottom edge.
@@ -212,7 +209,6 @@ const roof = z.strictObject({
       deck: z.enum(SHEET_KEYS).default('tg-23/32'),
       // plates: on the eave-wall plates. hung: in hangers between ledgers, tops flush with the walls.
       support: z.enum(LOFT_SUPPORTS).default('plates'),
-      gableEnds: z.enum(LOFT_GABLE_ENDS).default('balloon'),
       // No loft floor for `length` from one gable end.
       open: z
         .strictObject({
@@ -461,6 +457,16 @@ export type ParseResult = { ok: true; config: ShedConfig } | { ok: false; errors
 const keepWallHeight = (raw: unknown) =>
   raw !== null && typeof raw === 'object' && 'wallHeight' in raw && !('studHeight' in raw) ? { ...raw, studHeight: 'custom' } : raw;
 
+// 1.1.0 saved a loft gable-end setting, `gableEnds`. Every closed loft end is now platform framed.
+function dropGableEnds(raw: unknown): unknown {
+  const file = raw as { roof?: { loft?: Record<string, unknown> } } | null;
+  const loft = file?.roof?.loft;
+  if (typeof loft !== 'object' || loft === null || !('gableEnds' in loft)) return raw;
+  const rest = { ...loft };
+  Reflect.deleteProperty(rest, 'gableEnds');
+  return { ...file, roof: { ...file!.roof, loft: rest } };
+}
+
 // The saving app's version is for people who read the file. The design does not keep it.
 function withoutAppVersion(raw: unknown): unknown {
   if (raw === null || typeof raw !== 'object' || !('appVersion' in raw)) return raw;
@@ -470,7 +476,7 @@ function withoutAppVersion(raw: unknown): unknown {
 }
 
 export function parseConfig(raw: unknown): ParseResult {
-  const result = shedSchema.safeParse(keepWallHeight(withoutAppVersion(raw)));
+  const result = shedSchema.safeParse(dropGableEnds(keepWallHeight(withoutAppVersion(raw))));
   if (result.success) return { ok: true, config: result.data };
   const errors = result.error.issues.map(
     (issue) => `${issue.path.join('.') || 'file'}: ${issue.message}`,
