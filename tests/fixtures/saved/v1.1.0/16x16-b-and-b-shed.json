@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "name": "B and B shed",
+  "width": 192,
+  "length": 192,
+  "studHeight": 92.625,
+  "wallHeight": 109.125,
+  "front": "gable",
+  "foundation": {
+    "type": "slab",
+    "skid": {
+      "size": "4x6",
+      "count": 4
+    },
+    "pier": {
+      "diameter": 10,
+      "depth": 36,
+      "aboveGrade": 8,
+      "post": "6x6",
+      "postLength": 12,
+      "girder": "2x8",
+      "girderPlies": 2,
+      "girderCount": 2,
+      "maxSpacing": 72
+    },
+    "slab": {
+      "thickness": 4,
+      "thickenedEdge": true,
+      "edgeWidth": 12,
+      "edgeDepth": 12,
+      "anchorSpacing": 72,
+      "anchorEndDistance": 12
+    }
+  },
+  "floor": {
+    "joist": "2x6",
+    "oc": 16,
+    "treated": true,
+    "blocking": false,
+    "subfloor": "tg-23/32"
+  },
+  "walls": {
+    "stud": "2x4",
+    "oc": 16,
+    "capPlate": true,
+    "mudSill": "2x6",
+    "corner": "california",
+    "through": "ends",
+    "header": "2x6",
+    "doubleJackOver": 72,
+    "sillPlies": 1,
+    "sheathing": "osb-7/16"
+  },
+  "openingTypes": [
+    {
+      "name": "Garage Door 9x7",
+      "kind": "overhead",
+      "width": 108,
+      "height": 84,
+      "header": "2x8",
+      "girder": "double",
+      "plateBelow": false,
+      "plateAbove": false,
+      "jacks": 2,
+      "headroom": 12
+    },
+    {
+      "name": "window 24x36",
+      "kind": "window",
+      "width": 24,
+      "height": 36,
+      "girder": "single",
+      "plateBelow": true,
+      "plateAbove": true,
+      "jacks": "auto",
+      "headroom": 12
+    },
+    {
+      "name": "door 36",
+      "kind": "door",
+      "width": 38,
+      "height": 82.25,
+      "header": "2x6",
+      "girder": "double",
+      "plateBelow": true,
+      "plateAbove": true,
+      "jacks": "auto",
+      "headroom": 12
+    },
+    {
+      "name": "Loft Window",
+      "kind": "window",
+      "width": 24,
+      "height": 24,
+      "header": "2x4",
+      "girder": "flat",
+      "plateBelow": true,
+      "plateAbove": false,
+      "jacks": "auto",
+      "headroom": 12
+    }
+  ],
+  "openings": [
+    {
+      "enabled": true,
+      "type": "Garage Door 9x7",
+      "wall": "left",
+      "sill": 0,
+      "along": "percent",
+      "at": [
+        50
+      ]
+    },
+    {
+      "enabled": true,
+      "type": "window 24x36",
+      "wall": "right",
+      "sill": 46.25,
+      "along": "percent",
+      "at": [
+        75
+      ]
+    },
+    {
+      "enabled": true,
+      "type": "door 36",
+      "wall": "back",
+      "sill": 0,
+      "along": "percent",
+      "at": [
+        75
+      ]
+    },
+    {
+      "enabled": true,
+      "type": "door 36",
+      "wall": "right",
+      "sill": 0,
+      "along": "percent",
+      "at": [
+        25
+      ]
+    },
+    {
+      "enabled": true,
+      "type": "Loft Window",
+      "wall": "left",
+      "sill": 144,
+      "along": "percent",
+      "at": [
+        50
+      ]
+    },
+    {
+      "enabled": true,
+      "type": "Loft Window",
+      "wall": "right",
+      "sill": 144,
+      "along": "percent",
+      "at": [
+        50
+      ]
+    }
+  ],
+  "roof": {
+    "style": "gable",
+    "pitch": 6,
+    "rafter": "2x6",
+    "oc": 24,
+    "eaveOverhang": 12,
+    "rakeOverhang": 8,
+    "tailCut": "plumb",
+    "fascia": "2x6",
+    "sheathing": "osb-7/16",
+    "rakeLadder": {
+      "size": "2x4",
+      "spacing": 16
+    },
+    "ridge": "2x6",
+    "highSide": "back",
+    "rafterTies": {
+      "enabled": true,
+      "size": "2x4",
+      "every": 1,
+      "height": 0
+    },
+    "collarTies": {
+      "enabled": true,
+      "size": "2x4",
+      "every": 1,
+      "height": "auto"
+    },
+    "loft": {
+      "enabled": true,
+      "joist": "2x10",
+      "oc": 16,
+      "deck": "tg-23/32",
+      "support": "plates",
+      "open": {
+        "end": "left",
+        "length": 48
+      },
+      "hatches": [],
+      "gableEnds": "platform"
+    },
+    "kneeWalls": {
+      "enabled": true,
+      "height": 36,
+      "stud": "2x4"
+    }
+  },
+  "additions": [
+    {
+      "side": "back",
+      "mirror": true,
+      "attach": "soffit",
+      "depth": 108,
+      "length": "full",
+      "center": 50,
+      "pitch": 3,
+      "drop": 3,
+      "rafter": "2x6",
+      "oc": 24,
+      "eaveOverhang": 12,
+      "fascia": "2x6",
+      "roofing": "metal",
+      "purlin": "1x4",
+      "purlinSpacing": 24,
+      "post": "6x6",
+      "maxSpacing": 96,
+      "beam": "2x8",
+      "beamPlies": 2,
+      "floor": "none"
+    }
+  ],
+  "loads": {
+    "roof": 30,
+    "roofDead": 10,
+    "loft": "storage"
+  },
+  "catalog": {
+    "species": "sp",
+    "kerf": 0.125,
+    "maxLength": 192,
+    "maxOnePiece": 240,
+    "stock": {}
+  }
+}
